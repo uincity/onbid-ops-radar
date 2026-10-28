@@ -92,7 +92,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | Supabase Auth | 이메일·비밀번호 로그인을 대신 처리해 주는 서비스 | 로그인 |
 | Supabase DB (PostgreSQL) + RLS | 데이터를 저장하는 창고와, 창고 안에서 "누가 어떤 줄을 볼 수 있는지" 정하는 출입 규칙 | 데이터 저장·권한 |
 | Supabase Cron (pg_cron + pg_net) | 정해진 시각에 자동으로 우리 앱의 점검 주소를 불러 주는 알람 시계 | 매일 예약 점검 |
-| `@supabase/supabase-js`, `@supabase/ssr` | Next.js에서 Supabase를 쓰고 로그인 상태를 유지하게 해 주는 공식 연결 도구 | DB·로그인 연결 |
+| **`@supabase/supabase-js`, `@supabase/ssr`** | Next.js에서 Supabase를 쓰고 로그인 상태를 유지하게 해 주는 공식 연결 도구 | DB·로그인 연결 |
 | **Zod** | 화면에서 들어온 값(사유 10자 이상 등)이 규칙에 맞는지 서버에서 검사해 주는 입력값 검사 도구 | 서버 액션 |
 | **Vitest** | 탐지 규칙이 맞게 동작하는지 자동으로 채점해 주는 테스트 도구 | 단위 테스트 |
 | **Playwright** | 브라우저를 자동으로 열어 로그인 → 처리 → 보고서까지 눌러 보는 화면 자동 테스트 도구 | 화면·흐름 테스트 |
@@ -139,8 +139,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 ### 4.3 대시보드 `/`
 
 ```
-┌─ 오늘(KST) 점검 요약 ─────────────────────────────────────────┐
-│ [API 점검 성공 18] [실패 2] [미배정 5] [미처리 12]             │
+┌─ 오늘(KST) 점검 ───────────────┬─ 현재 처리 현황 (누적) ────────┐
+│ [API 점검 성공 18] [실패 2]    │ [미배정 5] [미처리 12]          │
 ├─ 규칙별 신규 이상징후 ────────┬─ 최근 점검 실행 ───────────────┤
 │ 날짜 정합성      3            │ 09:00 예약  완료   2분 전       │
 │ 필수정보         1            │ 08:41 수동  부분완료 (상한 도달)│
@@ -149,6 +149,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
   기준: 2026-10-29 00:00~24:00 KST · 출처: DEMO · 점검 기준 시각 09:00:12
 ```
 - 숫자 카드를 누르면 해당 조건으로 걸러진 이상징후 목록으로 이동한다.
+- 점검 성공·실패와 규칙별 신규 건수는 오늘(KST) 기준, 미배정·미처리는 날짜와 관계없는 현재 건수다. 미처리 = `open` + `investigating`, 미배정 = 미처리 중 담당자 없음 (PRD 5-6)
+- 점검 기준 시각은 오늘 마지막으로 성공한 실행의 수집 시각이다.
 
 ### 4.4 이상징후 목록 `/anomalies`
 
@@ -161,6 +163,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 └────┴──────────────┴─────────────┴──────┴────────┴──────┴──────────┘
 ```
 - 기본 탭: operator는 "미확인", admin은 "전체"
+- operator도 남의 담당 건을 볼 수 있다(조회 허용). 남의 담당 건의 상태변경·판정·배정만 막는다(PRD SEC-08).
 - 재발 건은 "재발" 표시와 함께 이전 건으로 가는 링크를 단다.
 
 ### 4.5 이상징후 상세 `/anomalies/[id]`
@@ -174,7 +177,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 ├─ 처리 ──────────────────────────────────────────────────────────────────┤
 │ 담당자: 김담당  [나에게 배정] / [담당자 지정 ▾](팀장)                     │
 │ 판정: (●미판정 ○실제 오류 ○정상·오탐)   [판정 저장]                       │
-│ 다음 상태: [조치 완료] [정상 판정] [검토 재개]  사유/조치내용: [______]    │
+│ 다음 상태: [검토 시작] [조치 완료] [정상 판정] [검토 재개]  사유: [______] │
 ├─ 이벤트 이력 ───────────────────────────────────────────────────────────┤
 │ 10-29 09:12 김담당  상태 open → investigating                           │
 │ 10-29 09:10 김담당  담당자 (없음) → 김담당                               │
@@ -182,17 +185,22 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 └──────────────────────────────────────────────────────────────────────────┘
 ```
 - 버튼은 지금 상태에서 허용된 전이만 보여 준다(PRD 5-3 규칙 1). 그래도 최종 판단은 서버와 DB가 한다.
+  - [검토 시작]: `open`일 때, 담당자 본인 또는 admin
+  - [조치 완료]·[정상 판정]: `investigating`일 때, 판정 짝과 사유 10자 이상 필요
+  - [검토 재개]: `resolved`/`dismissed`일 때. 재개하면 판정이 `undetermined`로 돌아간다. 같은 건의 열린 재발 건이 있으면 "이미 열린 건(#번호)이 있습니다"라고 안내하고 그 건으로 가는 링크를 보여 준다.
+- 배정은 상태를 바꾸지 않는다. 배정 후 [검토 시작]을 따로 누른다(PRD 4-2).
 - 다른 사람이 먼저 바꿨으면 "다른 사용자가 먼저 변경했습니다. 새로고침 후 다시 시도하세요."를 띄운다.
 
 ### 4.6 점검 실행 이력 `/runs`, `/runs/[id]`
 - **목록:** 실행 시각, 예약/수동, 출처, 결과(완료·부분완료·실패·중복 실행 차단), API 호출 수, 신규 이상징후 수
-- **팀장만:** 맨 위에 [수동 점검 실행] 버튼. 실행 중이면 버튼이 잠기고 "이미 점검이 실행 중"을 보여 준다.
+- **팀장만:** 맨 위에 출처 선택(DEMO/PUBLIC)과 [수동 점검 실행] 버튼. 실행 중이면 버튼이 잠기고 "이미 점검이 실행 중"을 보여 준다. PUBLIC은 U23 완료 후에만 고를 수 있다.
 - **상세:** API 호출별 응답시간·HTTP 상태·결과 구분(성공/HTTP 오류/타임아웃/서비스키·한도 문제/빈 결과)·데이터 유효 여부, 비교 제외 사유와 실행 로그
 
 ### 4.7 보고서 `/reports`, `/reports/[id]`
-- **목록:** 보고서 날짜, 생성 시각, 생성자. 같은 날 여러 번 만들면 모두 남는다.
-- **팀장만:** [오늘 보고서 생성] 버튼
-- **미리보기:** PRD 5-4 항목(점검 성공·실패, 검증 건수, 신규 이상징후·유형별 분포, 처리 현황, 주요 미처리 최대 10건), 데이터 출처, 점검 기준 시각, 보고서 생성 시각
+- **목록:** 보고서 날짜, 출처, 생성 시각, 생성자. 같은 날 여러 번 만들면 모두 남는다.
+- **팀장만:** 날짜 선택(기본 오늘)과 출처 선택(DEMO/PUBLIC), [보고서 생성] 버튼. 보고서는 출처별로 따로 만든다.
+- **미리보기:** PRD 5-4 항목(점검 성공·실패, 검증 건수, 신규 이상징후·유형별 분포, 처리 현황, 주요 미처리 최대 10건), 데이터 출처, 점검 기준 시각(그날 마지막 성공 실행의 수집 시각), 보고서 생성 시각
+- 오늘 보고서에는 "생성 시각까지 집계"라고 표시한다.
 - [Markdown 다운로드] 버튼
 
 ---
@@ -203,14 +211,19 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 
 | 단계 | 입력 | 처리 | 출력 |
 |---|---|---|---|
-| 1. 시작 | Supabase Cron(매일 UTC 00:00) 또는 팀장의 [수동 점검 실행] | 예약이면 `CRON_SECRET` 확인, 수동이면 로그인·admin 확인. 실행 중인 점검이 있으면 시작하지 않음 | `check_runs` 1줄 (`running`) 또는 "중복 실행 차단" 기록 |
-| 2. 조회 | 출처(DEMO/PUBLIC), 설정값(타임아웃 10초, 상한 20회) | 조회기가 API를 호출하고 응답시간·결과를 잰다. 서비스키·한도 오류는 따로 구분 | `api_checks` 기록 |
+| 1. 시작 | Supabase Cron(매일 UTC 00:00) 또는 팀장의 [수동 점검 실행] | 예약이면 `CRON_SECRET` 확인 후 설정값 `scheduled_source`(기본 DEMO)를, 수동이면 로그인·admin 확인 후 팀장이 고른 출처를 쓴다. 시작 후 120초가 지난 `running` 실행은 실패(시간 초과)로 먼저 마감한다. 실행 중인 점검이 있으면 시작하지 않음 | `check_runs` 1줄 (`running`) 또는 `blocked`(중복 실행 차단) 1줄 |
+| 2. 조회 | 출처(DEMO/PUBLIC), 설정값(타임아웃 10초, 상한 20회) | 조회기가 `https://`로 허용된 호스트만 호출하고 응답시간·결과를 잰다. 서비스키·한도 오류는 따로 구분. PUBLIC이면 오늘(KST) `api_checks` 건수를 합산해 일일 예산을 넘으면 호출하지 않고 로그를 남긴다 | `api_checks` 기록 |
 | 3. 정리 | API 응답 원본 | 허용된 필드만 골라 담고 개인정보 필드는 버림 | `collected_items` 기록 |
 | 4. 탐지 | 정리된 목록·상세 데이터 | 규칙 3개 실행(순수 함수). 수집 시각 차이 10분 초과면 비교 제외 사유 기록 | 탐지 결과 목록 |
-| 5. 등록 | 탐지 결과 | 같은 출처·물건·규칙의 열린 건이 있으면 횟수만 늘림. `dismissed` 건과 값이 같으면 억제. 종결 건이 값이 바뀌어 다시 걸리면 재발로 새 건 | `anomalies`, `anomaly_events` |
+| 5. 등록 | 탐지 결과 (빈 결과를 허용하지 않는 API의 0건은 `EMPTY_RESULT`, 식별값은 API 이름) | ① 같은 출처·물건·규칙의 열린 건이 있으면 그 건의 횟수·최근 탐지시각만 갱신 ② 없고, 가장 최근 종결 건이 `dismissed`이며 `value_hash`가 같으면 그 건의 `detect_count`·`last_detected_at`만 갱신 ③ 그 밖(`resolved`, 값이 바뀐 `dismissed`, 처음 탐지)은 새 건 생성, 종결 건이 있으면 `previous_anomaly_id`로 연결 | `anomalies`, `anomaly_events` |
 | 6. 마감 | 실행 결과 | 60초·호출 상한에 걸린 작업은 로그로 남기고 상태 확정 | `check_runs` 상태(`succeeded`/`partial`/`failed`), 대시보드 반영 |
 
 > 서비스키·한도 문제가 생긴 실행에서는 4~5단계를 건너뛰어 데이터 이상징후를 만들지 않는다(PRD 5-2 규칙 6).
+
+**예약 호출 방식**
+- Supabase Cron은 pg_net으로 `POST /api/cron/daily-check`를 부르고, `CRON_SECRET`을 헤더에 담는다.
+- `CRON_SECRET`은 Supabase Vault에 보관하고, Cron SQL은 Vault에서 읽는다. 마이그레이션 파일에는 값을 넣지 않는다.
+- 예약 입구는 점검이 끝날 때까지(최대 60초) 처리한 뒤 응답한다. pg_net 요청 대기시간은 90초로 설정한다. 응답을 받지 못해도 결과는 `check_runs`에 남으므로 판단은 DB 기록으로 한다.
 
 ### 5.2 흐름 ② 담당자의 확인·조치
 
@@ -225,9 +238,9 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 ### 5.3 흐름 ③ 일일 점검보고서
 
 ```
-[화면] 팀장이 [오늘 보고서 생성] 클릭
-   → [서버 액션] 로그인·admin 확인
-   → [집계] KST 00:00~24:00 범위로 DB에서 직접 계산 (LLM 사용 안 함)
+[화면] 팀장이 날짜(기본 오늘)와 출처를 고르고 [보고서 생성] 클릭
+   → [서버 액션] 로그인·admin 확인, Zod로 날짜·출처 검사
+   → [집계] 고른 날짜의 KST 00:00~24:00(오늘이면 생성 시각까지), 고른 출처만 DB에서 직접 계산 (LLM 사용 안 함)
    → [작성] Markdown 문서 생성 (출처·점검 기준 시각·생성 시각 포함)
    → [저장] reports에 스냅샷 1줄 추가 (수정하지 않음)
    → [화면] 미리보기 → [Markdown 다운로드]
@@ -235,7 +248,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - 목표: 버튼을 누르고 60초 이내에 미리보기가 뜬다.
 
 ### 5.4 흐름 ④ 예약 누락 감지
-- 대시보드와 공통 경고 띠를 그릴 때, "오늘 KST 09:30이 지났는데 오늘 날짜의 예약 실행 기록이 없음"이면 경고를 보여 주고 실행 로그에 1회 기록한다.
+- Supabase Cron에 UTC 00:30(KST 09:30) 작업을 하나 더 둔다. 이 작업이 DB 함수 `mark_schedule_missed()`를 불러, 오늘 날짜의 예약 실행 기록(`blocked` 포함)이 없으면 `run_logs`에 누락 기록 1줄을 추가한다. 날짜당 1건만 남도록 DB 제약을 건다.
+- 대시보드와 공통 경고 띠는 이 기록을 **읽기만** 한다. 화면을 그리는 동안에는 아무것도 기록하지 않는다.
 
 ---
 
@@ -246,19 +260,23 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | 테이블 | 담는 것 | 주요 칸 |
 |---|---|---|
 | `profiles` | 사용자 이름과 역할 | `id`(로그인 계정과 같음), `display_name`, `role`(`operator`/`admin`) |
-| `settings` | PRD 5-5 설정값 | `key`, `value`, `updated_at` |
-| `check_runs` | 점검 실행 1회 | `trigger`(`scheduled`/`manual`), `source`, `status`(`running`/`succeeded`/`partial`/`failed`), `started_at`, `finished_at`, `api_call_count`, `triggered_by` |
-| `run_logs` | 실행 중 남길 메모 | `run_id`, `level`, `code`(상한 도달, 시간 초과, 비교 제외, 중복 실행 차단, 예약 누락 등), `message` |
+| `settings` | PRD 5-5 설정값과 탐지 설정 | `key`, `value`, `updated_at`. 키: 5-5 값들, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint` (DEMO 값은 PRD 부록 B) |
+| `check_runs` | 점검 실행 1회 | `trigger`(`scheduled`/`manual`), `source`, `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `api_call_count`, `triggered_by` |
+| `run_logs` | 실행 중 남길 메모 | `run_id`(비울 수 있음), `log_date`(KST 날짜), `level`, `code`(상한 도달, 시간 초과, 비교 제외, 일일 예산 초과, 예약 누락 등), `message` |
 | `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid` |
 | `collected_items` | 정리된 수집 데이터 | `run_id`, `source`, `item_key`, `kind`(`list`/`detail`), `fields`(허용 필드만), `collected_at` |
-| `anomalies` | 이상징후 1건 | `source`, `item_key`, `rule_id`, `status`, `verdict`, `assignee_id`, `version`, `evidence`, `value_hash`, `detect_count`, `first_detected_at`, `last_detected_at`, `previous_anomaly_id` |
+| `anomalies` | 이상징후 1건 | `source`, `item_key`, `rule_id`, `status`(기본 `open`), `verdict`(기본 `undetermined`), `assignee_id`, `version`, `evidence`, `value_hash`, `detect_count`, `first_detected_at`, `last_detected_at`, `previous_anomaly_id` |
 | `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `event_type`, `from_value`, `to_value`, `note`, `created_at` |
-| `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`, `source`, `generated_by`, `generated_at`, `content_md`, `summary` |
+| `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
 - **중복 방지:** `anomalies`에 "출처 + 물건 + 규칙"이 같고 상태가 `open`/`investigating`인 건은 하나만 있도록 DB 제약을 건다.
-- **동시 실행 방지:** `check_runs`에 `running` 상태는 동시에 하나만 있도록 DB 제약을 건다.
+- **동시 실행 방지:** `check_runs`에서 `status = 'running'`인 줄은 동시에 하나만 있도록 DB 제약을 건다. 차단된 시도는 `blocked` 줄로 남는다.
+- **예약 누락 기록:** `run_logs`에서 `code = 'SCHEDULE_MISSED'`인 줄은 `log_date`당 하나만 있도록 DB 제약을 건다.
 - **`value_hash`:** 탐지 대상 값으로 만든 지문. `dismissed` 건과 같은 값인지 비교할 때 쓴다(PRD 5-2 규칙 9).
-- **PUBLIC 필드:** `item_key`와 `fields`에 들어갈 실제 필드명은 PRD 부록 A 확정 후 정한다. DEMO 데이터는 같은 모양의 가상 필드를 쓴다.
+- **탐지 규칙 ID:** `DATE_ORDER`, `REQUIRED_FIELD`, `LIST_DETAIL_MISMATCH`, 그리고 API 상태 이상징후 `EMPTY_RESULT`(`item_key`는 API 이름).
+- **DEMO 필드:** PRD 부록 B의 가상 스키마(`demo_item_id`, `item_name`, `org_name`, `bid_start_at`, `bid_end_at`, `item_status`)를 쓴다. `item_key` = `demo_item_id`.
+- **PUBLIC 필드:** `item_key`와 `fields`에 들어갈 실제 필드명은 PRD 부록 A 확정 후 정하고, 부록 B와의 대응표를 만든다.
+- **설정값 변경:** 화면은 없다. 마이그레이션이나 관리 스크립트로만 바꾸며, 서버가 범위(예: 호출 상한 1~100회)를 검증한다.
 
 ### 6.2 관계
 
@@ -271,13 +289,19 @@ anomalies 1 ─── 0..1 anomalies(이전 사례, 재발 연결)
 
 ### 6.3 DB 함수 (트랜잭션으로 묶어 처리)
 
-| 함수 | 하는 일 | 호출자 |
-|---|---|---|
-| `assign_anomaly(id, assignee, expected_version)` | 미배정일 때만 본인 배정(operator) / 지정·재배정(admin), 이력 추가 | 사용자 |
-| `set_verdict(id, verdict, expected_version)` | `investigating`에서 판정만 변경, 이력 추가 | 사용자 |
-| `change_anomaly_status(id, to_status, verdict, note, expected_version)` | 허용 전이·판정 짝·10자 규칙 확인 후 상태 변경, 이력 추가 | 사용자 |
-| `record_detection(...)` | 중복·재발·억제 규칙에 따라 이상징후 생성 또는 횟수 증가, 이력 추가 | 시스템(서버 관리용 연결) |
-| `start_check_run(trigger, source)` | 실행 중 건이 없을 때만 실행 시작 | 시스템 |
+| 함수 | 하는 일 | 호출자 | 만드는 PLAN 작업 |
+|---|---|---|---|
+| `start_check_run(trigger, source)` | 120초 지난 `running`을 실패로 마감한 뒤, 실행 중 건이 없으면 시작, 있으면 `blocked` 1줄 기록 | 시스템 | 22 |
+| `record_detection(...)` | 5.1의 5단계 ①②③ 규칙으로 이상징후 생성 또는 횟수 갱신, 이력 추가 | 시스템(서버 관리용 연결) | 23 |
+| `assign_anomaly(id, assignee, expected_version)` | 미배정일 때만 본인 배정(operator) / 지정·재배정(admin), 이력 추가. 상태는 바꾸지 않음 | 사용자 | 26 |
+| `set_verdict(id, verdict, expected_version)` | `investigating`에서 판정만 변경, 이력 추가 | 사용자 | 27 |
+| `change_anomaly_status(id, to_status, verdict, note, expected_version)` | 허용 전이·판정 짝·10자 규칙 확인 후 상태 변경, 이력 추가 | 사용자 | 27 |
+| `mark_schedule_missed()` | 오늘 예약 실행 기록이 없으면 누락 기록 1줄 추가 | 시스템(Cron) | 32 |
+
+**`change_anomaly_status` 세부 규칙**
+- 판정이 함께 바뀌면 이력을 2줄(판정 변경 1줄, 상태 변경 1줄) 남긴다.
+- 재개(`resolved`/`dismissed` → `investigating`)하면 판정을 `undetermined`로 되돌리고, 이전 판정 값은 이력에 남긴다.
+- 재개할 때 같은 출처·물건·규칙의 열린 건이 이미 있으면 `ACTIVE_DUPLICATE_EXISTS`로 거부하고, 그 건의 ID를 돌려준다.
 
 - 사용자 함수는 사용자 로그인 정보로 실행되어 RLS가 그대로 적용된다(PRD 7-3 규칙 10).
 - `anomaly_events`, `reports`에는 수정·삭제 권한을 아무에게도 주지 않는다(SEC-05).
@@ -303,8 +327,8 @@ anomalies 1 ─── 0..1 anomalies(이전 사례, 재발 연결)
 | 서버 액션 | `assignAnomaly` | 배정 | operator(미배정 건 본인) / admin |
 | 서버 액션 | `setVerdict` | 판정 변경 | 담당 operator / admin |
 | 서버 액션 | `changeAnomalyStatus` | 상태 변경 | 담당 operator / admin |
-| 서버 액션 | `runManualCheck` | 수동 점검 실행 | admin |
-| 서버 액션 | `generateDailyReport` | 보고서 생성 | admin |
+| 서버 액션 | `runManualCheck(source)` | 수동 점검 실행 | admin |
+| 서버 액션 | `generateDailyReport(date, source)` | 보고서 생성 | admin |
 | Route Handler | `POST /api/cron/daily-check` | 예약 점검 입구 | `CRON_SECRET` 헤더 (SEC-09) |
 | Route Handler | `GET /api/reports/[id]/download` | Markdown 파일 내려받기 | 로그인 사용자 |
 
@@ -327,6 +351,7 @@ type ActionResult<T> =
 | `INVALID_TRANSITION` | 허용되지 않은 상태 변경 | "지금 상태에서는 할 수 없는 변경입니다." |
 | `VERSION_CONFLICT` | 그사이 다른 사람이 변경 | "다른 사용자가 먼저 변경했습니다. 새로고침 후 다시 시도하세요." |
 | `ALREADY_ASSIGNED` | 이미 배정된 건에 자율 배정 | "이미 다른 담당자가 배정된 건입니다." |
+| `ACTIVE_DUPLICATE_EXISTS` | 재개하려는데 같은 건의 열린 재발 건이 있음 | "이미 열린 건(#번호)이 있습니다. 그 건에서 처리해 주세요." |
 | `RUN_IN_PROGRESS` | 점검 중복 실행 | "이미 점검이 실행 중입니다." |
 | `NOT_FOUND` | 없는 건 | "해당 항목을 찾을 수 없습니다." |
 | `INTERNAL` | 그 밖의 오류 | "처리 중 문제가 발생했습니다." (내부 정보·키는 절대 포함하지 않음, SEC-11) |
@@ -340,7 +365,7 @@ type ActionResult<T> =
 | 위협 | 막는 방법 | 확인 테스트 |
 |---|---|---|
 | 로그인 없이 접근 | `proxy.ts` 차단 + 서버 액션 재확인 + RLS | SEC-01 |
-| 다른 사람 건 처리·조회 | 서버 액션 확인 + DB 함수·RLS | SEC-02, SEC-08 |
+| 다른 사람 건 상태변경·판정·배정 (조회는 허용) | 서버 액션 확인 + DB 함수·RLS | SEC-02, SEC-08 |
 | operator가 팀장 기능 사용 | 서버 액션 역할 확인 + RLS | SEC-03 |
 | 화면을 거치지 않고 DB 직접 호출 | RLS, 직접 수정 차단 | SEC-04 |
 | 이력 조작 | 이력 테이블 수정·삭제 권한 없음 | SEC-05 |
@@ -350,6 +375,9 @@ type ActionResult<T> =
 | 로그·보고서에 키·개인정보 | 마스킹, 허용 필드만 저장 | SEC-10 |
 | 오류에 내부 정보 노출 | `INTERNAL` 공통 문구 | SEC-11 |
 | 변경과 이력 중 하나만 저장 | DB 함수 트랜잭션 | SEC-12 |
+| 허용되지 않은 곳으로 요청 | 조회기는 `https://`와 허용 호스트 목록만 호출 (PRD 7-6) | 단위 테스트 |
+| Cron 비밀값이 저장소에 노출 | `CRON_SECRET`은 Supabase Vault에 보관, 마이그레이션에 값 금지 | 저장소 전체 키 검사 |
+| 수동 점검에서 서버 관리용 키 사용 | 서버 액션에서 사용자 권한으로 admin 확인 후에만 관리용 연결 사용 (PRD 7-3 규칙 9) | SEC-03 |
 
 ---
 
@@ -358,11 +386,12 @@ type ActionResult<T> =
 | 수준 | 도구 | 무엇을 | 성공 기준 연결 |
 |---|---|---|---|
 | 단위 | Vitest | 탐지 규칙 3개를 DEMO 시나리오(이상 30·정상 100·경계 30)로 채점, 설정값·KST 계산 | PLAN 기준 3, 4 |
-| DB | pgTAP | RLS, 이력 수정·삭제 차단, 역할 변경 차단, DB 함수의 전이·버전·트랜잭션 | SEC-04, 05, 07, 12 / 기준 5 |
+| 점검 엔진 | Vitest | 타임아웃 10초, 호출 상한 20/100회, 60초 제한, 서비스키·한도 오류 시 탐지 생략, 0건 처리(`EMPTY_RESULT`), 일일 예산, 허용 호스트·HTTPS | PLAN 기준 11 / PRD 5-2 규칙 4~7 |
+| DB | pgTAP | RLS, 이력 수정·삭제 차단, 역할 변경 차단, DB 함수의 전이·버전·트랜잭션, `record_detection`의 중복·재발·억제, `start_check_run`의 동시 실행·멈춘 실행 정리, `mark_schedule_missed` 날짜당 1건 | SEC-04, 05, 07, 12 / 기준 5 / PRD 5-2 규칙 8~11 |
 | 서버 입구 | Vitest | 예약 점검 입구의 `CRON_SECRET` 확인, 오류 응답에 내부 정보 없음 | SEC-09, 11 |
 | 화면 동작 | Playwright | 로그인·로그아웃, 배정, 상태변경 20건 시나리오, 권한 없는 버튼·주소 차단 | SEC-01~03, 08 / 기준 5 |
 | 전체 흐름 | Playwright | 수동 점검 → 탐지 확인 → 배정 → 조치 완료 → 보고서 생성(10회, 60초 이내) → 다운로드 | 기준 6, 10 |
-| 산출물 | 스크립트 | 빌드 결과물에서 비밀키 문자열 검색, 로그·보고서의 키·개인정보 검색 | SEC-06, 10 |
+| 산출물 | 스크립트 | 빌드 결과물과 Git 추적 파일 전체에서 비밀키 패턴 검색, 로그·보고서의 키·개인정보 검색, DEMO 데이터의 개인정보 패턴 검색 | SEC-06, 10 / PRD 7-7 |
 
 **테스트용 데이터 (PLAN 17번)**
 - DEMO 시나리오 160건: 정상 100, 이상 30(규칙별 10), 경계 30
@@ -412,12 +441,13 @@ onbid_rader/
 ### 11.2 의존 규칙
 - `lib/rules`는 Next.js·Supabase를 전혀 모른다. 데이터만 받아 결과만 돌려준다.
 - `lib/supabase/admin.ts`(서버 관리용 키 사용)는 예약 점검·수동 점검·관리 스크립트에서만 쓴다. 화면 컴포넌트나 `"use client"` 파일에서는 절대 불러오지 않는다.
+  - 수동 점검은 서버 액션이 사용자 권한으로 admin 역할을 확인한 뒤에만 관리용 연결로 엔진을 실행한다(PRD 7-3 규칙 9).
 - 화면(`app/`)은 `lib/`를 불러 쓰고, `lib/`는 `app/`을 불러오지 않는다.
 
 ### 11.3 코드 규칙
 - 파일 이름은 영문 소문자와 하이픈(`date-order.ts`), 컴포넌트는 대문자 시작(`AnomalyTable`)
 - 코드 주석은 한국어, 화면 문구도 한국어
-- 탐지 규칙 ID: `DATE_ORDER`, `REQUIRED_FIELD`, `LIST_DETAIL_MISMATCH`
+- 탐지 규칙 ID: `DATE_ORDER`, `REQUIRED_FIELD`, `LIST_DETAIL_MISMATCH`, API 상태 이상징후 `EMPTY_RESULT`
 - 환경변수 이름은 PRD 7-3을 그대로 쓴다.
 
 ---
@@ -434,7 +464,7 @@ PLAN.md의 작업 1~39번 순서를 그대로 따른다. 이 설계에서 정한
 | 묶음 | PLAN 작업 | 결과물 | 브랜치 예시 |
 |---|---|---|---|
 | module-1 준비 | 1~5 | CLI 인증, Supabase 연결, 환경변수, 테스트 도구 설치 | `feature/setup` |
-| module-2 DB | 6~12 | 마이그레이션, RLS, DB 함수, pgTAP | `feature/database` |
+| module-2 DB | 6~12 | 테이블 마이그레이션, RLS, pgTAP (DB 함수는 6.3 표의 작업 번호에서 만듦) | `feature/database` |
 | module-3 로그인 | 13~15 | 테스트 계정, 로그인, 공통 화면 틀 | `feature/auth` |
 | module-4 규칙 | 16~20 | 설정값, DEMO 데이터, 탐지 규칙 3개 + 테스트 | `feature/detection-rules` |
 | module-5 점검 | 21~24 | 조회기, 점검 엔진, 이상징후 등록, 수동 점검 | `feature/check-engine` |
@@ -447,4 +477,5 @@ PLAN.md의 작업 1~39번 순서를 그대로 따른다. 이 설계에서 정한
 
 | 버전 | 날짜 | 내용 |
 |---|---|---|
-| 0.1 | 2026-10-29 | 첫 초안 (설계 방식 C, 추가 기술 Zod·Vitest·Playwright 승인) |
+| 0.1 | 2026-10-29 | 첫 초안 (설계 방식 C, 추가 기술 `@supabase/supabase-js`·`@supabase/ssr`·Zod·Vitest·Playwright 승인) |
+| 0.2 | 2026-10-29 | 문서 정합성 검토 24건 반영: 조회 범위, 재발·재개 규칙, `EMPTY_RESULT`, DEMO 스키마(부록 B), 예약 누락 Cron, 검토 시작 버튼, `blocked`·멈춘 실행 정리, 출처별·날짜 선택 보고서, Vault, 테스트 보강 |
