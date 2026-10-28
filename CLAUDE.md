@@ -60,6 +60,7 @@
 
 - Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · ESLint
 - Supabase (Auth, PostgreSQL, RLS, Cron, pgTAP) · Vercel 배포 · 공공데이터포털 온비드 OpenAPI
+- 2026-10-29 설계 단계에서 추가 승인: `@supabase/supabase-js`·`@supabase/ssr`(Supabase 연결), Zod(입력값 검사), Vitest(단위 테스트), Playwright(화면 자동 테스트). 자세한 이유는 [DESIGN.md](DESIGN.md) 3장
 - 기술 스택은 PRD에 정한 대로 Next.js로 고정합니다. 다른 프레임워크로 바꾸거나 마이그레이션을 제안하지 않습니다.
 - 배포는 Vercel을 사용합니다.
 - 이 목록 밖의 라이브러리·프레임워크·외부 서비스는 사유·영향·대안을 설명하고 승인받은 뒤에만 추가합니다.
