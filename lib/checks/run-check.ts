@@ -7,6 +7,7 @@ import { profileOf } from "@/lib/rules/field-profile";
 import type { Settings } from "@/lib/settings/schema";
 import { findOperation } from "@/lib/registry";
 import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
+import { buildBatches, unprobeableOperations } from "./batch-plan";
 import { classifyProbe } from "./probe/classify";
 import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
@@ -49,7 +50,8 @@ export type RunCheckResult = {
   apiCallCount: number;
   detections: EngineDetection[];
   registered: Record<RecordAction, number>; // 등록 결과 집계
-  probes: ProbeEntry[]; // 점검별 판정 (PASS_DATA·FAIL·UNVERIFIED …). DB 저장은 R03에서 한다
+  probes: ProbeEntry[]; // 실제로 점검한 오퍼레이션의 판정 (PASS_DATA·FAIL·UNVERIFIED …)
+  unprobeable: string[]; // 조회기가 없어 요청을 보내지 않고 UNVERIFIED로만 남긴 오퍼레이션 ("서비스ID/오퍼레이션ID", PUBLIC만)
 };
 
 const noRegistered = (): Record<RecordAction, number> => ({ created: 0, recurred: 0, detected_again: 0, suppressed: 0 });
@@ -84,6 +86,28 @@ async function saveProbe(store: CheckStore, runId: number, source: RunSource, en
   await store.recordProbe(runId, source, probe);
 }
 
+// 요청을 보낼 조회기가 없는 오퍼레이션을 UNVERIFIED(승인 미확인 등)로 남긴다. 분모에는 들어가지만 정상·실패로 세지 않는다 (PRD 3-3).
+// 서비스 25종을 서비스 단위 배치로 나눈 계획에서 가져온다. 한 오퍼레이션의 저장 실패가 다른 기록을 막지 않게 하나씩 처리한다.
+async function saveUnprobeable(store: CheckStore, runId: number, source: RunSource): Promise<string[]> {
+  if (source !== "PUBLIC") return [];
+  const keys: string[] = [];
+  for (const op of unprobeableOperations(buildBatches(PUBLIC_ENDPOINT_OPERATIONS))) {
+    await store.recordProbe(runId, source, {
+      apiId: op.serviceId,
+      operationId: op.operationId,
+      result: { status: "UNVERIFIED", attempted: false, reason: op.notReadyReason },
+      resultCode: null,
+      httpStatus: null,
+      durationMs: null,
+      recordCount: null,
+      schema: null,
+      requestSummary: null,
+    });
+    keys.push(op.key);
+  }
+  return keys;
+}
+
 export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const { trigger, source, settings, store, fetcher, clock = Date.now } = input;
 
@@ -98,7 +122,8 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   if (started.status === "blocked") {
     const blockedProbes = unprobed(source, allEndpoints, { notRun: "RUN_BLOCKED" });
     for (const entry of blockedProbes) await saveProbe(store, started.runId, source, entry);
-    return { runId: started.runId, status: "blocked", apiCallCount: 0, detections: [], registered: noRegistered(), probes: blockedProbes };
+    const unprobeable = await saveUnprobeable(store, started.runId, source);
+    return { runId: started.runId, status: "blocked", apiCallCount: 0, detections: [], registered: noRegistered(), probes: blockedProbes, unprobeable };
   }
   const runId = started.runId;
 
@@ -118,7 +143,8 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         await store.finishRun(runId, "failed", 0);
         const skipped = unprobed(source, allEndpoints, { notRun: "BUDGET_SKIP" });
         for (const entry of skipped) await saveProbe(store, runId, source, entry);
-        return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered(), probes: skipped };
+        const unprobeable = await saveUnprobeable(store, runId, source);
+        return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered(), probes: skipped, unprobeable };
       }
       effectiveLimit = Math.min(callLimit, left);
     }
@@ -266,13 +292,14 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     // 점검 판정(FAIL·DEGRADED)도 실행 상태에 반영한다: 응답은 왔어도 구조 오류가 있으면 "성공"으로 마감하지 않는다
     const probeProblem = probes.some((p) => p.result.status === "FAIL" || p.result.status === "DEGRADED");
     const status: RunStatus = authProblem || succeeded === 0 ? "failed" : failed > 0 || limitHit || probeProblem ? "partial" : "succeeded";
+    const unprobeable = await saveUnprobeable(store, runId, source);
     await store.finishRun(runId, status, calls);
-    return { runId, status, apiCallCount: calls, detections, registered, probes };
+    return { runId, status, apiCallCount: calls, detections, registered, probes, unprobeable };
   } catch (error) {
     // 실행 기록이 'running'으로 남아 다음 점검을 막지 않도록 반드시 실패로 마감한다. 내부 오류 문구는 기록에 옮기지 않는다 (SEC-11).
     void error;
     await store.log(runId, "error", "ENGINE_ERROR", "점검 중 예상하지 못한 오류가 생겨 실패로 마감했습니다.");
     await store.finishRun(runId, "failed", calls);
-    return { runId, status: "failed", apiCallCount: calls, detections: [], registered: noRegistered(), probes };
+    return { runId, status: "failed", apiCallCount: calls, detections: [], registered: noRegistered(), probes, unprobeable: [] };
   }
 }

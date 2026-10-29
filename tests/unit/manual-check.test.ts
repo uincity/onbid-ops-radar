@@ -17,6 +17,7 @@ const result = (over: Partial<RunCheckResult> = {}): RunCheckResult => ({
   detections: [],
   registered: { created: 3, recurred: 1, detected_again: 2, suppressed: 4 },
   probes: [],
+  unprobeable: [],
   ...over,
 });
 

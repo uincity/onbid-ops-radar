@@ -498,6 +498,24 @@ describe("PUBLIC 점검", () => {
       expect(JSON.stringify(rec.logs)).not.toContain("secret");
     });
 
+    it("조회기가 없는 오퍼레이션 26개는 요청 없이 UNVERIFIED로 저장하고 probes(점검 2개)에는 섞지 않는다", async () => {
+      const { store, rec } = fakeStore();
+      const result = await runPublic({ store });
+      expect(result.probes).toHaveLength(2);
+      expect(result.unprobeable).toHaveLength(26);
+      const unprobed = rec.probeRows.filter((p) => !["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"].includes(`${p.apiId}/${p.operationId}`));
+      expect(unprobed).toHaveLength(26);
+      expect(unprobed.every((p) => p.result.status === "UNVERIFIED" && p.result.attempted === false && p.requestSummary === null)).toBe(true);
+      expect(rec.apiChecks).toHaveLength(6); // 요청은 목록 1 + 상세 5뿐
+    });
+
+    it("DEMO 점검은 등록부 오퍼레이션을 기록하지 않는다", async () => {
+      const { store, rec } = fakeStore();
+      const result = await run({ store });
+      expect(result.unprobeable).toEqual([]);
+      expect(rec.probeRows).toHaveLength(0);
+    });
+
     it("DEMO도 조회기 예외가 나면 그 점검만 실패로 세고 다음 점검은 계속한다", async () => {
       const { store, rec } = fakeStore();
       const inner = demoFetcher();
@@ -548,13 +566,13 @@ describe("PUBLIC 점검", () => {
     it("판정은 DB에 남길 모양(probe_results 한 줄)으로 저장 요청된다: 서비스ID·오퍼레이션 ID·결과코드·응답시간·요청 요약", async () => {
       const { store, rec } = fakeStore();
       const result = await runPublic({ store });
-      expect(rec.probeRows).toHaveLength(2);
+      expect(rec.probeRows).toHaveLength(28); // 점검한 2개 + 조회기가 없어 UNVERIFIED로 남긴 26개
       const [list, detail] = rec.probeRows;
       expect(list).toMatchObject({ apiId: "SVC-API-001", operationId: "getRlstCltrList", result: { status: "PASS_DATA" }, resultCode: "00", httpStatus: 200, recordCount: 5 });
       expect(list.requestSummary).toContain("pageNo=1");
       expect(detail).toMatchObject({ apiId: "SVC-API-004", operationId: "getRlstDtlInf", result: { status: "PASS_DATA" } });
       // 메모리에 돌려준 판정(probes)과 저장 요청한 판정이 같다
-      expect(rec.probeRows.map((p) => p.result)).toEqual(result.probes.map((p) => p.result));
+      expect(rec.probeRows.slice(0, 2).map((p) => p.result)).toEqual(result.probes.map((p) => p.result));
     });
 
     it("호출 기록(api_checks)에도 서비스ID·오퍼레이션 ID·결과코드·요청 요약이 담기고, 서비스키는 어디에도 없다", async () => {
@@ -573,7 +591,7 @@ describe("PUBLIC 점검", () => {
     it("요청을 보내지 못한 점검(blocked·예산 소진·호출 상한)의 판정도 저장 요청된다", async () => {
       const blocked = fakeStore({ blocked: true });
       await runPublic({ store: blocked.store });
-      expect(blocked.rec.probeRows.map((p) => [p.operationId, p.result.status, p.httpStatus])).toEqual([["getRlstCltrList", "NOT_RUN", null], ["getRlstDtlInf", "NOT_RUN", null]]);
+      expect(blocked.rec.probeRows.slice(0, 2).map((p) => [p.operationId, p.result.status, p.httpStatus])).toEqual([["getRlstCltrList", "NOT_RUN", null], ["getRlstDtlInf", "NOT_RUN", null]]);
 
       const budget = fakeStore({
         async countPublicCallsToday() {
@@ -581,11 +599,11 @@ describe("PUBLIC 점검", () => {
         },
       });
       await runPublic({ store: budget.store });
-      expect(budget.rec.probeRows).toHaveLength(2);
+      expect(budget.rec.probeRows).toHaveLength(28);
 
       const limited = fakeStore();
       await runPublic({ store: limited.store, callLimit: 1 });
-      expect(limited.rec.probeRows.map((p) => p.result.status)).toEqual(["PASS_DATA", "NOT_RUN"]);
+      expect(limited.rec.probeRows.slice(0, 2).map((p) => p.result.status)).toEqual(["PASS_DATA", "NOT_RUN"]);
     });
 
     it("서비스키 문제로 실패한 점검의 판정(FAIL·UNVERIFIED)과 결과코드가 저장 요청된다", async () => {
