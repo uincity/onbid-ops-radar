@@ -475,7 +475,40 @@ describe("PUBLIC 점검", () => {
       const result = await runPublic({ store, fetcher });
       expect(probeMap(result.probes)["public-list"]).toEqual({ status: "FAIL", attempted: true, code: "SCHEMA_ERROR" });
       expect(urls.length).toBeGreaterThan(1); // 상세도 불렀다
-      expect(result.status).toBe("succeeded"); // 실행 상태는 R04에서 판정 결과와 합친다
+      expect(result.status).toBe("partial"); // R04: 점검 판정(FAIL)이 실행 상태에 반영된다
+    });
+
+    it("조회기가 예외를 던져도 그 점검만 UNVERIFIED로 남기고 다음 점검은 계속한다 (격리)", async () => {
+      const { store, rec } = fakeStore();
+      const { fetcher: inner } = publicFetcher();
+      let first = true;
+      const fetcher: Fetcher = (endpoint, ctx) => {
+        if (endpoint === "public-detail" && first) {
+          first = false;
+          throw new Error("internal secret detail");
+        }
+        return inner(endpoint, ctx);
+      };
+      const result = await runPublic({ store, fetcher });
+      expect(result.status).toBe("partial");
+      expect(probeMap(result.probes)["public-list"]).toEqual({ status: "PASS_DATA", attempted: true });
+      expect(probeMap(result.probes)["public-detail"]).toEqual({ status: "UNVERIFIED", attempted: true, reason: "PRECONDITION_FAILED" });
+      expect(codes(rec)).toContain("FETCH_ERROR");
+      expect(codes(rec)).not.toContain("ENGINE_ERROR");
+      expect(JSON.stringify(rec.logs)).not.toContain("secret");
+    });
+
+    it("DEMO도 조회기 예외가 나면 그 점검만 실패로 세고 다음 점검은 계속한다", async () => {
+      const { store, rec } = fakeStore();
+      const inner = demoFetcher();
+      const fetcher: Fetcher = (endpoint, ctx) => {
+        if (endpoint === "demo-list") throw new Error("boom");
+        return inner(endpoint, ctx);
+      };
+      const result = await run({ store, fetcher });
+      expect(result.status).toBe("partial");
+      expect(rec.apiChecks.map((c) => c.endpointName)).toEqual(["demo-detail"]);
+      expect(codes(rec)).toContain("FETCH_ERROR");
     });
 
     it("호출 상한 1회: 목록만 점검하고 상세는 미점검(NOT_RUN: BUDGET_SKIP)이다", async () => {

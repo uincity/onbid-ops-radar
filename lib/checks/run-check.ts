@@ -165,7 +165,17 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         }
       }
 
-      const result = await fetcher(name, { remainingCalls: effectiveLimit - calls, remainingMs: timeLimitMs - (clock() - t0) });
+      // 조회기가 예외를 던져도 그 점검 하나만 판단 불가로 남기고 다음 점검은 계속한다 (한 API의 문제가 다른 API를 막지 않는다, PRD R04)
+      // 조회기가 던진 예외는 우리 쪽 문제일 수 있어 API 장애(FAIL)로 단정하지 않고 UNVERIFIED로 남긴다. 내부 오류 문구는 기록하지 않는다 (SEC-11).
+      let result: Awaited<ReturnType<Fetcher>>;
+      try {
+        result = await fetcher(name, { remainingCalls: effectiveLimit - calls, remainingMs: timeLimitMs - (clock() - t0) });
+      } catch {
+        failed += 1;
+        await store.log(runId, "error", "FETCH_ERROR", `'${name}' 조회 중 예상하지 못한 오류가 있어 이 점검만 건너뛰고 계속합니다.`);
+        if (op) await record(name, { status: "UNVERIFIED", attempted: true, reason: "PRECONDITION_FAILED" });
+        continue;
+      }
       calls += result.httpCalls ?? 1; // 조회 하나가 실제 호출을 여러 번 했으면(PUBLIC 상세) 그만큼 센다
       const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
       for (const check of checks) await store.recordApiCheck(runId, check);
@@ -253,7 +263,9 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     }
 
     // 마감: 하나도 성공 못 했거나 서비스키·한도 문제면 실패, 일부만 됐거나 제한에 걸렸으면 일부 완료
-    const status: RunStatus = authProblem || succeeded === 0 ? "failed" : failed > 0 || limitHit ? "partial" : "succeeded";
+    // 점검 판정(FAIL·DEGRADED)도 실행 상태에 반영한다: 응답은 왔어도 구조 오류가 있으면 "성공"으로 마감하지 않는다
+    const probeProblem = probes.some((p) => p.result.status === "FAIL" || p.result.status === "DEGRADED");
+    const status: RunStatus = authProblem || succeeded === 0 ? "failed" : failed > 0 || limitHit || probeProblem ? "partial" : "succeeded";
     await store.finishRun(runId, status, calls);
     return { runId, status, apiCallCount: calls, detections, registered, probes };
   } catch (error) {
