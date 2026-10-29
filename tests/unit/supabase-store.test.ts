@@ -146,3 +146,27 @@ describe("finishRun: 종료 시각은 시작 시각보다 이르지 않다 (서�
     expect(typeof updates[0].finished_at).toBe("string");
   });
 });
+
+describe("recentProbeHistory: probe_results에서 최근 판정 읽기", () => {
+  it("출처·서비스·오퍼레이션으로 걸러 최근 것부터 limit개를 읽고 상태·사유만 돌려준다", async () => {
+    const calls: [string, unknown][] = [];
+    const query = {
+      select: (c: string) => (calls.push(["select", c]), query),
+      eq: (k: string, v: unknown) => (calls.push([k, v]), query),
+      order: (k: string, o: unknown) => (calls.push(["order", [k, o]]), query),
+      limit: (n: number) => (calls.push(["limit", n]), Promise.resolve({ data: [{ status: "FAIL", reason: "TIMEOUT" }, { status: "PASS_DATA", reason: null }], error: null })),
+    };
+    const client = { from: (t: string) => (calls.push(["from", t]), query) } as unknown as SupabaseClient;
+    const rows = await createSupabaseCheckStore(client).recentProbeHistory("PUBLIC", "SVC-API-001", "getRlstCltrList", 50);
+    expect(rows).toEqual([{ status: "FAIL", reason: "TIMEOUT" }, { status: "PASS_DATA", reason: null }]);
+    expect(calls).toEqual([["from", "probe_results"], ["select", "status, reason"], ["source", "PUBLIC"], ["api_id", "SVC-API-001"], ["operation_id", "getRlstCltrList"], ["order", ["id", { ascending: false }]], ["limit", 50]]);
+  });
+
+  it("DB 오류는 내부 문구 없이 알린다", async () => {
+    const query: Record<string, unknown> = {};
+    for (const k of ["select", "eq", "order"]) query[k] = () => query;
+    query.limit = () => Promise.resolve({ data: null, error: { message: "secret detail" } });
+    const client = { from: () => query } as unknown as SupabaseClient;
+    await expect(createSupabaseCheckStore(client).recentProbeHistory("PUBLIC", "SVC-API-001", "x", 5)).rejects.toThrow("최근 점검 판정을 읽지 못했습니다 (DB 응답 오류)");
+  });
+});

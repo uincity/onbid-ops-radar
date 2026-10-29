@@ -3,7 +3,7 @@
 // 그래서 DB 없이 가짜 저장소로 엔진을 빠르게 시험할 수 있고, 나중에 PUBLIC 조회기도 같은 약속만 지키면 끼워 넣을 수 있다.
 import type { AnyRuleId } from "@/lib/anomalies/labels";
 import type { SchemaCheckResult } from "./probe/schema-check";
-import type { ProbeResult } from "./probe/status";
+import type { ProbeResult, ProbeStatus } from "./probe/status";
 
 // api_checks.outcome 값과 같다. 서비스키·한도 문제(auth_or_quota)는 PUBLIC 조회기가 만든다.
 export type ApiOutcome = "success" | "http_error" | "timeout" | "auth_or_quota" | "empty_result";
@@ -80,6 +80,8 @@ export interface CheckStore {
   recordApiCheck(runId: number, result: ApiCheckRecord): Promise<void>;
   // 오퍼레이션별 점검 판정을 probe_results에 저장한다 (PUBLIC 점검)
   recordProbe(runId: number, source: RunSource, probe: ProbeRecord): Promise<void>;
+  // 한 오퍼레이션의 최근 점검 판정 (가장 최근이 먼저, 이번 실행 것 포함). 연속 FAIL을 세는 데 쓴다 (R04)
+  recentProbeHistory(source: RunSource, apiId: string, operationId: string, limit: number): Promise<{ status: ProbeStatus; reason: string | null }[]>;
   // 오늘(KST) 이미 쓴 PUBLIC API 호출 수 (일일 호출 예산 확인용, DESIGN 5.1 2단계)
   countPublicCallsToday(): Promise<number>;
   saveCollected(runId: number, source: RunSource, kind: "list" | "detail", records: FetchedRecord[]): Promise<void>;

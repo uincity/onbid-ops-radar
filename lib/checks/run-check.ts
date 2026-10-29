@@ -7,6 +7,7 @@ import { profileOf } from "@/lib/rules/field-profile";
 import type { Settings } from "@/lib/settings/schema";
 import { findOperation } from "@/lib/registry";
 import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
+import { buildApiDetection, countFailStreak } from "./api-streak";
 import { buildBatches, unprobeableOperations } from "./batch-plan";
 import { classifyProbe } from "./probe/classify";
 import { observationFromCheck, policyFromOperation } from "./probe/from-check";
@@ -26,6 +27,9 @@ const ENDPOINTS: Record<RunSource, { name: string; kind: "list" | "detail" }[]> 
     { name: "public-detail", kind: "detail" },
   ],
 };
+
+// 연속 FAIL을 세려고 읽는 과거 판정 수. 사이에 낀 검증 불가·미점검을 건너뛰어도 기준(최대 10회)에 닿을 만큼 넉넉히 읽는다
+const API_STREAK_LOOKBACK = 50;
 
 // 등록할 탐지 결과 + 규칙 판정 상세 (EMPTY_RESULT는 판정 상세가 없음)
 export type EngineDetection = DetectionRecord & { detection: ItemDetection | null };
@@ -267,6 +271,16 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       // 비교 제외 사유는 물건마다 한 줄씩 남기면 너무 많아져서 사유별로 묶어 1줄(건수 + 예시)로 남긴다
       for (const [reason, keys] of Object.entries(skipped)) {
         await store.log(runId, "info", "COMPARE_SKIPPED", `목록·상세 비교 제외 ${keys.length}건 (${reason}) 예: ${keys.slice(0, 3).join(", ")}`);
+      }
+      // API 상태 이상징후 (PUBLIC): 이번에 FAIL인 오퍼레이션이 연속 N번(설정값) 실패했으면 만든다. 설정이 없으면(null) 만들지 않는다
+      if (source === "PUBLIC" && settings.apiFailStreakThreshold !== null) {
+        for (const entry of probes) {
+          if (entry.result.status !== "FAIL") continue;
+          const [apiId, operationId] = entry.operationKey.split("/");
+          const history = await store.recentProbeHistory(source, apiId, operationId, API_STREAK_LOOKBACK);
+          const built = buildApiDetection(apiId, operationId, countFailStreak(history), settings.apiFailStreakThreshold);
+          if (built) detections.push({ source, itemKey: built.itemKey, ruleId: built.ruleId, evidence: built.evidence, valueHash: built.valueHash, detection: null });
+        }
       }
       for (const apiName of emptyApis) detections.push({ source, itemKey: apiName, ruleId: "EMPTY_RESULT", detection: null, ...buildEmptyResultEvidence(apiName) });
     }

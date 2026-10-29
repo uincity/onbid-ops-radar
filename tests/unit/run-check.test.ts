@@ -5,6 +5,7 @@ import { describe, expect, it } from "vitest";
 import { runCheck, type RunCheckInput } from "@/lib/checks/run-check";
 import { createDemoFetcher } from "@/lib/checks/demo-fetcher";
 import { createPublicFetcher } from "@/lib/checks/public-fetcher";
+import type { ProbeStatus } from "@/lib/checks/probe/status";
 import type { ApiCheckRecord, CheckStore, DetectionRecord, ProbeRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
 import { DEMO_SCENARIOS } from "@/lib/demo/scenarios";
 import { DEFAULT_SETTING_VALUES, parseSettings, type Settings } from "@/lib/settings/schema";
@@ -14,7 +15,8 @@ const BASE = Date.parse("2026-03-01T00:00:00Z");
 const CTX = { remainingCalls: 20, remainingMs: 60_000 };
 
 // 메모리 가짜 저장소: 엔진이 무엇을 기록했는지 그대로 모아 둔다
-function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
+type PriorProbe = { status: ProbeStatus; reason: string | null };
+function fakeStore(over: Partial<CheckStore> & { blocked?: boolean; prior?: Record<string, PriorProbe[]> } = {}) {
   const rec = {
     started: 0,
     apiChecks: [] as ApiCheckRecord[],
@@ -37,6 +39,12 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     },
     async countPublicCallsToday() {
       return 0;
+    },
+    // 이번 실행에서 저장한 판정(가장 최근이 먼저) 뒤에 시험이 심어 둔 과거 판정(prior, 가장 최근이 먼저)을 붙여 돌려준다
+    async recentProbeHistory(_source, apiId, operationId) {
+      const row = (p: ProbeRecord): PriorProbe => ({ status: p.result.status, reason: "code" in p.result ? p.result.code : "reason" in p.result ? p.result.reason : null });
+      const current = rec.probeRows.filter((p) => p.apiId === apiId && p.operationId === operationId).map(row).reverse();
+      return [...current, ...(over.prior?.[`${apiId}/${operationId}`] ?? [])];
     },
     async recordProbe(_id, _source, probe) {
       rec.probeRows.push(probe);
@@ -507,6 +515,53 @@ describe("PUBLIC 점검", () => {
       expect(unprobed).toHaveLength(26);
       expect(unprobed.every((p) => p.result.status === "UNVERIFIED" && p.result.attempted === false && p.requestSummary === null)).toBe(true);
       expect(rec.apiChecks).toHaveLength(6); // 요청은 목록 1 + 상세 5뿐
+    });
+
+    describe("API 상태 이상징후 (연속 FAIL)", () => {
+      const LIST = "SVC-API-001/getRlstCltrList";
+      const http500 = () => publicFetcher({ list: () => new Response("x", { status: 500 }) }).fetcher;
+      const fail = (reason: string): PriorProbe => ({ status: "FAIL", reason });
+      const ok: PriorProbe = { status: "PASS_DATA", reason: null };
+
+      it("이번이 3번째 연속 실패면 API_HTTP_ERROR 이상징후를 등록한다 (식별값은 서비스ID/오퍼레이션ID)", async () => {
+        const { store, rec } = fakeStore({ prior: { [LIST]: [fail("HTTP_ERROR"), fail("HTTP_ERROR")] } });
+        const result = await runPublic({ store, fetcher: http500() });
+        expect(result.detections.map((d) => [d.itemKey, d.ruleId, d.source])).toEqual([[LIST, "API_HTTP_ERROR", "PUBLIC"]]);
+        expect(rec.recorded[0].evidence).toMatchObject({ apiId: "SVC-API-001", operationId: "getRlstCltrList", issueCode: "HTTP_ERROR", consecutiveFailures: 3, threshold: 3 });
+        expect(rec.recorded[0].valueHash).toMatch(/^[0-9a-f]{64}$/);
+      });
+
+      it("2번째 연속 실패(기준 한 칸 아래)면 만들지 않는다", async () => {
+        const { store, rec } = fakeStore({ prior: { [LIST]: [fail("HTTP_ERROR")] } });
+        const result = await runPublic({ store, fetcher: http500() });
+        expect(result.detections).toEqual([]);
+        expect(rec.recorded).toHaveLength(0);
+      });
+
+      it("중간에 정상이 있으면 연속이 끊긴다 / 검증 불가·미점검은 건너뛴다", async () => {
+        const broken = fakeStore({ prior: { [LIST]: [ok, fail("HTTP_ERROR"), fail("HTTP_ERROR")] } });
+        expect((await runPublic({ store: broken.store, fetcher: http500() })).detections).toEqual([]);
+        const skipped = fakeStore({ prior: { [LIST]: [{ status: "UNVERIFIED", reason: "NO_VALID_INPUT" }, fail("HTTP_ERROR"), { status: "NOT_RUN", reason: "BUDGET_SKIP" }, fail("HTTP_ERROR")] } });
+        expect((await runPublic({ store: skipped.store, fetcher: http500() })).detections.map((d) => d.ruleId)).toEqual(["API_HTTP_ERROR"]);
+      });
+
+      it("서비스키·한도 문제는 API 장애로 세지 않아 이상징후를 만들지 않는다", async () => {
+        const { store } = fakeStore({ prior: { [LIST]: [fail("HTTP_ERROR"), fail("HTTP_ERROR")] } });
+        const result = await runPublic({ store, fetcher: publicFetcher({ list: code("22") }).fetcher });
+        expect(result.detections).toEqual([]);
+      });
+
+      it("설정값(연속 횟수)이 없으면(null) 만들지 않고, 정상 점검도 만들지 않는다", async () => {
+        const off = fakeStore({ prior: { [LIST]: [fail("HTTP_ERROR"), fail("HTTP_ERROR")] } });
+        expect((await runPublic({ store: off.store, fetcher: http500(), settings: { ...settings, apiFailStreakThreshold: null } })).detections).toEqual([]);
+        const healthy = fakeStore({ prior: { [LIST]: [fail("HTTP_ERROR"), fail("HTTP_ERROR")] } });
+        expect((await runPublic({ store: healthy.store })).detections.some((d) => d.ruleId.startsWith("API_"))).toBe(false);
+      });
+
+      it("DEMO 점검은 API 상태 이상징후를 만들지 않는다", async () => {
+        const { store } = fakeStore();
+        expect((await run({ store, fetcher: demoFetcher("http_error") })).detections.some((d) => d.ruleId.startsWith("API_"))).toBe(false);
+      });
     });
 
     it("DEMO 점검은 등록부 오퍼레이션을 기록하지 않는다", async () => {

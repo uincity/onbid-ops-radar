@@ -3,6 +3,7 @@
 // 이 파일은 연결을 직접 만들지 않고 호출하는 쪽에서 받는다. 화면(브라우저) 코드에서는 불러오지 않는다.
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { kstDayRange, toKstDateString } from "@/lib/time";
+import type { ProbeStatus } from "./probe/status";
 import type { ApiCheckRecord, CheckStore, DetectionRecord, ProbeRecord, FetchedRecord, LogLevel, RecordAction, RunSource, RunStatus, RunTrigger } from "./types";
 
 const BATCH = 100;
@@ -67,6 +68,19 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
         request_summary: p.requestSummary,
       });
       if (error) fail("점검 판정을 기록하지 못했습니다");
+    },
+
+    async recentProbeHistory(source: RunSource, apiId: string, operationId: string, limit: number) {
+      const { data, error } = await supabase
+        .from("probe_results")
+        .select("status, reason")
+        .eq("source", source)
+        .eq("api_id", apiId)
+        .eq("operation_id", operationId)
+        .order("id", { ascending: false })
+        .limit(limit);
+      if (error) return fail("최근 점검 판정을 읽지 못했습니다");
+      return (data ?? []).map((r) => ({ status: r.status as ProbeStatus, reason: (r.reason as string | null) ?? null }));
     },
 
     // 오늘(KST) 쓴 PUBLIC API 호출 수: 어제 시작해 오늘까지 이어진 실행까지 놓치지 않도록 하루 전부터의 PUBLIC 실행을 후보로 삼는다
