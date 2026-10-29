@@ -6,8 +6,9 @@ import { createChecker } from "./lib/db-check.mjs";
 import * as profiles from "./db-checks/profiles.mjs";
 import * as checkRuns from "./db-checks/check-runs.mjs";
 import * as collectedItems from "./db-checks/collected-items.mjs";
+import * as anomalies from "./db-checks/anomalies.mjs";
 
-const modules = [profiles, checkRuns, collectedItems];
+const modules = [profiles, checkRuns, collectedItems, anomalies];
 const ctx = createChecker();
 
 for (const mod of modules) {

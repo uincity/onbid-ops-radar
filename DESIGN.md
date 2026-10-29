@@ -270,6 +270,10 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
 - **중복 방지:** `anomalies`에 "출처 + 물건 + 규칙"이 같고 상태가 `open`/`investigating`인 건은 하나만 있도록 DB 제약을 건다.
+- **상태·판정 짝:** `anomalies`는 `open`이면 반드시 `undetermined`, `resolved`이면 반드시 `confirmed_issue`, `dismissed`이면 반드시 `false_positive`여야 한다. `investigating`은 어느 판정이든 가능하다(판정만 따로 바꿀 수 있으므로). DB 제약이 강제한다(PRD 5-3 규칙 2·4).
+- **재발 연결:** `previous_anomaly_id`는 같은 출처·물건·규칙의 이상징후만 가리킬 수 있다(복합 연결). 가리키는 건이 "종결(`resolved`/`dismissed`)된 건인지"는 `record_detection` 함수(PLAN 23번)가 확인한다.
+- **식별 정보 보호:** 한번 저장된 `anomalies`의 `source`·`item_key`·`rule_id`·`first_detected_at`·`previous_anomaly_id`는 바꿀 수 없다(트리거). 같은 줄을 다른 물건의 이상징후로 바꿔치기하는 것을 막는다.
+- **규칙 ID 제한:** `rule_id`는 `DATE_ORDER`·`REQUIRED_FIELD`·`LIST_DETAIL_MISMATCH`·`EMPTY_RESULT` 네 가지만 저장할 수 있다. 새 규칙은 마이그레이션으로만 추가한다(PRD 6-3 범위 밖 규칙 차단).
 - **동시 실행 방지:** `check_runs`에서 `status = 'running'`인 줄은 동시에 하나만 있도록 DB 제약을 건다. 차단된 시도는 `blocked` 줄로 남는다.
 - **예약 누락 기록:** `run_logs`에서 `code = 'SCHEDULE_MISSED'`인 줄은 `log_date`당 하나만 있도록 DB 제약을 건다.
 - **`value_hash`:** 탐지 대상 값으로 만든 지문. `dismissed` 건과 같은 값인지 비교할 때 쓴다(PRD 5-2 규칙 9).
