@@ -275,6 +275,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - **`value_hash`:** 탐지 대상 값으로 만든 지문. `dismissed` 건과 같은 값인지 비교할 때 쓴다(PRD 5-2 규칙 9).
 - **탐지 규칙 ID:** `DATE_ORDER`, `REQUIRED_FIELD`, `LIST_DETAIL_MISMATCH`, 그리고 API 상태 이상징후 `EMPTY_RESULT`(`item_key`는 API 이름).
 - **DEMO 필드:** PRD 부록 B의 가상 스키마(`demo_item_id`, `item_name`, `org_name`, `bid_start_at`, `bid_end_at`, `item_status`)를 쓴다. `item_key` = `demo_item_id`.
+- **출처 일치:** `collected_items.source`는 항상 연결된 점검 실행(`check_runs.source`)의 출처와 같다. DB가 복합 연결 `(run_id, source)`로 강제하므로 DEMO와 PUBLIC이 섞여 저장될 수 없다. (이를 위해 `check_runs`에 `(id, source)` 유일 제약을 둔다.)
+- **허용 필드:** DEMO 수집 데이터는 부록 B의 6개 필드 이름만 저장할 수 있다. DB 제약이 그 밖의 이름을 거부한다(PRD 7-2). 값이 비었거나 형식이 틀린 원본 이상 데이터는 탐지 규칙이 찾아야 하므로 저장할 수 있다. PUBLIC의 허용 필드 목록은 부록 A 확정 후 별도 마이그레이션으로 추가한다.
 - **PUBLIC 필드:** `item_key`와 `fields`에 들어갈 실제 필드명은 PRD 부록 A 확정 후 정하고, 부록 B와의 대응표를 만든다.
 - **설정값 변경:** 화면은 없다. 마이그레이션이나 관리 스크립트로만 바꾸며, 서버가 범위(예: 호출 상한 1~100회)를 검증한다.
 
