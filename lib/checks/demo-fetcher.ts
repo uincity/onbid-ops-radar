@@ -3,7 +3,8 @@
 // 진짜 기다리지 않고(가상 응답시간), 지금 시각을 몰래 읽지도 않는다. 같은 입력이면 항상 같은 결과가 나온다.
 // 이 조회기는 DB에 아무것도 쓰지 않는다. 결과를 api_checks 등에 기록하는 일은 점검 엔진(PLAN 22번)이 한다.
 import { DEMO_SCENARIOS } from "@/lib/demo/scenarios";
-import type { DemoFields, DemoScenario } from "@/lib/demo/types";
+import type { DemoScenario } from "@/lib/demo/types";
+import type { FetchedRecord, Fetcher } from "./types";
 
 // 설정값 empty_allowed_by_endpoint의 키와 같은 이름이다. (api_checks.endpoint_name 형식: 영문·숫자·_.- 60자 이내)
 export const DEMO_ENDPOINTS = ["demo-list", "demo-detail"] as const;
@@ -16,11 +17,7 @@ export type DemoMode = (typeof DEMO_MODES)[number];
 // api_checks.outcome 중 DEMO가 만드는 값 (서비스키·한도 문제는 PUBLIC 조회기 몫)
 export type DemoOutcome = "success" | "http_error" | "timeout" | "empty_result";
 
-export type FetchedRecord = {
-  itemKey: string; // 물건 식별값 (demo_item_id)
-  fields: DemoFields;
-  collectedAtMs: number; // 이 줄을 수집한 시각. 상세는 목록 기준 detailOffsetSeconds만큼 떨어진다
-};
+// 수집 줄의 모양은 엔진과 공통이라 types.ts에 있다 (상세의 collectedAtMs는 목록 기준 detailOffsetSeconds만큼 떨어진다)
 
 export type DemoFetchResult = {
   endpointName: DemoEndpoint;
@@ -79,4 +76,9 @@ export function fetchDemo(options: DemoFetchOptions): DemoFetchResult {
   // 정상 응답인데 0건이면(조회 대상이 없을 때) 빈 결과로 구분한다
   if (records.length === 0) return { ...noRecords("empty_result", 200, wanted), recordCount: 0 };
   return { endpointName: endpoint, httpStatus: 200, durationMs: wanted, outcome: "success", recordCount: records.length, dataValid: true, records };
+}
+
+// 점검 엔진에 끼워 넣는 DEMO 조회기. 응답 종류(mode)는 정상이 기본이고, 시연·시험에서 오류·타임아웃·0건으로 바꿀 수 있다.
+export function createDemoFetcher(options: { timeoutSeconds: number; baseMs: number; mode?: DemoMode; scenarios?: readonly DemoScenario[] }): Fetcher {
+  return (endpoint) => fetchDemo({ ...options, endpoint: endpoint as DemoEndpoint });
 }
