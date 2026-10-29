@@ -11,6 +11,7 @@
     "db:push": "node --env-file=.env scripts/db-push.mjs",
     "setup:accounts": "node --env-file=.env scripts/setup-test-accounts.mjs",
     "check:accounts": "node --env-file=.env scripts/check-test-accounts.mjs",
+    "test:unit": "vitest run",
     "test:e2e": "node --env-file=.env node_modules/@playwright/test/cli.js test",
     "test:db": "node --env-file=.env scripts/test-db.mjs",
     "check:db": "node --env-file=.env scripts/check-db.mjs",
@@ -30,7 +31,7 @@
   "devDependencies": {
     "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
-    "@types/node": "^20",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9",
@@ -38,6 +39,7 @@
     "supabase": "^2.122.0",
     "tailwindcss": "^4",
     "typescript": "^5",
-    "vercel": "^65.5.0"
+    "vercel": "^65.5.0",
+    "vitest": "^5.0.5"
   }
 }

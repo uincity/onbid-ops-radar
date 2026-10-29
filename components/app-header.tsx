@@ -6,6 +6,8 @@ import { connection } from "next/server";
 import { MainNav, type NavItem } from "@/components/main-nav";
 import { requireUser, ROLE_LABEL, type CurrentUser } from "@/lib/auth/current-user";
 import { signOut } from "@/lib/auth/actions";
+import { loadSettings } from "@/lib/settings/load";
+import { SettingsError, type Source } from "@/lib/settings/schema";
 import { createClient } from "@/lib/supabase/server";
 
 const NAV_ITEMS: NavItem[] = [
@@ -15,17 +17,21 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/reports", label: "보고서" },
 ];
 
-type Source = "DEMO" | "PUBLIC";
-
 // 지금 화면이 다루는 데이터 출처. 예약 점검이 조회하는 출처(설정값 scheduled_source)를 보여 준다. (PRD 4-6: 출처를 항상 구분해 표시)
-// 읽을 수 없거나 알 수 없는 값이면 null → "출처 확인 불가"로 보여 준다. (DEMO로 짐작해서 보여 주지 않는다)
+// 설정값은 lib/settings 한곳을 거쳐 읽는다. 읽을 수 없거나 설정이 잘못되었으면 null → "출처 확인 불가"로 보여 준다. (DEMO로 짐작해서 보여 주지 않는다)
 async function getScheduledSource(): Promise<Source | null> {
   // 로그인 정보를 쓰는 DB 조회도 "사용자 요청이 들어온 뒤"에만 실행한다. (getAuthState와 같은 이유 — DESIGN 2.3의 connection() 설명 참고)
+  // connection()은 try 밖에 둔다: Next.js가 미리 만들기를 멈추려고 쓰는 신호를 우리가 삼키지 않게 하기 위해서다.
   await connection();
 
-  const supabase = await createClient();
-  const { data } = await supabase.from("settings").select("value").eq("key", "scheduled_source").maybeSingle();
-  return data?.value === "DEMO" || data?.value === "PUBLIC" ? data.value : null;
+  try {
+    const settings = await loadSettings(await createClient());
+    return settings.scheduledSource;
+  } catch (error) {
+    // 설정값 문제만 "확인 불가"로 처리하고, 예상하지 못한 오류는 그대로 올려 보낸다.
+    if (error instanceof SettingsError) return null;
+    throw error;
+  }
 }
 
 function SourceBadge({ source }: { source: Source | null }) {
