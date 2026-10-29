@@ -2,7 +2,7 @@
 export const title = "수집 데이터 (collected_items)";
 
 export async function run(ctx) {
-  const { report, query, checkReadOnlyTable, rollbackProbe, expectEmpty } = ctx;
+  const { report, query, checkReadOnlyTable, rollbackProbe, expectUnchanged } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable(
@@ -76,5 +76,5 @@ export async function run(ctx) {
   expect("missing_run", "23503", "없는 점검 실행에는 저장할 수 없음");
   expect("public_row_ok", "OK", "PUBLIC 점검의 PUBLIC 데이터는 저장됨 (허용 필드 목록은 부록 A 확정 후 추가)");
 
-  await expectEmpty(["collected_items", "check_runs"]);
+  await expectUnchanged(["collected_items", "check_runs"]);
 }

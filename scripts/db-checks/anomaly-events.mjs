@@ -2,7 +2,7 @@
 export const title = "이상징후 이력 (anomaly_events)";
 
 export async function run(ctx) {
-  const { report, query, rest, checkReadOnlyTable, rollbackProbe, expectEmpty, keys } = ctx;
+  const { report, query, rest, checkReadOnlyTable, rollbackProbe, expectUnchanged, keys } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable(
@@ -158,5 +158,5 @@ export async function run(ctx) {
   expect("delete_parent_blocked", "23503", "이력이 있는 이상징후는 지울 수 없음 (이력이 고아가 되지 않음)");
   expect("delete_actor_blocked", "23503", "이력을 남긴 사용자는 지울 수 없음");
 
-  await expectEmpty(["anomaly_events", "anomalies", "profiles"]);
+  await expectUnchanged(["anomaly_events", "anomalies", "profiles"]);
 }

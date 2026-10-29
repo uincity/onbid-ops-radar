@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 export const title = "profiles (사용자 역할)";
 
 export async function run(ctx) {
-  const { report, query, rest, checkReadOnlyTable, expectEmpty, keys } = ctx;
+  const { report, query, rest, checkReadOnlyTable, expectUnchanged, keys } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable("profiles", ["id", "display_name", "role", "created_at", "updated_at"], {
@@ -48,5 +48,5 @@ export async function run(ctx) {
   const noAccount = await rest("profiles", "POST", keys.secret, { id: randomUUID(), display_name: "시험", role: "operator" });
   report(noAccount.code === "23503", "profiles: 존재하지 않는 로그인 계정에는 줄을 만들 수 없음", `오류 ${noAccount.code}`);
 
-  await expectEmpty(["profiles"]);
+  await expectUnchanged(["profiles"]);
 }

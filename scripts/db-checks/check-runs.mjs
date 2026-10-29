@@ -2,7 +2,7 @@
 export const title = "점검 실행 이력 (check_runs · api_checks · run_logs)";
 
 export async function run(ctx) {
-  const { report, query, checkReadOnlyTable, rollbackProbe, expectEmpty } = ctx;
+  const { report, query, checkReadOnlyTable, rollbackProbe, expectUnchanged } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable(
@@ -95,5 +95,5 @@ export async function run(ctx) {
   expect("missed_second_same_day", "23505", "run_logs: 같은 날 예약 누락 기록 두 번째는 거부");
   report(probe.log_date_is_kst === true, "run_logs: log_date 기본값이 한국 시간(KST) 날짜", `결과 ${probe.log_date_is_kst}`);
 
-  await expectEmpty(["check_runs", "api_checks", "run_logs"]);
+  await expectUnchanged(["check_runs", "api_checks", "run_logs"]);
 }

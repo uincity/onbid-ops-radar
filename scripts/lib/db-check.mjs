@@ -122,10 +122,27 @@ export function createChecker() {
     );
   }
 
-  async function expectEmpty(tables) {
+  // 시험을 시작하기 전의 줄 수. 테이블에 실제 데이터(예: 시연 계정의 profiles 2줄)가 있어도 "시험이 남긴 줄이 없는지"를 볼 수 있다.
+  const baseline = {};
+
+  // 모든 public 테이블의 현재 줄 수를 기록한다. 시험을 시작하기 전에 한 번 부른다.
+  async function snapshot() {
+    const tables = await query(
+      `select c.relname as name from pg_class c join pg_namespace n on n.oid = c.relnamespace
+       where n.nspname = 'public' and c.relkind in ('r', 'p') order by c.relname`,
+    );
+    for (const { name } of tables) {
+      const [{ count }] = await query(`select count(*)::int as count from public."${name}"`);
+      baseline[name] = count;
+    }
+  }
+
+  // 시험이 끝난 뒤 줄 수가 시험 전과 같은지 (시험 중 넣은 줄이 모두 되돌려졌는지)
+  async function expectUnchanged(tables) {
     for (const table of tables) {
-      const [{ count }] = await query(`select count(*)::int as count from public.${table}`);
-      report(count === 0, `${table}: 시험 후에도 비어 있음 (저장된 줄 없음)`, `${count}줄`);
+      const [{ count }] = await query(`select count(*)::int as count from public."${table}"`);
+      const before = baseline[table];
+      report(before !== undefined && count === before, `${table}: 시험 후에도 줄 수가 시험 전과 같음 (저장된 줄 없음)`, `${before}줄 → ${count}줄`);
     }
   }
 
@@ -133,5 +150,5 @@ export function createChecker() {
     return failed;
   }
 
-  return { report, sql, query, rest, rollbackProbe, checkReadOnlyTable, expectEmpty, finish, keys: { publishable, secret } };
+  return { report, sql, query, rest, rollbackProbe, checkReadOnlyTable, snapshot, expectUnchanged, finish, keys: { publishable, secret } };
 }

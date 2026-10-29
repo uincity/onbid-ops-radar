@@ -385,6 +385,7 @@ type ActionResult<T> =
 | 이력 조작 | 이력 테이블 수정·삭제 권한 없음 | SEC-05 |
 | 비밀키가 브라우저로 새어 나감 | 서버 관리용 연결은 서버 파일에서만, 빌드 결과물 검사 | SEC-06 |
 | 본인 역할 올리기 | `profiles.role` 변경 차단 | SEC-07 |
+| 공개 회원가입으로 누구나 계정을 만들어 데이터를 읽음 | Supabase Auth의 회원가입(Allow new users to sign up)을 꺼 둔다(대시보드 설정, 사용자가 직접). 계정은 `npm run setup:accounts`(서버 관리 절차)로만 만든다. `check:accounts`가 설정과 계정 개수를 확인한다. 추가 방어로 읽기 정책을 "프로필이 있는 사용자"로 좁히는 안은 별도 작업으로 검토한다 | `check:accounts`, SEC-01 |
 | 예약 점검 입구 무단 호출 | `CRON_SECRET` 확인 | SEC-09 |
 | 로그·보고서에 키·개인정보 | 마스킹, 허용 필드만 저장 | SEC-10 |
 | 오류에 내부 정보 노출 | `INTERNAL` 공통 문구 | SEC-11 |
@@ -419,6 +420,10 @@ type ActionResult<T> =
 **테스트용 데이터 (PLAN 17번)**
 - DEMO 시나리오 160건: 정상 100, 이상 30(규칙별 10), 경계 30
 - 테스트 계정 2개: 팀장 1, 운영 담당자 1 (가상 이메일·이름)
+  - 만들기: `npm run setup:accounts` (PLAN 13번). Supabase Auth 관리 기능(서버 전용 키)으로 계정을 만들고 `profiles`에 역할을 넣는 것이 PRD 4-4의 "서버의 승인된 관리 절차"이다. 여러 번 실행해도 안전하다.
+  - 이름: 팀장 `admin-demo@example.com`(이름 "시연 팀장", 역할 admin), 운영 담당자 `operator-demo@example.com`(이름 "시연 담당자", 역할 operator). 이메일은 예약 도메인 `@example.com`만 허용해 실제 사람의 계정을 건드리지 않는다.
+  - 비밀번호: 무작위 24자를 `.env`의 `DEMO_ADMIN_PASSWORD`·`DEMO_OPERATOR_PASSWORD`에만 저장한다. 소스코드·로그·채팅에 출력하지 않고, Vercel에도 등록하지 않는다. 화면 시연과 Playwright 로그인은 `.env`에서 읽어 쓴다.
+  - 확인: `npm run check:accounts`가 두 계정으로 실제 로그인해 받은 JWT로 DB를 직접 호출하며 SEC-03·04·05·07을 실제 계정으로 확인한다.
 - 테스트마다 DB를 같은 상태로 되돌릴 수 있게 주입 스크립트를 다시 실행할 수 있어야 한다.
 
 ---

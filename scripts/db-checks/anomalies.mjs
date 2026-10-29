@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 export const title = "이상징후 (anomalies)";
 
 export async function run(ctx) {
-  const { report, query, checkReadOnlyTable, rollbackProbe, expectEmpty } = ctx;
+  const { report, query, checkReadOnlyTable, rollbackProbe, expectUnchanged } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable(
@@ -150,5 +150,5 @@ export async function run(ctx) {
   expect("update_to_resolved_undetermined", "23514", "미판정인 채로 조치 완료로 바꾸는 것은 거부");
   expect("update_to_resolved_ok", "OK", "실제 오류 확인(confirmed_issue)과 함께라면 조치 완료로 바꿀 수 있음");
 
-  await expectEmpty(["anomalies"]);
+  await expectUnchanged(["anomalies"]);
 }

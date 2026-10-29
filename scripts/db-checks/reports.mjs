@@ -4,7 +4,7 @@ import { randomUUID } from "node:crypto";
 export const title = "보고서 스냅샷 (reports)";
 
 export async function run(ctx) {
-  const { report, query, rest, checkReadOnlyTable, rollbackProbe, expectEmpty, keys } = ctx;
+  const { report, query, rest, checkReadOnlyTable, rollbackProbe, expectUnchanged, keys } = ctx;
 
   // 공통: 테이블·RLS·칸·정책·권한·로그인 없는 접근 거부
   await checkReadOnlyTable(
@@ -150,5 +150,5 @@ export async function run(ctx) {
   report(probe.auth_read_ok === true, "로그인 사용자는 보고서를 읽을 수 있음", `결과 ${probe.auth_read_ok}`);
   expect("anon_read", "42501", "비로그인 사용자는 보고서를 읽을 수 없음");
 
-  await expectEmpty(["reports", "profiles"]);
+  await expectUnchanged(["reports", "profiles"]);
 }

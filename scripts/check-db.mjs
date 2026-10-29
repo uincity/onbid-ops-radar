@@ -14,6 +14,10 @@ import * as reports from "./db-checks/reports.mjs";
 const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports];
 const ctx = createChecker();
 
+// 시험을 시작하기 전의 줄 수를 기록해 둔다. 시험이 끝난 뒤 줄 수가 같은지(저장된 줄이 없는지) 비교하기 위해서다.
+// 이렇게 하면 시연 계정처럼 테이블에 실제 데이터가 있어도 "시험이 남긴 줄"만 정확히 가려낼 수 있다.
+await ctx.snapshot();
+
 for (const mod of modules) {
   console.log(`\n== ${mod.title} ==`);
   try {
