@@ -34,7 +34,7 @@ function problemsOf(rows: SettingRow[]): readonly string[] {
 }
 
 describe("기본값 (PRD 5-5)", () => {
-  it("기본값 14개를 그대로 읽으면 PRD 5-5의 숫자가 나온다", () => {
+  it("기본값 15개를 그대로 읽으면 PRD 5-5의 숫자가 나온다", () => {
     const s = parseSettings(defaultRows());
     expect(s).toEqual(DEFAULT_SETTINGS);
     expect(s.compareWindowMinutes).toBe(10);
@@ -49,8 +49,8 @@ describe("기본값 (PRD 5-5)", () => {
     expect(s.publicDailyBudget).toBe(900); // 승인 트래픽 1,000회/일에서 여유 100회를 남긴 값 (부록 A)
   });
 
-  it("항목은 정확히 14개다", () => {
-    expect(SETTING_KEYS).toHaveLength(14);
+  it("항목은 정확히 15개다", () => {
+    expect(SETTING_KEYS).toHaveLength(15);
   });
 });
 
@@ -140,7 +140,17 @@ describe("줄 단위 문제: 없음·중복·모르는 항목은 모두 모아�
     expect(problems).toContain("항목이 중복됨: api_timeout_seconds");
   });
 
-  it("빈 목록이면 14개 모두 없다고 알려 준다", () => {
+  it("연속 FAIL 횟수는 DB에 아직 없으면 꺼짐(null)으로 읽고, 있으면 규칙(2~10)을 검사한다", () => {
+    const without = defaultRows().filter((r) => r.key !== "api_fail_streak_threshold");
+    expect(parseSettings(without).apiFailStreakThreshold).toBeNull();
+    expect(parseSettings(defaultRows()).apiFailStreakThreshold).toBe(3);
+    expect(problemsOf(withValue("api_fail_streak_threshold", 1))).toHaveLength(1); // 한 칸 밖(아래)
+    expect(parseSettings(withValue("api_fail_streak_threshold", 2)).apiFailStreakThreshold).toBe(2); // 한 칸 안
+    expect(parseSettings(withValue("api_fail_streak_threshold", 10)).apiFailStreakThreshold).toBe(10); // 한 칸 안
+    expect(problemsOf(withValue("api_fail_streak_threshold", 11))).toHaveLength(1); // 한 칸 밖(위)
+  });
+
+  it("빈 목록이면 14개가 없다고 알려 준다 (연속 FAIL 횟수는 DB에 아직 없어도 되는 항목)", () => {
     expect(problemsOf([])).toHaveLength(14);
   });
 

@@ -12,6 +12,7 @@ const EXPECTED = {
   reason_min_length: 10,
   schedule_missed_grace_minutes: 30,
   stale_running_seconds: 120,
+  api_fail_streak_threshold: 3, // 같은 오퍼레이션 연속 FAIL 횟수 (R04)
   scheduled_source: "DEMO",
   required_fields: {
     DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"],
@@ -183,13 +184,13 @@ export async function run(ctx) {
   expect("empty_not_boolean", "23514", "빈 결과 허용 여부가 true/false가 아니면 거부");
   expect("empty_bad_name", "23514", "API 이름에 공백이 있으면 거부");
 
-  expect("unknown_key", "23514", "정해진 14개 밖의 새 항목은 만들 수 없음");
+  expect("unknown_key", "23514", "정해진 15개 밖의 새 항목은 만들 수 없음");
   expect("duplicate_key", "23505", "같은 항목을 두 번 만들 수 없음");
   expect("rename_key", "23000", "항목 이름은 바꿀 수 없음");
   expect("delete_key", "23000", "항목은 삭제할 수 없음");
   expect("truncate_table", "23000", "설정값 표를 비울 수 없음");
 
-  report(probe.auth_read_count === 14, "로그인 사용자는 설정값 14개를 모두 읽을 수 있음", `결과 ${probe.auth_read_count}`);
+  report(probe.auth_read_count === 15, "로그인 사용자는 설정값 15개를 모두 읽을 수 있음", `결과 ${probe.auth_read_count}`);
   expect("auth_update", "42501", "로그인 사용자는 설정값을 바꿀 수 없음");
   expect("auth_insert", "42501", "로그인 사용자는 설정 항목을 만들 수 없음");
   expect("anon_read", "42501", "비로그인 사용자는 설정값을 읽을 수 없음");
@@ -201,5 +202,5 @@ export async function run(ctx) {
   const after = await query("select key, value from public.settings");
   const afterMap = Object.fromEntries(after.map((r) => [r.key, r.value]));
   const changed = Object.entries(EXPECTED).filter(([key, value]) => JSON.stringify(afterMap[key]) !== JSON.stringify(value));
-  report(changed.length === 0 && after.length === 14, "시험 후에도 기본값 14개가 그대로임 (모두 되돌려짐)");
+  report(changed.length === 0 && after.length === 15, "시험 후에도 기본값 15개가 그대로임 (모두 되돌려짐)");
 }
