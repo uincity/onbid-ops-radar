@@ -9,6 +9,7 @@
     "lint": "eslint",
     "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs",
     "db:push": "node --env-file=.env scripts/db-push.mjs",
+    "test:db": "node --env-file=.env scripts/test-db.mjs",
     "check:db": "node --env-file=.env scripts/check-db.mjs",
     "check:env": "node --env-file=.env scripts/check-env.mjs",
     "setup:env": "node --env-file=.env scripts/setup-env.mjs",
