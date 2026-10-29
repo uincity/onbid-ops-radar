@@ -1,0 +1,4337 @@
+{
+  "version": 1,
+  "description": "DEMO 시나리오 160건: 정상 100(DEMO-0001~0100), 이상 30(0101~0130, 규칙별 10), 경계 30(0131~0160). 값은 모두 가상이다. 생성: npm run generate:demo",
+  "source": "DEMO",
+  "compareWindowSeconds": 600,
+  "scenarios": [
+    {
+      "id": "DEMO-0001",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0001",
+        "item_name": "가상 아파트 001호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-01T10:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0001",
+        "item_name": "가상 아파트 001호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-01T10:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0002",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0002",
+        "item_name": "가상 상가 002호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-01T16:00:00+09:00",
+        "bid_end_at": "2026-11-04T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0002",
+        "item_name": "가상 상가 002호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-01T16:00:00+09:00",
+        "bid_end_at": "2026-11-04T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0003",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0003",
+        "item_name": "가상 임야 003호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-01T22:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0003",
+        "item_name": "가상 임야 003호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-01T22:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0004",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0004",
+        "item_name": "가상 차량 004호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-02T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0004",
+        "item_name": "가상 차량 004호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-02T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0005",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0005",
+        "item_name": "가상 선박 005호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-02T10:00:00+09:00",
+        "bid_end_at": "2026-11-02T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0005",
+        "item_name": "가상 선박 005호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-02T10:00:00+09:00",
+        "bid_end_at": "2026-11-02T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0006",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0006",
+        "item_name": "가상 기계 006호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-02T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0006",
+        "item_name": "가상 기계 006호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-02T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0007",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0007",
+        "item_name": "가상 공장 007호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-02T22:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0007",
+        "item_name": "가상 공장 007호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-02T22:00:00+09:00",
+        "bid_end_at": "2026-11-03T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0008",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0008",
+        "item_name": "가상 창고 008호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-03T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0008",
+        "item_name": "가상 창고 008호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-03T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0009",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0009",
+        "item_name": "가상 오피스텔 009호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-03T10:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0009",
+        "item_name": "가상 오피스텔 009호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-03T10:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0010",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0010",
+        "item_name": "가상 토지 010호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-03T16:00:00+09:00",
+        "bid_end_at": "2026-11-04T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0010",
+        "item_name": "가상 토지 010호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-03T16:00:00+09:00",
+        "bid_end_at": "2026-11-04T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0011",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0011",
+        "item_name": "가상 아파트 011호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-03T22:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0011",
+        "item_name": "가상 아파트 011호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-03T22:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0012",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0012",
+        "item_name": "가상 상가 012호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-04T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0012",
+        "item_name": "가상 상가 012호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-04T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0013",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0013",
+        "item_name": "가상 임야 013호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-04T01:00:00Z",
+        "bid_end_at": "2026-11-05T13:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0013",
+        "item_name": "가상 임야 013호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-04T01:00:00Z",
+        "bid_end_at": "2026-11-05T13:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0014",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0014",
+        "item_name": "가상 차량 014호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-04T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0014",
+        "item_name": "가상 차량 014호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-04T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0015",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0015",
+        "item_name": "가상 선박 015호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-04T22:00:00+09:00",
+        "bid_end_at": "2026-11-05T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0015",
+        "item_name": "가상 선박 015호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-04T22:00:00+09:00",
+        "bid_end_at": "2026-11-05T04:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0016",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0016",
+        "item_name": "가상 기계 016호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-05T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0016",
+        "item_name": "가상 기계 016호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-05T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0017",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0017",
+        "item_name": "가상 공장 017호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-05T10:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0017",
+        "item_name": "가상 공장 017호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-05T10:00:00+09:00",
+        "bid_end_at": "2026-11-05T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0018",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0018",
+        "item_name": "가상 창고 018호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-05T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0018",
+        "item_name": "가상 창고 018호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-05T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0019",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0019",
+        "item_name": "가상 오피스텔 019호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-05T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0019",
+        "item_name": "가상 오피스텔 019호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-05T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0020",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0020",
+        "item_name": "가상 토지 020호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-06T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0020",
+        "item_name": "가상 토지 020호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-06T04:00:00+09:00",
+        "bid_end_at": "2026-11-07T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0021",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0021",
+        "item_name": "가상 아파트 021호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-06T10:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0021",
+        "item_name": "가상 아파트 021호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-06T10:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0022",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0022",
+        "item_name": "가상 상가 022호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-06T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0022",
+        "item_name": "가상 상가 022호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-06T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0023",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0023",
+        "item_name": "가상 임야 023호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-06T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0023",
+        "item_name": "가상 임야 023호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-06T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0024",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0024",
+        "item_name": "가상 차량 024호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-07T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0024",
+        "item_name": "가상 차량 024호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-07T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0025",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0025",
+        "item_name": "가상 선박 025호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-07T10:00:00+09:00",
+        "bid_end_at": "2026-11-07T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0025",
+        "item_name": "가상 선박 025호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-07T10:00:00+09:00",
+        "bid_end_at": "2026-11-07T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0026",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0026",
+        "item_name": "가상 기계 026호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-07T07:00:00Z",
+        "bid_end_at": "2026-11-14T07:00:00Z"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0026",
+        "item_name": "가상 기계 026호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-07T07:00:00Z",
+        "bid_end_at": "2026-11-14T07:00:00Z"
+      }
+    },
+    {
+      "id": "DEMO-0027",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0027",
+        "item_name": "가상 공장 027호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-07T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0027",
+        "item_name": "가상 공장 027호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-07T22:00:00+09:00",
+        "bid_end_at": "2026-11-08T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0028",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0028",
+        "item_name": "가상 창고 028호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-08T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0028",
+        "item_name": "가상 창고 028호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-08T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0029",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0029",
+        "item_name": "가상 오피스텔 029호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-08T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0029",
+        "item_name": "가상 오피스텔 029호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-08T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0030",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0030",
+        "item_name": "가상 토지 030호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-08T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0030",
+        "item_name": "가상 토지 030호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-08T16:00:00+09:00",
+        "bid_end_at": "2026-11-09T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0031",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0031",
+        "item_name": "가상 아파트 031호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-08T22:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0031",
+        "item_name": "가상 아파트 031호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-08T22:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0032",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0032",
+        "item_name": "가상 상가 032호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-09T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0032",
+        "item_name": "가상 상가 032호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-09T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0033",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0033",
+        "item_name": "가상 임야 033호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-09T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0033",
+        "item_name": "가상 임야 033호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-09T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0034",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0034",
+        "item_name": "가상 차량 034호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-09T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0034",
+        "item_name": "가상 차량 034호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-09T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0035",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0035",
+        "item_name": "가상 선박 035호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-09T22:00:00+09:00",
+        "bid_end_at": "2026-11-10T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0035",
+        "item_name": "가상 선박 035호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-09T22:00:00+09:00",
+        "bid_end_at": "2026-11-10T04:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0036",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0036",
+        "item_name": "가상 기계 036호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-10T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0036",
+        "item_name": "가상 기계 036호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-10T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0037",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0037",
+        "item_name": "가상 공장 037호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-10T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0037",
+        "item_name": "가상 공장 037호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-10T10:00:00+09:00",
+        "bid_end_at": "2026-11-10T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0038",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0038",
+        "item_name": "가상 창고 038호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-10T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0038",
+        "item_name": "가상 창고 038호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-10T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0039",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0039",
+        "item_name": "가상 오피스텔 039호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-10T13:00:00Z",
+        "bid_end_at": "2026-11-13T01:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0039",
+        "item_name": "가상 오피스텔 039호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-10T13:00:00Z",
+        "bid_end_at": "2026-11-13T01:00:00Z",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0040",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0040",
+        "item_name": "가상 토지 040호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-11T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0040",
+        "item_name": "가상 토지 040호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-11T04:00:00+09:00",
+        "bid_end_at": "2026-11-12T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0041",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0041",
+        "item_name": "가상 아파트 041호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-11T10:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0041",
+        "item_name": "가상 아파트 041호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-11T10:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0042",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0042",
+        "item_name": "가상 상가 042호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-11T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0042",
+        "item_name": "가상 상가 042호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-11T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0043",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0043",
+        "item_name": "가상 임야 043호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-11T22:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0043",
+        "item_name": "가상 임야 043호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-11T22:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0044",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0044",
+        "item_name": "가상 차량 044호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-12T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0044",
+        "item_name": "가상 차량 044호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-12T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0045",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0045",
+        "item_name": "가상 선박 045호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-12T10:00:00+09:00",
+        "bid_end_at": "2026-11-12T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0045",
+        "item_name": "가상 선박 045호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-12T10:00:00+09:00",
+        "bid_end_at": "2026-11-12T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0046",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0046",
+        "item_name": "가상 기계 046호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-12T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0046",
+        "item_name": "가상 기계 046호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-12T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0047",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0047",
+        "item_name": "가상 공장 047호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-12T22:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0047",
+        "item_name": "가상 공장 047호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-12T22:00:00+09:00",
+        "bid_end_at": "2026-11-13T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0048",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0048",
+        "item_name": "가상 창고 048호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-13T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0048",
+        "item_name": "가상 창고 048호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-13T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0049",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0049",
+        "item_name": "가상 오피스텔 049호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-13T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0049",
+        "item_name": "가상 오피스텔 049호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-13T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0050",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0050",
+        "item_name": "가상 토지 050호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-13T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0050",
+        "item_name": "가상 토지 050호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-13T16:00:00+09:00",
+        "bid_end_at": "2026-11-14T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0051",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0051",
+        "item_name": "가상 아파트 051호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-13T22:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0051",
+        "item_name": "가상 아파트 051호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-13T22:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0052",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0052",
+        "item_name": "가상 상가 052호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-13T19:00:00Z",
+        "bid_end_at": "2026-11-16T19:00:00Z",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0052",
+        "item_name": "가상 상가 052호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-13T19:00:00Z",
+        "bid_end_at": "2026-11-16T19:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0053",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0053",
+        "item_name": "가상 임야 053호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-14T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0053",
+        "item_name": "가상 임야 053호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-14T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0054",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0054",
+        "item_name": "가상 차량 054호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-14T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0054",
+        "item_name": "가상 차량 054호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-14T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0055",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0055",
+        "item_name": "가상 선박 055호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-14T22:00:00+09:00",
+        "bid_end_at": "2026-11-15T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0055",
+        "item_name": "가상 선박 055호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-14T22:00:00+09:00",
+        "bid_end_at": "2026-11-15T04:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0056",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0056",
+        "item_name": "가상 기계 056호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-15T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0056",
+        "item_name": "가상 기계 056호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-15T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0057",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0057",
+        "item_name": "가상 공장 057호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-15T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0057",
+        "item_name": "가상 공장 057호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-15T10:00:00+09:00",
+        "bid_end_at": "2026-11-15T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0058",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0058",
+        "item_name": "가상 창고 058호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-15T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0058",
+        "item_name": "가상 창고 058호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-15T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0059",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0059",
+        "item_name": "가상 오피스텔 059호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-15T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0059",
+        "item_name": "가상 오피스텔 059호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-15T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0060",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0060",
+        "item_name": "가상 토지 060호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-16T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0060",
+        "item_name": "가상 토지 060호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-16T04:00:00+09:00",
+        "bid_end_at": "2026-11-17T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0061",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0061",
+        "item_name": "가상 아파트 061호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-16T10:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0061",
+        "item_name": "가상 아파트 061호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-16T10:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0062",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0062",
+        "item_name": "가상 상가 062호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-16T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0062",
+        "item_name": "가상 상가 062호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-16T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0063",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0063",
+        "item_name": "가상 임야 063호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-16T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0063",
+        "item_name": "가상 임야 063호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-16T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0064",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0064",
+        "item_name": "가상 차량 064호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-17T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0064",
+        "item_name": "가상 차량 064호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-17T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0065",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0065",
+        "item_name": "가상 선박 065호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-17T01:00:00Z",
+        "bid_end_at": "2026-11-17T07:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0065",
+        "item_name": "가상 선박 065호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-17T01:00:00Z",
+        "bid_end_at": "2026-11-17T07:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0066",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0066",
+        "item_name": "가상 기계 066호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-17T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0066",
+        "item_name": "가상 기계 066호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-17T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0067",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0067",
+        "item_name": "가상 공장 067호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-17T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0067",
+        "item_name": "가상 공장 067호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-17T22:00:00+09:00",
+        "bid_end_at": "2026-11-18T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0068",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0068",
+        "item_name": "가상 창고 068호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-18T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0068",
+        "item_name": "가상 창고 068호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-18T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0069",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0069",
+        "item_name": "가상 오피스텔 069호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-18T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0069",
+        "item_name": "가상 오피스텔 069호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-18T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0070",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0070",
+        "item_name": "가상 토지 070호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-18T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0070",
+        "item_name": "가상 토지 070호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-18T16:00:00+09:00",
+        "bid_end_at": "2026-11-19T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0071",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0071",
+        "item_name": "가상 아파트 071호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-18T22:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0071",
+        "item_name": "가상 아파트 071호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-18T22:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0072",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0072",
+        "item_name": "가상 상가 072호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-19T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0072",
+        "item_name": "가상 상가 072호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-19T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0073",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0073",
+        "item_name": "가상 임야 073호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-19T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0073",
+        "item_name": "가상 임야 073호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-19T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0074",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0074",
+        "item_name": "가상 차량 074호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-19T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0074",
+        "item_name": "가상 차량 074호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-19T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0075",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0075",
+        "item_name": "가상 선박 075호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-19T22:00:00+09:00",
+        "bid_end_at": "2026-11-20T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0075",
+        "item_name": "가상 선박 075호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-19T22:00:00+09:00",
+        "bid_end_at": "2026-11-20T04:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0076",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0076",
+        "item_name": "가상 기계 076호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-20T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0076",
+        "item_name": "가상 기계 076호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-20T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0077",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0077",
+        "item_name": "가상 공장 077호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0077",
+        "item_name": "가상 공장 077호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0078",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0078",
+        "item_name": "가상 창고 078호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-20T07:00:00Z",
+        "bid_end_at": "2026-11-24T07:00:00Z"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0078",
+        "item_name": "가상 창고 078호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-20T07:00:00Z",
+        "bid_end_at": "2026-11-24T07:00:00Z"
+      }
+    },
+    {
+      "id": "DEMO-0079",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0079",
+        "item_name": "가상 오피스텔 079호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-20T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0079",
+        "item_name": "가상 오피스텔 079호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-20T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0080",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0080",
+        "item_name": "가상 토지 080호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-21T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0080",
+        "item_name": "가상 토지 080호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-21T04:00:00+09:00",
+        "bid_end_at": "2026-11-22T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0081",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0081",
+        "item_name": "가상 아파트 081호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-21T10:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0081",
+        "item_name": "가상 아파트 081호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-21T10:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0082",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0082",
+        "item_name": "가상 상가 082호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-21T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0082",
+        "item_name": "가상 상가 082호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-21T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0083",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0083",
+        "item_name": "가상 임야 083호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-21T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0083",
+        "item_name": "가상 임야 083호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-21T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0084",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0084",
+        "item_name": "가상 차량 084호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-22T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0084",
+        "item_name": "가상 차량 084호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-22T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0085",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0085",
+        "item_name": "가상 선박 085호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-22T10:00:00+09:00",
+        "bid_end_at": "2026-11-22T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0085",
+        "item_name": "가상 선박 085호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-22T10:00:00+09:00",
+        "bid_end_at": "2026-11-22T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0086",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0086",
+        "item_name": "가상 기계 086호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-22T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0086",
+        "item_name": "가상 기계 086호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-22T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0087",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0087",
+        "item_name": "가상 공장 087호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-22T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0087",
+        "item_name": "가상 공장 087호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-22T22:00:00+09:00",
+        "bid_end_at": "2026-11-23T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0088",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0088",
+        "item_name": "가상 창고 088호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-23T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0088",
+        "item_name": "가상 창고 088호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-23T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0089",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0089",
+        "item_name": "가상 오피스텔 089호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-23T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0089",
+        "item_name": "가상 오피스텔 089호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-23T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0090",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0090",
+        "item_name": "가상 토지 090호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-23T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0090",
+        "item_name": "가상 토지 090호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-23T16:00:00+09:00",
+        "bid_end_at": "2026-11-24T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0091",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 54,
+      "list": {
+        "demo_item_id": "DEMO-0091",
+        "item_name": "가상 아파트 091호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-23T13:00:00Z",
+        "bid_end_at": "2026-11-25T13:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0091",
+        "item_name": "가상 아파트 091호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-23T13:00:00Z",
+        "bid_end_at": "2026-11-25T13:00:00Z",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0092",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 108,
+      "list": {
+        "demo_item_id": "DEMO-0092",
+        "item_name": "가상 상가 092호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-24T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0092",
+        "item_name": "가상 상가 092호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-24T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0093",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 162,
+      "list": {
+        "demo_item_id": "DEMO-0093",
+        "item_name": "가상 임야 093호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-24T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0093",
+        "item_name": "가상 임야 093호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-24T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0094",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 216,
+      "list": {
+        "demo_item_id": "DEMO-0094",
+        "item_name": "가상 차량 094호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-24T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0094",
+        "item_name": "가상 차량 094호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-24T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0095",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0095",
+        "item_name": "가상 선박 095호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-24T22:00:00+09:00",
+        "bid_end_at": "2026-11-25T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0095",
+        "item_name": "가상 선박 095호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-24T22:00:00+09:00",
+        "bid_end_at": "2026-11-25T04:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0096",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 324,
+      "list": {
+        "demo_item_id": "DEMO-0096",
+        "item_name": "가상 기계 096호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-25T04:00:00+09:00",
+        "bid_end_at": "2026-12-02T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0096",
+        "item_name": "가상 기계 096호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-25T04:00:00+09:00",
+        "bid_end_at": "2026-12-02T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0097",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 378,
+      "list": {
+        "demo_item_id": "DEMO-0097",
+        "item_name": "가상 공장 097호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-25T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0097",
+        "item_name": "가상 공장 097호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-25T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0098",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치하고 날짜·필수값이 모두 올바름",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 432,
+      "list": {
+        "demo_item_id": "DEMO-0098",
+        "item_name": "가상 창고 098호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-25T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0098",
+        "item_name": "가상 창고 098호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-25T16:00:00+09:00",
+        "bid_end_at": "2026-11-29T16:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0099",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 bidding → closed로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 486,
+      "list": {
+        "demo_item_id": "DEMO-0099",
+        "item_name": "가상 오피스텔 099호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-25T22:00:00+09:00",
+        "bid_end_at": "2026-11-28T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0099",
+        "item_name": "가상 오피스텔 099호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-25T22:00:00+09:00",
+        "bid_end_at": "2026-11-28T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0100",
+      "group": "normal",
+      "category": "NORMAL",
+      "title": "정상: 목록·상세가 일치함 (진행상태는 ready → bidding로 바뀌어도 정상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0100",
+        "item_name": "가상 토지 100호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-26T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "ready"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0100",
+        "item_name": "가상 토지 100호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-26T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0101",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 1일 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 60,
+      "list": {
+        "demo_item_id": "DEMO-0101",
+        "item_name": "가상 아파트 101호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-26T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0101",
+        "item_name": "가상 아파트 101호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-26T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0102",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 1시간 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 90,
+      "list": {
+        "demo_item_id": "DEMO-0102",
+        "item_name": "가상 상가 102호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-26T16:00:00+09:00",
+        "bid_end_at": "2026-11-26T15:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0102",
+        "item_name": "가상 상가 102호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-26T16:00:00+09:00",
+        "bid_end_at": "2026-11-26T15:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0103",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 1분 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0103",
+        "item_name": "가상 임야 103호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-26T13:00:00Z",
+        "bid_end_at": "2026-11-26T12:59:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0103",
+        "item_name": "가상 임야 103호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-26T13:00:00Z",
+        "bid_end_at": "2026-11-26T12:59:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0104",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 30일 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 150,
+      "list": {
+        "demo_item_id": "DEMO-0104",
+        "item_name": "가상 차량 104호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-27T04:00:00+09:00",
+        "bid_end_at": "2026-10-28T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0104",
+        "item_name": "가상 차량 104호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-27T04:00:00+09:00",
+        "bid_end_at": "2026-10-28T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0105",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 7일 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 180,
+      "list": {
+        "demo_item_id": "DEMO-0105",
+        "item_name": "가상 선박 105호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-27T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0105",
+        "item_name": "가상 선박 105호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-27T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0106",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 2일 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 210,
+      "list": {
+        "demo_item_id": "DEMO-0106",
+        "item_name": "가상 기계 106호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-27T07:00:00Z",
+        "bid_end_at": "2026-11-25T07:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0106",
+        "item_name": "가상 기계 106호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-11-27T07:00:00Z",
+        "bid_end_at": "2026-11-25T07:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0107",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 2시간 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 240,
+      "list": {
+        "demo_item_id": "DEMO-0107",
+        "item_name": "가상 공장 107호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-27T22:00:00+09:00",
+        "bid_end_at": "2026-11-27T20:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0107",
+        "item_name": "가상 공장 107호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-11-27T22:00:00+09:00",
+        "bid_end_at": "2026-11-27T20:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0108",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 12시간 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0108",
+        "item_name": "가상 창고 108호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-28T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0108",
+        "item_name": "가상 창고 108호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-11-28T04:00:00+09:00",
+        "bid_end_at": "2026-11-27T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0109",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 5분 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 300,
+      "list": {
+        "demo_item_id": "DEMO-0109",
+        "item_name": "가상 오피스텔 109호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-28T01:00:00Z",
+        "bid_end_at": "2026-11-28T00:55:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0109",
+        "item_name": "가상 오피스텔 109호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-28T01:00:00Z",
+        "bid_end_at": "2026-11-28T00:55:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0110",
+      "group": "anomaly",
+      "category": "DATE_ORDER",
+      "title": "이상(날짜 정합성): 입찰종료일시가 입찰시작일시보다 365일 빠름",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 330,
+      "list": {
+        "demo_item_id": "DEMO-0110",
+        "item_name": "가상 토지 110호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-28T16:00:00+09:00",
+        "bid_end_at": "2025-11-28T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0110",
+        "item_name": "가상 토지 110호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-11-28T16:00:00+09:00",
+        "bid_end_at": "2025-11-28T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0111",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): item_name 필드가 없음",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 60,
+      "list": {
+        "demo_item_id": "DEMO-0111",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-28T22:00:00+09:00",
+        "bid_end_at": "2026-12-01T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0111",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-28T22:00:00+09:00",
+        "bid_end_at": "2026-12-01T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0112",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): item_name이 null",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 90,
+      "list": {
+        "demo_item_id": "DEMO-0112",
+        "item_name": null,
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-29T04:00:00+09:00",
+        "bid_end_at": "2026-12-02T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0112",
+        "item_name": null,
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-29T04:00:00+09:00",
+        "bid_end_at": "2026-12-02T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0113",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): item_name이 빈 글자(\"\")",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0113",
+        "item_name": "",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-29T10:00:00+09:00",
+        "bid_end_at": "2026-12-02T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0113",
+        "item_name": "",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-11-29T10:00:00+09:00",
+        "bid_end_at": "2026-12-02T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0114",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): org_name이 공백뿐",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 150,
+      "list": {
+        "demo_item_id": "DEMO-0114",
+        "item_name": "가상 차량 114호",
+        "org_name": "   ",
+        "bid_start_at": "2026-11-29T16:00:00+09:00",
+        "bid_end_at": "2026-12-02T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0114",
+        "item_name": "가상 차량 114호",
+        "org_name": "   ",
+        "bid_start_at": "2026-11-29T16:00:00+09:00",
+        "bid_end_at": "2026-12-02T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0115",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): org_name 필드가 없음",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 180,
+      "list": {
+        "demo_item_id": "DEMO-0115",
+        "item_name": "가상 선박 115호",
+        "bid_start_at": "2026-11-29T22:00:00+09:00",
+        "bid_end_at": "2026-12-02T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0115",
+        "item_name": "가상 선박 115호",
+        "bid_start_at": "2026-11-29T22:00:00+09:00",
+        "bid_end_at": "2026-12-02T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0116",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): bid_start_at 필드가 없음",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 210,
+      "list": {
+        "demo_item_id": "DEMO-0116",
+        "item_name": "가상 기계 116호",
+        "org_name": "가상지역본부 A",
+        "bid_end_at": "2026-12-03T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0116",
+        "item_name": "가상 기계 116호",
+        "org_name": "가상지역본부 A",
+        "bid_end_at": "2026-12-03T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0117",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): bid_end_at이 null",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 240,
+      "list": {
+        "demo_item_id": "DEMO-0117",
+        "item_name": "가상 공장 117호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-30T10:00:00+09:00",
+        "bid_end_at": null,
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0117",
+        "item_name": "가상 공장 117호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-11-30T10:00:00+09:00",
+        "bid_end_at": null,
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0118",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): bid_start_at 형식이 틀림(2026/11/05 10:00)",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 270,
+      "list": {
+        "demo_item_id": "DEMO-0118",
+        "item_name": "가상 창고 118호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026/11/05 10:00",
+        "bid_end_at": "2026-12-03T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0118",
+        "item_name": "가상 창고 118호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026/11/05 10:00",
+        "bid_end_at": "2026-12-03T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0119",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): bid_end_at이 실제로 없는 날짜(2026-02-30)",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 300,
+      "list": {
+        "demo_item_id": "DEMO-0119",
+        "item_name": "가상 오피스텔 119호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-30T22:00:00+09:00",
+        "bid_end_at": "2026-02-30T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0119",
+        "item_name": "가상 오피스텔 119호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-11-30T22:00:00+09:00",
+        "bid_end_at": "2026-02-30T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0120",
+      "group": "anomaly",
+      "category": "REQUIRED_FIELD",
+      "title": "이상(필수정보): bid_start_at에 시간대(+09:00)가 없음",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 330,
+      "list": {
+        "demo_item_id": "DEMO-0120",
+        "item_name": "가상 토지 120호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-05T10:00:00",
+        "bid_end_at": "2026-12-04T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0120",
+        "item_name": "가상 토지 120호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-05T10:00:00",
+        "bid_end_at": "2026-12-04T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0121",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): item_name이 다름(정정 표시가 붙음)",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 60,
+      "list": {
+        "demo_item_id": "DEMO-0121",
+        "item_name": "가상 아파트 121호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-12-01T10:00:00+09:00",
+        "bid_end_at": "2026-12-04T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0121",
+        "item_name": "가상 아파트 121호 (정정)",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-12-01T10:00:00+09:00",
+        "bid_end_at": "2026-12-04T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0122",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): item_name이 완전히 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 110,
+      "list": {
+        "demo_item_id": "DEMO-0122",
+        "item_name": "가상 상가 122호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-12-01T16:00:00+09:00",
+        "bid_end_at": "2026-12-04T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0122",
+        "item_name": "전혀 다른 가상 물건 이름",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-12-01T16:00:00+09:00",
+        "bid_end_at": "2026-12-04T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0123",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): item_name이 한 글자만 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 160,
+      "list": {
+        "demo_item_id": "DEMO-0123",
+        "item_name": "가상 임야 123호",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-12-01T22:00:00+09:00",
+        "bid_end_at": "2026-12-04T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0123",
+        "item_name": "가상 임야 123X",
+        "org_name": "가상동산팀",
+        "bid_start_at": "2026-12-01T22:00:00+09:00",
+        "bid_end_at": "2026-12-04T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0124",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): org_name이 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 210,
+      "list": {
+        "demo_item_id": "DEMO-0124",
+        "item_name": "가상 차량 124호",
+        "org_name": "가상지역본부 A",
+        "bid_start_at": "2026-12-02T04:00:00+09:00",
+        "bid_end_at": "2026-12-05T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0124",
+        "item_name": "가상 차량 124호",
+        "org_name": "가상다른기관",
+        "bid_start_at": "2026-12-02T04:00:00+09:00",
+        "bid_end_at": "2026-12-05T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0125",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): org_name이 다른 기관으로 바뀜",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 260,
+      "list": {
+        "demo_item_id": "DEMO-0125",
+        "item_name": "가상 선박 125호",
+        "org_name": "가상지역본부 B",
+        "bid_start_at": "2026-12-02T10:00:00+09:00",
+        "bid_end_at": "2026-12-05T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0125",
+        "item_name": "가상 선박 125호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-12-02T10:00:00+09:00",
+        "bid_end_at": "2026-12-05T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0126",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): bid_start_at이 하루 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 310,
+      "list": {
+        "demo_item_id": "DEMO-0126",
+        "item_name": "가상 기계 126호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-12-02T16:00:00+09:00",
+        "bid_end_at": "2026-12-05T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0126",
+        "item_name": "가상 기계 126호",
+        "org_name": "가상정보시스템처",
+        "bid_start_at": "2026-12-01T16:00:00+09:00",
+        "bid_end_at": "2026-12-05T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0127",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): bid_start_at이 1시간 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 360,
+      "list": {
+        "demo_item_id": "DEMO-0127",
+        "item_name": "가상 공장 127호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-12-02T22:00:00+09:00",
+        "bid_end_at": "2026-12-05T22:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0127",
+        "item_name": "가상 공장 127호",
+        "org_name": "가상재산관리센터",
+        "bid_start_at": "2026-12-02T21:00:00+09:00",
+        "bid_end_at": "2026-12-05T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0128",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): bid_end_at이 하루 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 410,
+      "list": {
+        "demo_item_id": "DEMO-0128",
+        "item_name": "가상 창고 128호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-12-03T04:00:00+09:00",
+        "bid_end_at": "2026-12-06T04:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0128",
+        "item_name": "가상 창고 128호",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-12-03T04:00:00+09:00",
+        "bid_end_at": "2026-12-07T04:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0129",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): bid_end_at이 12시간 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 460,
+      "list": {
+        "demo_item_id": "DEMO-0129",
+        "item_name": "가상 오피스텔 129호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-12-03T10:00:00+09:00",
+        "bid_end_at": "2026-12-06T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0129",
+        "item_name": "가상 오피스텔 129호",
+        "org_name": "가상공매운영처",
+        "bid_start_at": "2026-12-03T10:00:00+09:00",
+        "bid_end_at": "2026-12-06T22:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0130",
+      "group": "anomaly",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "이상(목록·상세 정합성): item_name과 org_name이 모두 다름",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 510,
+      "list": {
+        "demo_item_id": "DEMO-0130",
+        "item_name": "가상 토지 130호",
+        "org_name": "가상부동산팀",
+        "bid_start_at": "2026-12-03T16:00:00+09:00",
+        "bid_end_at": "2026-12-06T16:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0130",
+        "item_name": "다른 가상 물건",
+        "org_name": "가상다른기관",
+        "bid_start_at": "2026-12-03T16:00:00+09:00",
+        "bid_end_at": "2026-12-06T16:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0131",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 종료일시가 시작일시와 정확히 같음 → 정상 (더 빠를 때만 이상)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0131",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0131",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0132",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 종료일시가 시작일시보다 1초 빠름 → 이상",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0132",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T09:59:59+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0132",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T09:59:59+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0133",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 종료일시가 시작일시보다 1초 늦음 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0133",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:01+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0133",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T10:00:01+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0134",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 표기(+09:00/Z)가 달라도 같은 순간이면 같다 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0134",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T01:00:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0134",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T01:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0135",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 글자로는 종료(09:30)가 빨라 보여도 실제로는 더 늦은 순간 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0135",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T09:30:00Z",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0135",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-20T09:30:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0136",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 글자로는 종료(17:00)가 늦어 보여도 실제로는 1시간 빠른 순간 → 이상",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0136",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T09:00:00Z",
+        "bid_end_at": "2026-11-20T17:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0136",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T09:00:00Z",
+        "bid_end_at": "2026-11-20T17:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0137",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 해가 바뀌는 순간(23:59:59 → 다음 해 00:00:00) → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0137",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-12-31T23:59:59+09:00",
+        "bid_end_at": "2027-01-01T00:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0137",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-12-31T23:59:59+09:00",
+        "bid_end_at": "2027-01-01T00:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0138",
+      "group": "boundary",
+      "category": "DATE_ORDER",
+      "title": "경계(날짜): 윤년 2월 29일에 종료가 1초 빠름 → 이상",
+      "expected": {
+        "rules": [
+          "DATE_ORDER"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0138",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2028-02-29T10:00:00+09:00",
+        "bid_end_at": "2028-02-29T09:59:59+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0138",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2028-02-29T10:00:00+09:00",
+        "bid_end_at": "2028-02-29T09:59:59+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0139",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): 선택 필드(item_status)가 없음 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0139",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0139",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00"
+      }
+    },
+    {
+      "id": "DEMO-0140",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): item_status가 허용된 값(closed) → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0140",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "closed"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0140",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0141",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): item_status가 대문자(CLOSED)라 허용 값(ready/bidding/closed)이 아님 → 이상",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0141",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "CLOSED"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0141",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "CLOSED"
+      }
+    },
+    {
+      "id": "DEMO-0142",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): item_name이 공백 3칸뿐 → 이상",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0142",
+        "item_name": "   ",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0142",
+        "item_name": "   ",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0143",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): item_name이 한 글자 → 정상 (길이 제한 없음)",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0143",
+        "item_name": "가",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0143",
+        "item_name": "가",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0144",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): item_name이 200자 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0144",
+        "item_name": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0144",
+        "item_name": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0145",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): 날짜에 소수점 초(.500)가 있어도 올바른 형식 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0145",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00.500+09:00",
+        "bid_end_at": "2026-11-25T10:00:00.250+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0145",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00.500+09:00",
+        "bid_end_at": "2026-11-25T10:00:00.250+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0146",
+      "group": "boundary",
+      "category": "REQUIRED_FIELD",
+      "title": "경계(필수): bid_end_at이 24시(T24:00:00)라 올바른 시각이 아님 → 이상",
+      "expected": {
+        "rules": [
+          "REQUIRED_FIELD"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0146",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T24:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0146",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T24:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0147",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 수집 시각 차이가 정확히 10분(600초)이고 이름이 다름 → 비교함 → 이상",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 600,
+      "list": {
+        "demo_item_id": "DEMO-0147",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0147",
+        "item_name": "가상 토지 경계-기준 (상세에서 정정)",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0148",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 수집 시각 차이 9분 59초(599초)이고 이름이 다름 → 비교함 → 이상",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 599,
+      "list": {
+        "demo_item_id": "DEMO-0148",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0148",
+        "item_name": "가상 토지 경계-기준 (상세에서 정정)",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0149",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 수집 시각 차이 10분 1초(601초)이고 이름이 다름 → 비교 제외(시간차 초과) → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "skipped:WINDOW_EXCEEDED"
+      },
+      "detailOffsetSeconds": 601,
+      "list": {
+        "demo_item_id": "DEMO-0149",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0149",
+        "item_name": "가상 토지 경계-기준 (상세에서 정정)",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0150",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 수집 시각 차이 601초이고 내용이 같음 → 비교 제외 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "skipped:WINDOW_EXCEEDED"
+      },
+      "detailOffsetSeconds": 601,
+      "list": {
+        "demo_item_id": "DEMO-0150",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0150",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0151",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 수집 시각 차이 0초이고 내용이 같음 → 비교함 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0151",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0151",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0152",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 상세를 10분(600초) 먼저 수집했고 이름이 다름 → 시간차는 절댓값 → 비교함 → 이상",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": -600,
+      "list": {
+        "demo_item_id": "DEMO-0152",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0152",
+        "item_name": "가상 토지 경계-기준 (상세에서 정정)",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0153",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 상세를 601초 먼저 수집했고 이름이 다름 → 비교 제외 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "skipped:WINDOW_EXCEEDED"
+      },
+      "detailOffsetSeconds": -601,
+      "list": {
+        "demo_item_id": "DEMO-0153",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0153",
+        "item_name": "가상 토지 경계-기준 (상세에서 정정)",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0154",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 진행상태만 다름(bidding → closed) → 비교 제외 필드라 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0154",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0154",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "closed"
+      }
+    },
+    {
+      "id": "DEMO-0155",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 목록에는 진행상태가 없고 상세에만 있음 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0155",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0155",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "ready"
+      }
+    },
+    {
+      "id": "DEMO-0156",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 시작·종료 표기(+09:00 ↔ Z)만 다르고 같은 순간 → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0156",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0156",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T01:00:00Z",
+        "bid_end_at": "2026-11-25T01:00:00Z",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0157",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): bid_start_at이 1초 다름(순서는 올바름) → 이상",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0157",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0157",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:01+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0158",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 상세 조회 결과가 없음 → 비교할 수 없음(제외) → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "skipped:NO_COUNTERPART"
+      },
+      "detailOffsetSeconds": 0,
+      "list": {
+        "demo_item_id": "DEMO-0158",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": null
+    },
+    {
+      "id": "DEMO-0159",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): 목록 조회 결과가 없음 → 비교할 수 없음(제외) → 정상",
+      "expected": {
+        "rules": [],
+        "listDetail": "skipped:NO_COUNTERPART"
+      },
+      "detailOffsetSeconds": 0,
+      "list": null,
+      "detail": {
+        "demo_item_id": "DEMO-0159",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      }
+    },
+    {
+      "id": "DEMO-0160",
+      "group": "boundary",
+      "category": "LIST_DETAIL_MISMATCH",
+      "title": "경계(목록·상세): bid_end_at이 1초 다름(순서는 올바름) → 이상",
+      "expected": {
+        "rules": [
+          "LIST_DETAIL_MISMATCH"
+        ],
+        "listDetail": "compared"
+      },
+      "detailOffsetSeconds": 120,
+      "list": {
+        "demo_item_id": "DEMO-0160",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:00+09:00",
+        "item_status": "bidding"
+      },
+      "detail": {
+        "demo_item_id": "DEMO-0160",
+        "item_name": "가상 토지 경계-기준",
+        "org_name": "가상자산관리본부",
+        "bid_start_at": "2026-11-20T10:00:00+09:00",
+        "bid_end_at": "2026-11-25T10:00:01+09:00",
+        "item_status": "bidding"
+      }
+    }
+  ]
+}
