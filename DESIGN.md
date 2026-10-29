@@ -486,6 +486,8 @@ onbid_rader/
 ├─ components/                  화면 조각 (표, 배지, 카드, 처리 폼)
 ├─ lib/
 │  ├─ rules/                    탐지 규칙 3개 (순수 함수)
+│  │   ├─ iso-datetime.ts       ISO 8601 날짜·시각 해석 (규칙들이 공유, 구현됨)
+│  │   └─ date-order.ts         규칙 1 DATE_ORDER: 종료가 시작보다 엄격히 빠를 때만 (구현됨, PLAN 18)
 │  ├─ checks/                   점검 실행 엔진, 조회기(demo/public), 필드 정리
 │  ├─ anomalies/                서버 액션, 조회
 │  ├─ reports/                  보고서 집계·Markdown 작성, 서버 액션
