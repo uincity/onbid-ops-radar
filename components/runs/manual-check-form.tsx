@@ -45,6 +45,8 @@ export function ManualCheckForm() {
               </option>
             ))}
           </select>
+          {/* 비활성(disabled) 칸은 폼 전송에서 빠진다. PUBLIC은 응답 시뮬레이션을 쓰지 않지만 서버 검사가 값을 요구하므로 기본값을 따로 보낸다 */}
+          {source === "PUBLIC" && <input type="hidden" name="mode" value="normal" />}
         </label>
 
         <button

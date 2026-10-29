@@ -20,8 +20,11 @@ test.describe("점검 이력 /runs", () => {
     await expect(page.getByTestId("manual-check-notice")).toHaveCount(0);
     await panel.getByLabel("출처").selectOption("PUBLIC");
     await expect(panel.getByLabel("응답 시뮬레이션")).toBeDisabled();
+    // 비활성 칸은 폼에서 빠지므로, 서버 검사를 통과하도록 기본값(normal)이 숨은 칸으로 함께 전송되어야 한다 (이게 없으면 PUBLIC 점검이 "선택한 값이 올바르지 않습니다"로 거부된다)
+    await expect(panel.locator('input[type="hidden"][name="mode"]')).toHaveValue("normal");
     await panel.getByLabel("출처").selectOption("DEMO");
     await expect(panel.getByLabel("응답 시뮬레이션")).toBeEnabled();
+    await expect(panel.locator('input[type="hidden"][name="mode"]')).toHaveCount(0);
 
     await signOutThroughButton(page);
   });
