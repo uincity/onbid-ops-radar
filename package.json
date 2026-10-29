@@ -8,6 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs",
+    "db:push": "node --env-file=.env --env-file-if-exists=.env.local scripts/db-push.mjs",
+    "check:db": "node --env-file=.env --env-file-if-exists=.env.local scripts/check-db-profiles.mjs",
     "check:env": "node --env-file=.env --env-file-if-exists=.env.local scripts/check-env.mjs",
     "setup:env": "node --env-file=.env --env-file-if-exists=.env.local scripts/setup-env-local.mjs",
     "setup:supabase": "node --env-file=.env --env-file-if-exists=.env.local scripts/setup-supabase-project.mjs",

@@ -53,8 +53,16 @@
 | 프로덕션 빌드 | `npm run build` |
 | 린트 | `npm run lint` |
 | 타입 검사 | `npx tsc --noEmit` |
+| Supabase·Vercel CLI 로그인 확인 | `npm run check:cli` |
+| Supabase 프로젝트 만들기·연결 | `npm run setup:supabase` |
+| Supabase 연결 확인 | `npm run check:supabase` |
+| 앱 환경변수 채우기 (`.env.local`) | `npm run setup:env` |
+| 환경변수·키 확인 | `npm run check:env` |
+| DB 반영 미리 보기 | `npm run db:push -- --dry-run` |
+| DB 반영 (`supabase/migrations`의 새 파일) | `npm run db:push` |
+| profiles 테이블 확인 | `npm run check:db` |
 
-테스트 도구와 Supabase 마이그레이션 명령은 아직 정하지 않았습니다. 개발 단위 U01~U03에서 정한 뒤 이 표에 추가합니다.
+DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). 테스트 도구(Vitest·Playwright·pgTAP) 실행 명령은 PLAN 4번과 12번에서 정한 뒤 이 표에 추가합니다.
 
 ## 기술 스택 (고정)
 
