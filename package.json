@@ -7,7 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs"
+    "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs",
+    "setup:supabase": "node --env-file=.env --env-file-if-exists=.env.local scripts/setup-supabase-project.mjs",
+    "check:supabase": "node --env-file=.env --env-file-if-exists=.env.local scripts/check-supabase-link.mjs"
   },
   "dependencies": {
     "next": "16.4.3",
