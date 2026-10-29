@@ -3,7 +3,11 @@
 // 호출은 딱 2번이다: 부동산 물건목록 1번 + 물건상세 1번. (읽기 전용 GET. DB에는 아무것도 쓰지 않는다)
 // 서비스키는 어디에도 출력하지 않는다. 응답은 공개된 공매 정보라서 필드 이름과 값의 모양만 요약해서 보여 준다.
 import { describe, expect, it } from "vitest";
-import { createPublicFetcher, PUBLIC_STORED_FIELDS } from "@/lib/checks/public-fetcher";
+import { classifyProbe } from "@/lib/checks/probe/classify";
+import { observationFromCheck, policyFromOperation } from "@/lib/checks/probe/from-check";
+import { describeProbe } from "@/lib/checks/probe/status";
+import { createPublicFetcher, PUBLIC_ENDPOINT_OPERATIONS, PUBLIC_STORED_FIELDS } from "@/lib/checks/public-fetcher";
+import { findOperation } from "@/lib/registry";
 import { detectItem } from "@/lib/rules/detect-item";
 import { PUBLIC_PROFILE } from "@/lib/rules/field-profile";
 import { DEFAULT_SETTING_VALUES } from "@/lib/settings/schema";
@@ -44,6 +48,20 @@ describe.skipIf(!live)("PUBLIC 조회기 + 실제 온비드 OpenAPI (호출 2번
     // 날짜는 부록 A대로 yyyyMMddHHmm 12자리여야 한다
     expect(PUBLIC_PROFILE.parseDate(listed.fields.cltrBidBgngDt), "입찰시작일시 형식").not.toBeNull();
     expect(PUBLIC_PROFILE.parseDate(listed.fields.cltrBidEndDt), "입찰종료일시 형식").not.toBeNull();
+
+    // 점검 상태 판정 (R02): 실제 응답이 명세(등록부)의 필수 응답 항목을 갖추었는지까지 본다
+    const judged = (name: "public-list" | "public-detail", check: typeof list) => {
+      const op = findOperation(PUBLIC_ENDPOINT_OPERATIONS[name])!.operation;
+      return classifyProbe({ policy: policyFromOperation(op), observation: observationFromCheck(check) });
+    };
+    const listJudge = judged("public-list", list);
+    const detailJudge = judged("public-detail", detail);
+    console.log(`[점검 판정] 목록=${describeProbe(listJudge)} 상세=${describeProbe(detailJudge)}`);
+    console.log(`[응답 구조] 목록: 검사 ${list.schema?.inspected ?? 0}건, 필수 항목 누락=${JSON.stringify(list.schema?.problems ?? [])}, 자료형 경고 ${list.schema?.warnings ?? 0}`);
+    console.log(`[응답 구조] 상세: 검사 ${detail.schema?.inspected ?? 0}건, 필수 항목 누락=${JSON.stringify(detail.schema?.problems ?? [])}, 자료형 경고 ${detail.schema?.warnings ?? 0}`);
+    // 정상(또는 경고만 있는) 판정이어야 한다. 구조 오류가 나오면 위 [응답 구조] 줄의 누락 항목을 보고 명세·예외 목록(schema-check.ts)을 확인한다
+    expect(["PASS_DATA", "DEGRADED"], `목록 판정 ${describeProbe(listJudge)}`).toContain(listJudge.status);
+    expect(["PASS_DATA", "DEGRADED", "UNVERIFIED"], `상세 판정 ${describeProbe(detailJudge)}`).toContain(detailJudge.status);
 
     // 기록에 서비스키가 섞여 있지 않다
     expect(JSON.stringify([list, detail])).not.toContain(process.env.DATA_GO_KR_SERVICE_KEY!.slice(0, 20));

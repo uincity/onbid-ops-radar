@@ -16,6 +16,7 @@ const result = (over: Partial<RunCheckResult> = {}): RunCheckResult => ({
   apiCallCount: 2,
   detections: [],
   registered: { created: 3, recurred: 1, detected_again: 2, suppressed: 4 },
+  probes: [],
   ...over,
 });
 

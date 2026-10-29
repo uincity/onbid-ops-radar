@@ -16,9 +16,9 @@ describe("정상 응답 (header.resultCode = 00)", () => {
   });
 
   it("정상 코드인데 항목이 없으면 데이터없음으로 본다 (빈 문자열 items, 빈 배열 모두)", () => {
-    expect(parseOnbidBody(ok(""))).toEqual({ kind: "nodata" });
-    expect(parseOnbidBody(ok({ item: [] }))).toEqual({ kind: "nodata" });
-    expect(parseOnbidBody(ok(undefined))).toEqual({ kind: "nodata" });
+    expect(parseOnbidBody(ok(""))).toEqual({ kind: "nodata", code: "00" });
+    expect(parseOnbidBody(ok({ item: [] }))).toEqual({ kind: "nodata", code: "00" });
+    expect(parseOnbidBody(ok(undefined))).toEqual({ kind: "nodata", code: "00" });
   });
 
   it("객체가 아닌 항목은 버린다", () => {
@@ -34,7 +34,7 @@ describe("result 모양의 응답 (데이터없음 · 오류)", () => {
   const result = (code: string) => JSON.stringify({ result: { resultCode: code, resultMsg: "x" } });
 
   it("03 NODATA_ERROR는 데이터없음", () => {
-    expect(parseOnbidBody(result("03"))).toEqual({ kind: "nodata" });
+    expect(parseOnbidBody(result("03"))).toEqual({ kind: "nodata", code: "03" });
   });
 
   it.each([...AUTH_OR_QUOTA_CODES])("서비스키·한도 문제 코드 %s는 일반 실패와 구분한다", (code) => {

@@ -313,6 +313,11 @@ describe("PUBLIC 점검", () => {
   const item = (n: number, over: Record<string, unknown> = {}) => ({
     cltrMngNo: `2026-1100-00000${n}`,
     pbctCdtnNo: 100 + n,
+    // 등록부(명세)가 필수로 적은 나머지 응답 항목 (pbctsn은 명세상 2026.1.1 이후 공고에는 표시되지 않아 예외)
+    onbidCltrno: 1000 + n,
+    onbidPbancNo: 2000 + n,
+    pbctNo: 3000 + n,
+    pbctNsq: "1",
     onbidCltrNm: `물건 ${n}`,
     orgNm: "한국자산관리공사",
     cltrBidBgngDt: "202605180900",
@@ -381,11 +386,25 @@ describe("PUBLIC 점검", () => {
     expect(rec.logs.some((l) => l.code === "COMPARE_SKIPPED" && l.message.includes("NO_COUNTERPART") && l.message.includes("2026-1100-000005"))).toBe(true);
   });
 
-  it("목록이 0건이면 EMPTY_RESULT(빈 결과 불허), 상세가 0건인 것은 정상(허용)", async () => {
+  it("PUBLIC 목록이 0건이어도 EMPTY_RESULT 이상징후를 새로 만들지 않는다 (PRD v2.0 빈 결과 정책). 점검 판정으로만 남는다", async () => {
+    const { store, rec } = fakeStore();
+    const { fetcher, urls } = publicFetcher({ list: nodata });
+    const result = await runPublic({ store, fetcher });
+    expect(result.status).toBe("succeeded"); // 응답은 정상으로 왔다
+    expect(result.detections).toEqual([]);
+    expect(rec.recorded).toHaveLength(0);
+    expect(urls).toHaveLength(1); // 입력값이 없으니 상세는 부르지 않는다
+    expect(result.probes.map((p) => [p.endpoint, p.result])).toEqual([
+      ["public-list", { status: "UNVERIFIED", attempted: true, reason: "NO_DATA_UNCONFIRMED" }], // 정상 무데이터인지 확정할 근거가 없다
+      ["public-detail", { status: "UNVERIFIED", attempted: false, reason: "NO_VALID_INPUT" }],
+    ]);
+  });
+
+  it("DEMO 점검의 빈 결과는 이전 정책(EMPTY_RESULT)을 그대로 쓰고 점검 판정은 만들지 않는다", async () => {
     const { store } = fakeStore();
-    const emptyList = await runPublic({ store, fetcher: publicFetcher({ list: nodata }).fetcher });
-    expect(emptyList.status).toBe("succeeded");
-    expect(emptyList.detections.map((d) => [d.ruleId, d.itemKey])).toEqual([["EMPTY_RESULT", "public-list"]]);
+    const result = await run({ store, fetcher: demoFetcher("empty") });
+    expect(result.detections.map((d) => d.ruleId)).toEqual(["EMPTY_RESULT", "EMPTY_RESULT"]);
+    expect(result.probes).toEqual([]);
   });
 
   it("서비스키·한도 문제가 목록에서 나면 상세를 부르지 않고, 실패로 마감하며 탐지·등록을 하지 않는다", async () => {
@@ -405,6 +424,94 @@ describe("PUBLIC 점검", () => {
     expect(result.apiCallCount).toBe(3);
     expect(urls).toHaveLength(3);
     expect(new URL(urls[0]).searchParams.get("numOfRows")).toBe("2");
+  });
+
+  describe("점검 상태 판정 (R02)", () => {
+    const probeMap = (probes: { endpoint: string; result: unknown }[]) => Object.fromEntries(probes.map((p) => [p.endpoint, p.result]));
+    const code = (c: string) => () => new Response(JSON.stringify({ result: { resultCode: c, resultMsg: "x" } }));
+
+    it("정상 점검: 목록·상세 모두 PASS_DATA이고 점검마다 PROBE_RESULT 메모가 남는다", async () => {
+      const { store, rec } = fakeStore();
+      const result = await runPublic({ store });
+      expect(probeMap(result.probes)).toEqual({ "public-list": { status: "PASS_DATA", attempted: true }, "public-detail": { status: "PASS_DATA", attempted: true } });
+      expect(result.probes.map((p) => p.operationKey)).toEqual(["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"]);
+      expect(rec.logs.filter((l) => l.code === "PROBE_RESULT").map((l) => l.message)).toEqual(["'public-list' 점검 판정: PASS_DATA", "'public-detail' 점검 판정: PASS_DATA"]);
+    });
+
+    it("서비스키 문제(30): 목록 FAIL(AUTH_ERROR), 상세는 선행 실패라 UNVERIFIED(PRECONDITION_FAILED)이며 이상징후를 만들지 않는다", async () => {
+      const { store } = fakeStore();
+      const result = await runPublic({ store, fetcher: publicFetcher({ list: code("30") }).fetcher });
+      expect(probeMap(result.probes)).toEqual({ "public-list": { status: "FAIL", attempted: true, code: "AUTH_ERROR" }, "public-detail": { status: "UNVERIFIED", attempted: false, reason: "PRECONDITION_FAILED" } });
+      expect(result.detections).toEqual([]);
+    });
+
+    it("호출 한도 초과(22)는 AUTH_ERROR와 구분해 QUOTA_EXCEEDED로 판정한다", async () => {
+      const { store } = fakeStore();
+      const result = await runPublic({ store, fetcher: publicFetcher({ list: code("22") }).fetcher });
+      expect(probeMap(result.probes)["public-list"]).toEqual({ status: "FAIL", attempted: true, code: "QUOTA_EXCEEDED" });
+    });
+
+    it("목록이 HTTP 500이면 FAIL(HTTP_ERROR), 업무 오류코드(02)면 FAIL(BUSINESS_ERROR), 깨진 본문이면 FAIL(SCHEMA_ERROR)", async () => {
+      const outcomes = [] as unknown[];
+      for (const list of [() => new Response("x", { status: 500 }), code("02"), () => new Response("not json")]) {
+        const { store } = fakeStore();
+        outcomes.push(probeMap((await runPublic({ store, fetcher: publicFetcher({ list }).fetcher })).probes)["public-list"]);
+      }
+      expect(outcomes).toEqual([
+        { status: "FAIL", attempted: true, code: "HTTP_ERROR" },
+        { status: "FAIL", attempted: true, code: "BUSINESS_ERROR" },
+        { status: "FAIL", attempted: true, code: "SCHEMA_ERROR" },
+      ]);
+    });
+
+    it("응답 구조 경고: 필수 응답 항목이 빠졌어도 식별 입력값을 얻었으면 상세 점검은 계속하고, 목록은 FAIL(SCHEMA_ERROR)로 판정한다", async () => {
+      const { store } = fakeStore();
+      const broken = listItems.map((it) => ({ ...it, pbctNo: undefined })); // 필수 항목 pbctNo 누락
+      const { fetcher, urls } = publicFetcher({ list: () => body(broken) });
+      const result = await runPublic({ store, fetcher });
+      expect(probeMap(result.probes)["public-list"]).toEqual({ status: "FAIL", attempted: true, code: "SCHEMA_ERROR" });
+      expect(urls.length).toBeGreaterThan(1); // 상세도 불렀다
+      expect(result.status).toBe("succeeded"); // 실행 상태는 R04에서 판정 결과와 합친다
+    });
+
+    it("호출 상한 1회: 목록만 점검하고 상세는 미점검(NOT_RUN: BUDGET_SKIP)이다", async () => {
+      const { store } = fakeStore();
+      const result = await runPublic({ store, callLimit: 1 });
+      expect(probeMap(result.probes)).toEqual({ "public-list": { status: "PASS_DATA", attempted: true }, "public-detail": { status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP" } });
+    });
+
+    it("이미 실행 중이면(blocked) 두 점검 모두 NOT_RUN(RUN_BLOCKED)이다", async () => {
+      const { store } = fakeStore({ blocked: true });
+      const result = await runPublic({ store });
+      expect(result.probes.map((p) => p.result)).toEqual([
+        { status: "NOT_RUN", attempted: false, reason: "RUN_BLOCKED" },
+        { status: "NOT_RUN", attempted: false, reason: "RUN_BLOCKED" },
+      ]);
+    });
+
+    it("일일 예산을 모두 썼으면 두 점검 모두 NOT_RUN(BUDGET_SKIP)이다", async () => {
+      const { store } = fakeStore({
+        async countPublicCallsToday() {
+          return 900;
+        },
+      });
+      const result = await runPublic({ store });
+      expect(result.probes.map((p) => p.result)).toEqual([
+        { status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP" },
+        { status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP" },
+      ]);
+    });
+
+    it("상세가 일부만 데이터없음이어도 상세 점검은 PASS_DATA이다 (일부 성공)", async () => {
+      const { store } = fakeStore();
+      const result = await runPublic({ store }); // 물건 5는 상세가 데이터없음
+      expect(probeMap(result.probes)["public-detail"]).toEqual({ status: "PASS_DATA", attempted: true });
+    });
+
+    it("DEMO 점검에는 점검 판정(probes)을 만들지 않는다", async () => {
+      const { store } = fakeStore();
+      expect((await run({ store })).probes).toEqual([]);
+    });
   });
 
   describe("일일 호출 예산 (설정값 public_daily_budget = 900)", () => {

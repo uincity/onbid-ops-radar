@@ -7,7 +7,7 @@
 
 export type OnbidParsed =
   | { kind: "ok"; items: Record<string, unknown>[]; totalCount: number | null }
-  | { kind: "nodata" } // 결과코드 03, 또는 정상인데 0건
+  | { kind: "nodata"; code: string } // 결과코드 03(데이터없음), 또는 정상(00)인데 0건
   | { kind: "auth_or_quota"; code: string }
   | { kind: "error"; code: string };
 
@@ -17,7 +17,7 @@ export const AUTH_OR_QUOTA_CODES: ReadonlySet<string> = new Set(["20", "21", "22
 const isObject = (v: unknown): v is Record<string, unknown> => typeof v === "object" && v !== null && !Array.isArray(v);
 
 function classify(code: string): OnbidParsed {
-  if (code === "03") return { kind: "nodata" };
+  if (code === "03") return { kind: "nodata", code };
   if (AUTH_OR_QUOTA_CODES.has(code)) return { kind: "auth_or_quota", code };
   return { kind: "error", code };
 }
@@ -54,6 +54,6 @@ export function parseOnbidBody(bodyText: string): OnbidParsed {
   const body = isObject(data.body) ? data.body : {};
   const items = toItemArray(body.items);
   const totalCount = typeof body.totalCount === "number" ? body.totalCount : body.totalCount != null && /^\d+$/.test(String(body.totalCount)) ? Number(body.totalCount) : null;
-  if (items.length === 0) return { kind: "nodata" };
+  if (items.length === 0) return { kind: "nodata", code: "00" };
   return { kind: "ok", items, totalCount };
 }

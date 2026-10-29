@@ -99,9 +99,9 @@ DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는
 
 - **표현:** 탐지 결과는 "오류"가 아니라 항상 "이상징후"로 표현합니다. 최초 판정값은 `undetermined`입니다.
 - **서비스의 정체:** 이 서비스는 서버 내부 모니터링이 아니라 **외부 이용자 관점의 합성 점검(Synthetic Monitoring)** 입니다. 점검 결과는 "우리 점검 요청에 관측된 결과"일 뿐이며, 전체 이용자의 호출 건수·서버 성공률·원천 DB 전체 건수·내부 장애 원인을 알 수 있는 것처럼 표시하지 않습니다(PRD 1-2). 개별 요청의 `totalCount`는 "점검요청 결과값"으로만 기록합니다.
-- **API 상태 6종:** `PASS_DATA`·`PASS_NO_DATA`·`DEGRADED`·`FAIL`·`UNVERIFIED`·`NOT_RUN`을 구분합니다. `UNVERIFIED`(검증 불가)와 `NOT_RUN`(미점검)을 정상으로도 실패로도 합산하지 않고, DEMO와 PUBLIC 성과를 합산하지 않으며, 26종 전체가 정상이라고 주장하지 않습니다(PRD 5-2-3, 3-3).
+- **API 상태 6종:** `PASS_DATA`·`PASS_NO_DATA`·`DEGRADED`·`FAIL`·`UNVERIFIED`·`NOT_RUN`을 구분합니다. `UNVERIFIED`(검증 불가)와 `NOT_RUN`(미점검)을 정상으로도 실패로도 합산하지 않고(판정은 `lib/checks/probe`, 점검 전 판단 불가 이유는 `UNVERIFIED`로 남기며 PUBLIC 점검은 요청을 보내기 전에 준비 상태를 확인합니다), DEMO와 PUBLIC 성과를 합산하지 않으며, 26종 전체가 정상이라고 주장하지 않습니다(PRD 5-2-3, 3-3).
 - **탐지 규칙:** 현재 구현된 `DATE_ORDER`·`REQUIRED_FIELD`·`LIST_DETAIL_MISMATCH`는 유지합니다(기존 기록·DEMO 회귀 테스트 보존). PUBLIC 핵심 품질 규칙은 PRD 5-2A의 `DQ_SCHEMA`·`DQ_REQUIRED`·`DQ_LIST_DETAIL_REF`·`DQ_CROSS_API_REF` 4개이며 R06에서 구현합니다. 날짜 역전은 PUBLIC 핵심 지표에서 제외합니다. 결정적인 규칙 기반 로직으로 만들고 LLM을 쓰지 않습니다.
-- **빈 결과(0건):** 0건은 기본적으로 정상 무데이터 후보입니다. `EMPTY_RESULT`는 이전 기록과의 호환 코드로만 남기고, **새 PUBLIC 점검에서는 새로 만들지 않습니다**(PRD 5-2-3). 현재 코드·설정값(`public-list` 빈 결과 불허)은 이전 정책이라 R02·R04에서 바꿉니다. 서비스키·한도 문제로 데이터를 받지 못한 실행에서는 데이터 이상징후를 만들지 않습니다.
+- **빈 결과(0건):** 0건은 기본적으로 정상 무데이터 후보입니다. `EMPTY_RESULT`는 이전 기록과의 호환 코드로만 남기고, **새 PUBLIC 점검에서는 새로 만들지 않습니다**(PRD 5-2-3). PUBLIC 점검의 0건은 R02에서 이미 이 정책으로 바꿨습니다(`lib/checks/probe`, PUBLIC 0건은 `PASS_NO_DATA` 또는 `UNVERIFIED(NO_DATA_UNCONFIRMED)`로만 남고 이상징후를 만들지 않음). DEMO 점검은 이전 정책(`EMPTY_RESULT`)을 회귀 테스트용으로 유지하고, DB 설정값 `empty_allowed_by_endpoint`의 `public-*` 항목은 PUBLIC에서 쓰지 않으며 R03에서 정리합니다. 서비스키·한도 문제로 데이터를 받지 못한 실행에서는 데이터 이상징후를 만들지 않습니다.
 - **API 필드:** PRD 부록 A에 확정되지 않은 API 필드·호출 파라미터·서비스명은 임의로 만들지 않습니다. 26종 서비스 등록부는 `docs/api-registry.md`(초안, 미확정 항목 표시)를 따릅니다. DEMO 데이터는 PRD 부록 B의 가상 스키마만 사용합니다.
 - **데이터 출처:** DEMO와 PUBLIC 데이터를 항상 구분해 저장하고, 화면과 보고서에 출처를 표시합니다. 모든 기능은 DEMO 데이터만으로 동작해야 합니다.
 - **처리상태:** `open` → `investigating` → `resolved`/`dismissed`, 종결 건의 재개(`investigating`)만 허용합니다. 나머지 전이는 거부합니다(PRD 5-3).

@@ -8,6 +8,8 @@
 //   - 요청마다 타임아웃(설정값), 엔진이 알려 준 남은 호출 수·남은 시간을 넘지 않는다.
 //   - 서비스키·호출 한도 문제는 일반 실패와 구분하고, 그 순간 더 부르지 않는다.
 //   - 저장하는 필드는 부록 A의 허용 목록뿐이다 (응답 전체를 저장하지 않는다).
+import { findOperation } from "@/lib/registry";
+import { checkResponseSchema, mergeSchemaChecks, type SchemaCheckResult } from "./probe/schema-check";
 import { parseOnbidBody } from "./public-response";
 import type { ApiCheckRecord, ApiFetchResult, ApiOutcome, FetchContext, FetchedRecord, Fetcher } from "./types";
 
@@ -15,6 +17,11 @@ export const PUBLIC_ALLOWED_HOSTS: readonly string[] = ["apis.data.go.kr"];
 export const PUBLIC_LIST_URL = "https://apis.data.go.kr/B010003/OnbidRlstListSrvc2/getRlstCltrList2";
 export const PUBLIC_DETAIL_URL = "https://apis.data.go.kr/B010003/OnbidRlstDtlSrvc2/getRlstDtlInf2";
 export const PUBLIC_ENDPOINTS = ["public-list", "public-detail"] as const;
+// 점검 이름 → 서비스 등록부(R01)의 오퍼레이션. 점검 상태 판정(승인·스키마)이 이 연결로 등록부 정보를 찾는다
+export const PUBLIC_ENDPOINT_OPERATIONS: Record<(typeof PUBLIC_ENDPOINTS)[number], string> = {
+  "public-list": "SVC-API-001/getRlstCltrList",
+  "public-detail": "SVC-API-004/getRlstDtlInf",
+};
 
 // 부록 A: 저장을 허용하는 PUBLIC 필드. DB(collected_items)의 허용 목록과 같아야 한다 (마이그레이션 …_allow_public_fields).
 export const PUBLIC_STORED_FIELDS = ["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt", "pbctStatCd"] as const;
@@ -74,8 +81,15 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
     const started = now();
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
-    const done = (outcome: ApiOutcome, httpStatus: number | null, recordCount: number | null, items: Record<string, unknown>[] = []): CallResult => ({
-      check: { endpointName, httpStatus, durationMs: Math.max(0, now() - started), outcome, recordCount, dataValid: outcome === "success" ? true : null },
+    const done = (
+      outcome: ApiOutcome,
+      httpStatus: number | null,
+      recordCount: number | null,
+      items: Record<string, unknown>[] = [],
+      resultCode: string | null = null,
+      schema: SchemaCheckResult | null = null,
+    ): CallResult => ({
+      check: { endpointName, httpStatus, durationMs: Math.max(0, now() - started), outcome, recordCount, dataValid: outcome === "success" ? true : null, resultCode, schema },
       items,
     });
     try {
@@ -83,10 +97,14 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       if (response.status === 401 || response.status === 403 || response.status === 429) return done("auth_or_quota", response.status, null);
       if (!response.ok) return done("http_error", response.status, null);
       const parsed = parseOnbidBody(await response.text());
-      if (parsed.kind === "ok") return done("success", response.status, parsed.items.length, parsed.items);
-      if (parsed.kind === "nodata") return done("empty_result", response.status, 0);
-      if (parsed.kind === "auth_or_quota") return done("auth_or_quota", response.status, null);
-      return done("http_error", response.status, null);
+      if (parsed.kind === "ok") {
+        // 필수 응답 항목 확인은 저장용으로 줄이기 전의 원본 항목에서 한다 (등록부의 응답 항목 기준)
+        const fields = findOperation(PUBLIC_ENDPOINT_OPERATIONS[endpointName as (typeof PUBLIC_ENDPOINTS)[number]])?.operation.responseFields ?? [];
+        return done("success", response.status, parsed.items.length, parsed.items, "00", checkResponseSchema(parsed.items, fields));
+      }
+      if (parsed.kind === "nodata") return done("empty_result", response.status, 0, [], parsed.code);
+      if (parsed.kind === "auth_or_quota") return done("auth_or_quota", response.status, null, [], parsed.code);
+      return done("http_error", response.status, null, [], parsed.code);
     } catch (error) {
       // 오류 객체에는 주소(키 포함)가 들어 있을 수 있어 문구를 옮기지 않는다
       return done(error instanceof Error && error.name === "AbortError" ? "timeout" : "http_error", null, null);
@@ -155,8 +173,12 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
           : has("timeout")
             ? "timeout"
             : "http_error";
+    // 요약의 결과코드: 서비스키·한도 문제가 있었다면 그 코드, 아니면 가장 마지막 호출의 코드
+    const decisive = subChecks.find((c) => c.outcome === "auth_or_quota") ?? subChecks.at(-1);
     return {
       endpointName: "public-detail",
+      resultCode: decisive?.resultCode ?? null,
+      schema: mergeSchemaChecks(subChecks.map((c) => c.schema)),
       httpStatus: subChecks.at(-1)?.httpStatus ?? null,
       durationMs: Math.max(0, now() - startedAll),
       outcome,

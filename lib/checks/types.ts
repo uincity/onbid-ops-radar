@@ -2,6 +2,7 @@
 // 엔진은 "무엇을 조회하는지(조회기)"와 "어디에 저장하는지(저장소)"를 직접 알지 못하고, 아래 두 약속(인터페이스)으로만 대화한다.
 // 그래서 DB 없이 가짜 저장소로 엔진을 빠르게 시험할 수 있고, 나중에 PUBLIC 조회기도 같은 약속만 지키면 끼워 넣을 수 있다.
 import type { RuleId } from "@/lib/rules/detect-item";
+import type { SchemaCheckResult } from "./probe/schema-check";
 
 // api_checks.outcome 값과 같다. 서비스키·한도 문제(auth_or_quota)는 PUBLIC 조회기가 만든다.
 export type ApiOutcome = "success" | "http_error" | "timeout" | "auth_or_quota" | "empty_result";
@@ -20,6 +21,9 @@ export type ApiCheckRecord = {
   outcome: ApiOutcome;
   recordCount: number | null;
   dataValid: boolean | null;
+  // 아래 둘은 점검 상태 판정(lib/checks/probe)에만 쓰고 DB(api_checks)에는 아직 저장하지 않는다 (저장은 R03에서)
+  resultCode?: string | null; // 응답 본문의 업무 결과코드 (00 정상, 03 데이터없음, 22 호출 한도 초과 …). 알 수 없으면 null
+  schema?: SchemaCheckResult | null; // 필수 응답 항목 확인 결과. 확인하지 못했으면 null
 };
 
 export type ApiFetchResult = ApiCheckRecord & {

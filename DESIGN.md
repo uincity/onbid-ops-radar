@@ -497,6 +497,7 @@ onbid_rader/
 │  │   ├─ supabase-store.ts     점검 기록을 실제 DB에 남기는 저장소 (구현됨, PLAN 22)
 │  │   ├─ evidence.ts           탐지 근거와 원본 값 지문(해시) 만들기 (구현됨, PLAN 23)
 │  │   ├─ public-fetcher.ts     PUBLIC 조회기: 온비드 부동산 물건목록·상세 읽기 전용 호출, 호출 상한·일일 예산·오류 구분 (구현됨, PLAN 33)
+│  │   ├─ probe/                점검 상태 판정(R02): classify(6종 분류)·readiness(준비 상태)·schema-check(응답 구조)·status(상태·집계) (구현됨)
 │  │   └─ public-response.ts    온비드 응답 해석: 정상·데이터없음(03)·서비스키·한도 문제·XML 오류 (구현됨, PLAN 33)
 │  │   └─ types.ts              엔진·조회기·저장소가 주고받는 공통 모양
 │  ├─ anomalies/                서버 액션, 조회
