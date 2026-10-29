@@ -42,8 +42,10 @@ export function createChecker() {
   }
 
   // 데이터 API 요청: 응답 상태와 오류 코드만 돌려준다
-  async function rest(table, method, key, body) {
-    const res = await fetch(`${url}/rest/v1/${table}${method === "GET" ? "?select=id&limit=1" : ""}`, {
+  // search: 수정(PATCH)·삭제(DELETE)처럼 대상을 가리키는 조건이 필요할 때 쓴다. 예: "?id=eq.1"
+  async function rest(table, method, key, body, search) {
+    const query = search ?? (method === "GET" ? "?select=id&limit=1" : "");
+    const res = await fetch(`${url}/rest/v1/${table}${query}`, {
       method,
       headers: {
         apikey: key,

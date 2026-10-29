@@ -266,7 +266,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid` |
 | `collected_items` | 정리된 수집 데이터 | `run_id`, `source`, `item_key`, `kind`(`list`/`detail`), `fields`(허용 필드만), `collected_at` |
 | `anomalies` | 이상징후 1건 | `source`, `item_key`, `rule_id`, `status`(기본 `open`), `verdict`(기본 `undetermined`), `assignee_id`, `version`, `evidence`, `value_hash`, `detect_count`, `first_detected_at`, `last_detected_at`, `previous_anomaly_id` |
-| `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `event_type`, `from_value`, `to_value`, `note`, `created_at` |
+| `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `actor_role`(행동 당시의 역할 `operator`/`admin`), `event_type`(`created`/`detected_again`/`assigned`/`status_changed`/`verdict_changed`), `from_value`, `to_value`, `note`, `created_at` |
 | `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
 - **중복 방지:** `anomalies`에 "출처 + 물건 + 규칙"이 같고 상태가 `open`/`investigating`인 건은 하나만 있도록 DB 제약을 건다.
@@ -311,6 +311,8 @@ anomalies 1 ─── 0..1 anomalies(이전 사례, 재발 연결)
 
 - 사용자 함수는 사용자 로그인 정보로 실행되어 RLS가 그대로 적용된다(PRD 7-3 규칙 10).
 - `anomaly_events`, `reports`에는 수정·삭제 권한을 아무에게도 주지 않는다(SEC-05).
+- `anomaly_events`는 서버 관리용 키(`service_role`)에게도 읽기만 준다. 이력 줄을 **추가**하는 DB 함수(`record_detection`·`assign_anomaly`·`set_verdict`·`change_anomaly_status`)는 소유자 권한(`SECURITY DEFINER`, `set search_path = ''`)으로 실행하되, 함수 안에서 `auth.uid()`와 역할을 직접 확인한다. 그 밖에 소유자 권한으로도 수정·삭제·비우기가 되지 않도록 트리거가 막는다.
+- **이력 규칙의 DB 강제:** 이벤트 종류별로 "무엇에서 무엇으로"의 모양이 맞아야 하고(허용된 상태 전이만), 조치 완료·정상 판정·검토 재개 이력에는 공백 제외 10자 이상의 사유가 있어야 한다. 시스템은 `created`·`detected_again`만, 사용자는 `assigned`·`status_changed`·`verdict_changed`만 남길 수 있다. 이력이 있는 이상징후와 사용자는 삭제할 수 없다.
 
 ### 6.4 RLS (DB 출입 규칙) 요약
 
