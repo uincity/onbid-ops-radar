@@ -2,7 +2,7 @@
 // check_runs·api_checks·run_logs·collected_items는 서버 관리용 연결(createAdminClient)로만 쓸 수 있다.
 // 이 파일은 연결을 직접 만들지 않고 호출하는 쪽에서 받는다. 화면(브라우저) 코드에서는 불러오지 않는다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ApiFetchResult, CheckStore, FetchedRecord, LogLevel, RunSource, RunStatus, RunTrigger } from "./types";
+import type { ApiFetchResult, CheckStore, DetectionRecord, FetchedRecord, LogLevel, RecordAction, RunSource, RunStatus, RunTrigger } from "./types";
 
 const BATCH = 100;
 
@@ -39,6 +39,19 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
         const { error } = await supabase.from("collected_items").insert(rows.slice(i, i + BATCH));
         if (error) fail("수집 데이터를 저장하지 못했습니다");
       }
+    },
+
+    async recordDetection(d: DetectionRecord) {
+      const { data, error } = await supabase.rpc("record_detection", {
+        p_source: d.source,
+        p_item_key: d.itemKey,
+        p_rule_id: d.ruleId,
+        p_evidence: d.evidence,
+        p_value_hash: d.valueHash,
+      });
+      const row = Array.isArray(data) ? data[0] : null;
+      if (error || !row) return fail("이상징후를 등록하지 못했습니다");
+      return { anomalyId: Number(row.out_anomaly_id), action: row.out_action as RecordAction };
     },
 
     async log(runId: number, level: LogLevel, code: string, message: string) {

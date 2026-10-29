@@ -4,7 +4,7 @@
 import { describe, expect, it } from "vitest";
 import { runCheck, type RunCheckInput } from "@/lib/checks/run-check";
 import { createDemoFetcher } from "@/lib/checks/demo-fetcher";
-import type { ApiFetchResult, CheckStore, Fetcher, FetchedRecord, LogLevel, RunStatus } from "@/lib/checks/types";
+import type { ApiFetchResult, CheckStore, DetectionRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
 import { DEMO_SCENARIOS } from "@/lib/demo/scenarios";
 import { DEFAULT_SETTING_VALUES, parseSettings, type Settings } from "@/lib/settings/schema";
 
@@ -19,6 +19,7 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     collected: [] as { kind: string; records: FetchedRecord[] }[],
     logs: [] as { level: LogLevel; code: string; message: string }[],
     finished: [] as { status: RunStatus; calls: number }[],
+    recorded: [] as DetectionRecord[],
   };
   const store: CheckStore = {
     async startRun() {
@@ -30,6 +31,10 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     },
     async saveCollected(_id, _source, kind, records) {
       rec.collected.push({ kind, records });
+    },
+    async recordDetection(detection) {
+      rec.recorded.push(detection);
+      return { anomalyId: rec.recorded.length, action: "created" as RecordAction };
     },
     async log(_id, level, code, message) {
       rec.logs.push({ level, code, message });
@@ -80,11 +85,86 @@ describe("정상 점검 (DEMO 160건)", () => {
   });
 });
 
+describe("이상징후 등록 (PLAN 23)", () => {
+  it("탐지 결과를 하나도 빠짐없이 등록하고 집계·메모를 남긴다", async () => {
+    const { store, rec } = fakeStore();
+    const result = await run({ store });
+    expect(result.detections.length).toBeGreaterThan(0);
+    expect(rec.recorded).toHaveLength(result.detections.length);
+    expect(result.registered).toEqual({ created: result.detections.length, recurred: 0, detected_again: 0, suppressed: 0 });
+    const note = rec.logs.find((l) => l.code === "DETECTIONS_RECORDED");
+    expect(note?.message).toContain(`이상징후 등록 ${result.detections.length}건`);
+  });
+
+  it("등록 내용: 출처 · 물건 · 규칙 · 근거 · 64자리 지문", async () => {
+    const { store, rec } = fakeStore();
+    await run({ store });
+    for (const d of rec.recorded) {
+      expect(d.source).toBe("DEMO");
+      expect(d.itemKey).toMatch(/^DEMO-\d{4}$/);
+      expect(d.valueHash).toMatch(/^[0-9a-f]{64}$/);
+      expect(d.evidence.rule).toBe(d.ruleId);
+    }
+  });
+
+  it("같은 입력으로 두 번 점검하면 지문이 똑같다 (정상 판정 건과 값 비교의 바탕)", async () => {
+    const a = fakeStore();
+    const b = fakeStore();
+    await run({ store: a.store });
+    await run({ store: b.store });
+    const key = (d: DetectionRecord) => [d.itemKey, d.ruleId, d.valueHash];
+    expect(a.rec.recorded.map(key)).toEqual(b.rec.recorded.map(key));
+  });
+
+  it("빈 결과 이상징후도 API 이름으로 등록한다", async () => {
+    const { store, rec } = fakeStore();
+    await run({ store, fetcher: demoFetcher("empty") });
+    expect(rec.recorded.map((d) => [d.ruleId, d.itemKey])).toEqual([["EMPTY_RESULT", "demo-list"], ["EMPTY_RESULT", "demo-detail"]]);
+  });
+
+  it("서비스키·한도 문제가 있었던 실행은 아무것도 등록하지 않는다", async () => {
+    const normal = demoFetcher();
+    const quota: Fetcher = (e) => (e === "demo-detail" ? { endpointName: e, httpStatus: 429, durationMs: 1, outcome: "auth_or_quota", recordCount: null, dataValid: null, records: [] } : normal(e));
+    const { store, rec } = fakeStore();
+    await run({ store, fetcher: quota });
+    expect(rec.recorded).toHaveLength(0);
+  });
+
+  it("DB 함수가 돌려준 결과(재발·억제 등)를 종류별로 센다", async () => {
+    const actions: RecordAction[] = ["created", "recurred", "detected_again", "suppressed"];
+    let n = 0;
+    const { store } = fakeStore({
+      async recordDetection() {
+        return { anomalyId: 1, action: actions[n++ % 4] };
+      },
+    });
+    const result = await run({ store });
+    expect(Object.values(result.registered).reduce((a, b) => a + b, 0)).toBe(result.detections.length);
+    expect(result.registered.recurred).toBeGreaterThan(0);
+    expect(result.registered.suppressed).toBeGreaterThan(0);
+  });
+
+  it("등록 중 60초가 되면 남은 것은 등록하지 않고 RUN_TIME_LIMIT 메모와 함께 partial로 마감한다", async () => {
+    let now = 0;
+    const { store, rec } = fakeStore({
+      async recordDetection() {
+        now += 20_000; // 한 건 등록할 때마다 20초가 흐른다고 가정
+        return { anomalyId: 1, action: "created" as RecordAction };
+      },
+    });
+    const result = await run({ store, clock: () => now });
+    expect(result.status).toBe("partial");
+    expect(result.registered.created).toBe(3); // 0·20·40초에 3건 등록, 60초에 멈춤
+    expect(rec.logs.some((l) => l.code === "RUN_TIME_LIMIT" && l.message.includes("등록하지 못했습니다"))).toBe(true);
+  });
+});
+
 describe("동시 실행 차단", () => {
   it("이미 실행 중이면 blocked로 끝내고 조회·탐지는 하지 않는다", async () => {
     const { store, rec } = fakeStore({ blocked: true });
     const result = await run({ store });
-    expect(result).toEqual({ runId: 7, status: "blocked", apiCallCount: 0, detections: [] });
+    expect(result).toMatchObject({ runId: 7, status: "blocked", apiCallCount: 0, detections: [] });
+    expect(rec.recorded).toHaveLength(0);
     expect(rec.apiChecks).toHaveLength(0);
     expect(rec.finished).toHaveLength(0); // 마감은 DB 함수가 이미 해 두었다
   });
@@ -120,10 +200,12 @@ describe("실행시간 60초 제한", () => {
   // 가상 시계: 첫 호출이 끝났을 때 시계를 advance만큼 앞으로 보낸다
   const withClock = (advanceMs: number) => {
     let now = 0;
+    let first = true;
     const inner = demoFetcher();
     const fetcher: Fetcher = (endpoint) => {
       const r = inner(endpoint);
-      now += advanceMs;
+      if (first) now += advanceMs; // 첫 호출(목록)에서만 시간이 흐른다
+      first = false;
       return r;
     };
     return { clock: () => now, fetcher };
