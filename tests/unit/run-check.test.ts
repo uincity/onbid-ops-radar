@@ -382,15 +382,15 @@ describe("PUBLIC 점검", () => {
     for (const c of rec.collected) for (const r of c.records) expect(Object.keys(r.fields).every((k) => allowed.includes(k))).toBe(true);
   });
 
-  it("탐지: 날짜 역전 · 물건명 불일치 · 필수정보 누락을 각각 잡고, 정상 물건과 상세가 없는 물건은 잡지 않는다", async () => {
+  it("탐지(PUBLIC): 물건명 불일치와 필수정보 누락(DQ_REQUIRED)을 잡고, 날짜 역전은 PUBLIC 핵심 지표에서 제외해 등록하지 않으며, 정상 물건과 상세가 없는 물건은 잡지 않는다", async () => {
     const { store, rec } = fakeStore();
     const result = await runPublic({ store });
     expect(result.detections.map((d) => [d.itemKey, d.ruleId, d.source])).toEqual([
-      ["2026-1100-000002", "DATE_ORDER", "PUBLIC"],
       ["2026-1100-000003", "LIST_DETAIL_MISMATCH", "PUBLIC"],
-      ["2026-1100-000004", "REQUIRED_FIELD", "PUBLIC"],
+      ["2026-1100-000004", "DQ_REQUIRED", "PUBLIC"],
     ]);
-    expect(rec.recorded.map((d) => d.ruleId)).toEqual(["DATE_ORDER", "LIST_DETAIL_MISMATCH", "REQUIRED_FIELD"]);
+    expect(rec.recorded.map((d) => d.ruleId)).toEqual(["LIST_DETAIL_MISMATCH", "DQ_REQUIRED"]);
+    expect(rec.recorded[1].evidence).toMatchObject({ rule: "DQ_REQUIRED" }); // 근거에도 새 규칙 이름이 적힌다
     // 근거에는 PUBLIC 필드의 실제 값이 담긴다
     const mismatch = rec.recorded.find((d) => d.ruleId === "LIST_DETAIL_MISMATCH")!;
     expect(mismatch.evidence).toMatchObject({ diffs: [{ field: "onbidCltrNm", list: "물건 3", detail: "다른 이름" }] });
@@ -561,6 +561,53 @@ describe("PUBLIC 점검", () => {
       it("DEMO 점검은 API 상태 이상징후를 만들지 않는다", async () => {
         const { store } = fakeStore();
         expect((await run({ store, fetcher: demoFetcher("http_error") })).detections.some((d) => d.ruleId.startsWith("API_"))).toBe(false);
+      });
+    });
+
+    describe("데이터 품질 규칙 DQ_* (R06)", () => {
+      const REF = "2026-1100-000001";
+
+      it("DQ_SCHEMA: 필수 응답 항목이 빠진 응답은 오퍼레이션 단위 의심으로 등록한다 (식별값 = 서비스ID/오퍼레이션ID)", async () => {
+        const { store, rec } = fakeStore();
+        const broken = listItems.map((it) => ({ ...it, pbctNo: undefined }));
+        const result = await runPublic({ store, fetcher: publicFetcher({ list: () => body(broken) }).fetcher });
+        expect(result.detections.find((d) => d.ruleId === "DQ_SCHEMA")?.itemKey).toBe("SVC-API-001/getRlstCltrList");
+        expect(rec.recorded.find((d) => d.ruleId === "DQ_SCHEMA")?.evidence).toMatchObject({ missingFields: [{ field: "pbctNo", count: 5 }] });
+      });
+
+      it("DQ_SCHEMA: 정상 응답이나 호출 실패(검사한 항목 없음)에는 만들지 않는다", async () => {
+        expect((await runPublic({ store: fakeStore().store })).detections.some((d) => d.ruleId === "DQ_SCHEMA")).toBe(false);
+        const failed = await runPublic({ store: fakeStore().store, fetcher: publicFetcher({ list: () => new Response("x", { status: 500 }) }).fetcher });
+        expect(failed.detections.some((d) => d.ruleId === "DQ_SCHEMA")).toBe(false);
+      });
+
+      it("DQ_LIST_DETAIL_REF: 상세가 다른 물건을 돌려주면 의심으로 등록한다", async () => {
+        const detail = (id: string) => (id === REF ? body(item(1, { cltrMngNo: "2026-1100-009999" })) : detailOf(id));
+        const result = await runPublic({ store: fakeStore().store, fetcher: publicFetcher({ detail }).fetcher });
+        const ref = result.detections.filter((d) => d.ruleId === "DQ_LIST_DETAIL_REF");
+        expect(ref.map((d) => d.itemKey)).toEqual([REF]);
+        expect(ref[0].evidence).toMatchObject({ mismatches: [{ field: "cltrMngNo", list: REF, detail: "2026-1100-009999" }] });
+      });
+
+      it("DQ_LIST_DETAIL_REF: 상세가 0건인 물건은 이상징후 없이 판정 보류(DQ_REF_UNVERIFIED)로만 남긴다", async () => {
+        const { store, rec } = fakeStore();
+        const result = await runPublic({ store });
+        expect(result.detections.some((d) => d.ruleId === "DQ_LIST_DETAIL_REF")).toBe(false);
+        expect(rec.logs.find((l) => l.code === "DQ_REF_UNVERIFIED")?.message).toContain("2026-1100-000005");
+      });
+
+      it("DQ_CROSS_API_REF: 연결해서 비교할 API 점검이 없어 적용 제외(NOT_APPLICABLE)로 남긴다", async () => {
+        const { store, rec } = fakeStore();
+        await runPublic({ store });
+        expect(codes(rec)).toContain("DQ_CROSS_API_NOT_APPLICABLE");
+      });
+
+      it("DEMO 점검은 DQ_* 이상징후나 보류 메모를 만들지 않고 이전 규칙 이름을 그대로 쓴다", async () => {
+        const { store, rec } = fakeStore();
+        const result = await run({ store });
+        expect(result.detections.some((d) => d.ruleId.startsWith("DQ_"))).toBe(false);
+        expect(codes(rec).some((c) => c.startsWith("DQ_"))).toBe(false);
+        expect(result.detections.some((d) => d.ruleId === "DATE_ORDER")).toBe(true); // DEMO 회귀 유지
       });
     });
 

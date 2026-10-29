@@ -39,8 +39,10 @@ const clipAll = (obj: Record<string, unknown> | null) => (obj ? Object.fromEntri
 export type BuiltEvidence = { evidence: Record<string, unknown>; valueHash: string };
 
 // 데이터 규칙 3개의 근거와 지문
-export function buildDetectionEvidence(ruleId: RuleId, list: Fields, detail: Fields, listDetail: ListDetailResult, profile: FieldProfile = DEMO_PROFILE): BuiltEvidence {
+// asRule: 같은 판정을 다른 규칙 이름으로 등록할 때(PUBLIC의 필수정보 = DQ_REQUIRED) 근거와 지문에 쓸 이름. 판정 방식은 ruleId를 따른다
+export function buildDetectionEvidence(ruleId: RuleId, list: Fields, detail: Fields, listDetail: ListDetailResult, profile: FieldProfile = DEMO_PROFILE, asRule?: string): BuiltEvidence {
   const keys = relevantFields(ruleId, profile);
+  const ruleName = asRule ?? ruleId;
   const values = { list: pick(list, keys), detail: pick(detail, keys) };
 
   let summary: Record<string, unknown>;
@@ -54,8 +56,8 @@ export function buildDetectionEvidence(ruleId: RuleId, list: Fields, detail: Fie
   }
 
   return {
-    evidence: { rule: ruleId, ...summary, values: { list: clipAll(values.list), detail: clipAll(values.detail) } },
-    valueHash: sha256(canonical({ rule: ruleId, values })),
+    evidence: { rule: ruleName, ...summary, values: { list: clipAll(values.list), detail: clipAll(values.detail) } },
+    valueHash: sha256(canonical({ rule: ruleName, values })),
   };
 }
 

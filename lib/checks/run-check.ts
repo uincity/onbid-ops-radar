@@ -3,15 +3,18 @@
 // 탐지 결과는 저장소의 recordDetection(= DB 함수 record_detection)으로 등록한다. 중복·재발·정상 판정 억제는 DB 함수가 지킨다 (PLAN 23).
 // 서비스키·한도 문제가 생긴 실행에서는 데이터 이상징후를 만들지 않는다 (PRD 5-2 규칙 6).
 import { detectItem, type ItemDetection } from "@/lib/rules/detect-item";
+import { detectCrossApiRef, detectListDetailRef, detectSchemaIssue } from "@/lib/rules/dq-rules";
 import { profileOf } from "@/lib/rules/field-profile";
 import type { Settings } from "@/lib/settings/schema";
 import { findOperation } from "@/lib/registry";
 import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
 import { buildApiDetection, countFailStreak } from "./api-streak";
+import { buildListDetailRefEvidence, buildSchemaEvidence } from "./dq-evidence";
 import { buildBatches, unprobeableOperations } from "./batch-plan";
 import { classifyProbe } from "./probe/classify";
 import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
+import type { SchemaCheckResult } from "./probe/schema-check";
 import { describeProbe, type NotRunReason, type ProbeResult, type UnverifiedReason } from "./probe/status";
 import { PUBLIC_ENDPOINT_OPERATIONS, type PUBLIC_ENDPOINTS } from "./public-fetcher";
 import type { ApiCheckRecord, CheckStore, ProbeRecord, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
@@ -155,6 +158,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     const timeLimitMs = settings.runTimeLimitSeconds * 1000;
     const collected: Record<"list" | "detail", FetchedRecord[]> = { list: [], detail: [] };
     const emptyApis: string[] = [];
+    const schemas = new Map<string, SchemaCheckResult | null>(); // 점검 이름별 응답 구조 확인 결과 (DQ_SCHEMA 판정용)
     let succeeded = 0;
     let failed = 0;
     let authProblem = false;
@@ -209,6 +213,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       calls += result.httpCalls ?? 1; // 조회 하나가 실제 호출을 여러 번 했으면(PUBLIC 상세) 그만큼 센다
       const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
       for (const check of checks) await store.recordApiCheck(runId, check);
+      schemas.set(name, result.schema ?? null);
       if (op) await record(name, classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) }), result);
 
       if (result.outcome === "success") {
@@ -262,8 +267,16 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
           profile,
         );
         for (const ruleId of detection.rules) {
-          const built = buildDetectionEvidence(ruleId, list?.fields ?? null, detail?.fields ?? null, detection.listDetail, profile);
-          detections.push({ source, itemKey, ruleId, detection, ...built });
+          // PUBLIC: 필수정보는 새 규칙 이름(DQ_REQUIRED)으로 등록하고, 날짜 역전은 PUBLIC 핵심 지표에서 제외해 등록하지 않는다 (PRD 5-2A). DEMO는 이전 이름 그대로
+          if (source === "PUBLIC" && ruleId === "DATE_ORDER") continue;
+          const asRule = source === "PUBLIC" && ruleId === "REQUIRED_FIELD" ? "DQ_REQUIRED" : undefined;
+          const built = buildDetectionEvidence(ruleId, list?.fields ?? null, detail?.fields ?? null, detection.listDetail, profile, asRule);
+          detections.push({ source, itemKey, ruleId: asRule ?? ruleId, detection, ...built });
+        }
+        // DQ_LIST_DETAIL_REF (PUBLIC): 목록의 식별값으로 상세를 불렀는데 다른 물건·공매조건이 돌아왔는가
+        if (source === "PUBLIC") {
+          const mismatches = detectListDetailRef(list?.fields ?? null, detail?.fields ?? null);
+          if (mismatches.length > 0) detections.push({ source, itemKey, ruleId: "DQ_LIST_DETAIL_REF", detection: null, ...buildListDetailRefEvidence(itemKey, mismatches) });
         }
         if (detection.listDetail.outcome === "skipped") (skipped[detection.listDetail.reason] ??= []).push(itemKey);
       }
@@ -271,6 +284,21 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       // 비교 제외 사유는 물건마다 한 줄씩 남기면 너무 많아져서 사유별로 묶어 1줄(건수 + 예시)로 남긴다
       for (const [reason, keys] of Object.entries(skipped)) {
         await store.log(runId, "info", "COMPARE_SKIPPED", `목록·상세 비교 제외 ${keys.length}건 (${reason}) 예: ${keys.slice(0, 3).join(", ")}`);
+      }
+      if (source === "PUBLIC") {
+        // DQ_LIST_DETAIL_REF 판정 보류: 상세가 0건인 물건은 정상 종료·철회·공고 변경과 구분할 수 없어 이상징후를 만들지 않고 보류로만 남긴다 (PRD 5-2A)
+        const noCounterpart = skipped["NO_COUNTERPART"] ?? [];
+        if (noCounterpart.length > 0) await store.log(runId, "info", "DQ_REF_UNVERIFIED", `DQ_LIST_DETAIL_REF 판정 보류(UNVERIFIED) ${noCounterpart.length}건: 상세 조회 결과가 없어 정상 종료·철회 등과 구분할 수 없습니다. 예: ${noCounterpart.slice(0, 3).join(", ")}`);
+        // DQ_SCHEMA: 점검한 오퍼레이션의 응답 구조에서 명세의 필수 항목 누락·자료형 어긋남이 있으면 의심으로 등록한다
+        for (const entry of probes) {
+          const issue = detectSchemaIssue(schemas.get(entry.endpoint));
+          if (!issue) continue;
+          const [apiId, operationId] = entry.operationKey.split("/");
+          detections.push({ source, itemKey: entry.operationKey, ruleId: "DQ_SCHEMA", detection: null, ...buildSchemaEvidence(apiId, operationId, issue) });
+        }
+        // DQ_CROSS_API_REF: 공식적으로 연결되는 다른 API(공고·입찰결과 등)를 아직 점검하지 않으므로 적용하지 않는다. 연결된 점검이 생기면 같은 판정 함수를 쓴다
+        const cross = detectCrossApiRef(new Set(), []);
+        if (cross.outcome === "NOT_APPLICABLE") await store.log(runId, "info", "DQ_CROSS_API_NOT_APPLICABLE", "DQ_CROSS_API_REF 적용 제외(NOT_APPLICABLE): 연결해서 비교할 API 점검이 아직 없습니다.");
       }
       // API 상태 이상징후 (PUBLIC): 이번에 FAIL인 오퍼레이션이 연속 N번(설정값) 실패했으면 만든다. 설정이 없으면(null) 만들지 않는다
       if (source === "PUBLIC" && settings.apiFailStreakThreshold !== null) {
