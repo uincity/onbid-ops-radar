@@ -7,16 +7,19 @@ const EXPECTED = {
   api_timeout_seconds: 10,
   api_call_limit_default: 20,
   api_call_limit_max: 100,
-  public_daily_budget: null,
+  public_daily_budget: 900, // PUBLIC 일일 호출 예산 (부록 A: 서비스별 개발계정 1,000회/일에서 여유 100회)
   run_time_limit_seconds: 60,
   reason_min_length: 10,
   schedule_missed_grace_minutes: 30,
   stale_running_seconds: 120,
   scheduled_source: "DEMO",
-  required_fields: { DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"] },
-  compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"] },
-  excluded_fields: { DEMO: ["item_status"] },
-  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false },
+  required_fields: {
+    DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"],
+    PUBLIC: ["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"],
+  },
+  compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"], PUBLIC: ["onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"] },
+  excluded_fields: { DEMO: ["item_status"], PUBLIC: ["pbctStatCd"] },
+  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false, "public-list": false, "public-detail": true },
 };
 
 export async function run(ctx) {
@@ -38,7 +41,7 @@ export async function run(ctx) {
     .filter(([key, value]) => JSON.stringify(actual[key]) !== JSON.stringify(value))
     .map(([key]) => key);
   report(wrong.length === 0, "기본값이 PRD 5-5와 모두 같음", wrong.length ? `다른 항목: ${wrong.join(",")}` : "");
-  report(actual.public_daily_budget === null, "PUBLIC 일일 호출 예산은 승인 트래픽 확인 전이라 비어 있음 (부록 A)");
+  report(actual.public_daily_budget === 900, "PUBLIC 일일 호출 예산은 900회 (승인 트래픽 1,000회/일에서 여유 100회, 부록 A)");
 
   // 값 검사 함수는 로그인 사용자·비로그인이 API로 직접 부를 수 없고 서버 관리용 키만 쓸 수 있다
   const fnPriv = await query(
@@ -108,7 +111,8 @@ export async function run(ctx) {
       ${t("fields_empty_list_ok", upd("excluded_fields", j('{"DEMO": []}')))}
       ${t("fields_bad_source", upd("required_fields", j('{"TEST": ["a"]}')))}
       ${t("fields_not_list", upd("required_fields", j('{"DEMO": "a"}')))}
-      ${t("fields_upper_case", upd("required_fields", j('{"DEMO": ["Name"]}')))}
+      ${t("fields_camel_ok", upd("required_fields", j('{"PUBLIC": ["cltrMngNo"]}')))}
+      ${t("fields_hyphen", upd("required_fields", j('{"DEMO": ["bad-name"]}')))}
       ${t("fields_number_item", upd("compare_fields", j('{"DEMO": [1]}')))}
       ${t("fields_not_object", upd("compare_fields", j('["a"]')))}
       ${t("fields_too_many", upd("compare_fields", `jsonb_build_object('DEMO', (select jsonb_agg('f' || i) from generate_series(1, 31) as g(i)))`))}
@@ -165,11 +169,12 @@ export async function run(ctx) {
   expect("source_test", "23514", "예약 점검 출처는 DEMO/PUBLIC만 허용");
   expect("source_number", "23514", "예약 점검 출처에 숫자를 넣으면 거부");
 
-  expect("fields_ok", "OK", "필드 이름 목록(영문 소문자·숫자·밑줄)은 저장됨");
+  expect("fields_ok", "OK", "필드 이름 목록(영문·숫자·밑줄)은 저장됨");
   expect("fields_empty_list_ok", "OK", "비교 제외 필드 목록은 비어 있어도 됨");
   expect("fields_bad_source", "23514", "필드 목록의 출처는 DEMO/PUBLIC만 허용");
   expect("fields_not_list", "23514", "필드 목록이 목록(배열)이 아니면 거부");
-  expect("fields_upper_case", "23514", "대문자가 섞인 필드 이름은 거부");
+  expect("fields_camel_ok", "OK", "실제 API 필드처럼 대소문자가 섞인 이름(cltrMngNo)도 저장됨 (부록 A)");
+  expect("fields_hyphen", "23514", "하이픈 같은 허용되지 않는 글자가 든 필드 이름은 거부");
   expect("fields_number_item", "23514", "필드 이름이 글자가 아니면 거부");
   expect("fields_not_object", "23514", "출처별 묶음이 아니면 거부");
   expect("fields_too_many", "23514", "필드가 31개를 넘으면 거부");

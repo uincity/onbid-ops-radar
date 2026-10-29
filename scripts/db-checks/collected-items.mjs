@@ -24,7 +24,7 @@ export async function run(ctx) {
     /UNIQUE \(run_id, kind, item_key\)/.test(defOf("collected_items_run_kind_item_key")),
     "한 점검에서 같은 물건의 같은 종류(목록/상세)는 한 줄만 허용",
   );
-  report(/demo_item_id/.test(defOf("collected_items_demo_fields_check")), "DEMO는 허용된 6개 필드 이름만 저장 가능 (개인정보 필드 차단)");
+  report(/demo_item_id/.test(defOf("collected_items_allowed_fields_check")) && /cltrMngNo/.test(defOf("collected_items_allowed_fields_check")), "출처별 허용된 필드 이름만 저장 가능: DEMO 6개, PUBLIC 7개 (개인정보 필드 차단)");
 
   const [runKey] = await query(
     `select 1 as ok from pg_constraint where conrelid = 'public.check_runs'::regclass and conname = 'check_runs_id_source_key'`,
@@ -58,6 +58,9 @@ export async function run(ctx) {
       ${t("source_differs_from_run", insert("runD", "PUBLIC", "DEMO-0009", "list", `'{}'::jsonb`))}
       ${t("missing_run", insert("-1", "DEMO", "DEMO-0010", "list", good))}
       ${t("public_row_ok", insert("runP", "PUBLIC", "PUB-0001", "list", `'{}'::jsonb`))}
+      ${t("public_fields_ok", insert("runP", "PUBLIC", "2026-1100-000001", "list", `'{"cltrMngNo":"2026-1100-000001","pbctCdtnNo":"1","onbidCltrNm":"물건","orgNm":"기관","cltrBidBgngDt":"202605180900","cltrBidEndDt":"202605201700","pbctStatCd":"0002"}'::jsonb`))}
+      ${t("public_bad_field", insert("runP", "PUBLIC", "2026-1100-000002", "list", `'{"cltrMngNo":"x","cltrRadr":"서울시 주소"}'::jsonb`))}
+      ${t("public_demo_field", insert("runP", "PUBLIC", "PUB-0003", "list", `'{"demo_item_id":"DEMO-0001"}'::jsonb`))}
   `);
 
   const expect = (key, want, label) => report(probe[key] === want, label, `결과 ${probe[key]}`);
@@ -74,7 +77,10 @@ export async function run(ctx) {
   expect("bad_source", "23514", "출처는 DEMO/PUBLIC만 허용");
   expect("source_differs_from_run", "23503", "점검 실행은 DEMO인데 PUBLIC으로 저장하려 하면 거부 (출처 섞임 방지)");
   expect("missing_run", "23503", "없는 점검 실행에는 저장할 수 없음");
-  expect("public_row_ok", "OK", "PUBLIC 점검의 PUBLIC 데이터는 저장됨 (허용 필드 목록은 부록 A 확정 후 추가)");
+  expect("public_row_ok", "OK", "PUBLIC 점검의 PUBLIC 데이터는 저장됨");
+  expect("public_fields_ok", "OK", "PUBLIC은 부록 A의 7개 필드를 저장할 수 있음");
+  expect("public_bad_field", "23514", "PUBLIC: 허용 목록에 없는 필드(주소)는 저장할 수 없음");
+  expect("public_demo_field", "23514", "PUBLIC 줄에 DEMO 필드 이름은 저장할 수 없음");
 
   await expectUnchanged(["collected_items", "check_runs"]);
 }

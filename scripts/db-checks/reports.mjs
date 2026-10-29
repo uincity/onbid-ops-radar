@@ -67,13 +67,14 @@ export async function run(ctx) {
       set local session_replication_role = 'origin';
 
       -- 정상 저장
+      r := r || jsonb_build_object('rows_before', (select count(*) from public.reports));
       ${t("today_ok", rep())}
       ${t("today_twice_ok", rep())}
       ${t("past_full_day_ok", rep({ d: "td - 1", cov: dayStart("td") }))}
       ${t("past_partial_ok", rep({ d: "td - 1", cov: `${dayStart("td - 1")} + interval '10 hours'` }))}
       ${t("public_ok", rep({ src: "'PUBLIC'" }))}
       ${t("masked_key_ok", rep({ content: "'참고 https://x.example/a?serviceKey=****'" }))}
-      r := r || jsonb_build_object('rows_after_ok', (select count(*) from public.reports));
+      r := r || jsonb_build_object('rows_after_ok', (select count(*) from public.reports) - (r->>'rows_before')::int);
 
       -- 날짜·집계 시각
       ${t("future_date", rep({ d: "td + 1" }))}
