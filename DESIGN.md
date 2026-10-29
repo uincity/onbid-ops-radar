@@ -77,6 +77,9 @@
 - **`proxy.ts`:** 예전 `middleware`는 Next.js 16에서 `proxy`로 이름이 바뀌었다. 로그인 확인과 세션 갱신은 프로젝트 루트의 `proxy.ts`에서 한다.
 - **Cache Components가 켜져 있다:** 로그인 정보(쿠키)를 읽거나 DB에서 최신 값을 가져오는 화면 조각은 `<Suspense>`로 감싸고, 사용자별 데이터에는 `"use cache"`를 쓰지 않는다.
 - **서버 액션은 누구나 직접 호출할 수 있다:** 버튼을 숨겨도 요청은 보낼 수 있으므로, 서버 액션마다 로그인·역할을 다시 확인한다.
+- **`connection()`으로 로그인 확인을 요청 뒤로 미룬다 (PLAN 14번에서 확인):** 로그인 확인(`getAuthState`)은 Supabase가 현재 시각(`Date.now`)을 읽기 때문에, 맨 앞에 `await connection()`을 두지 않으면 개발 서버가 "미리 만들기 중 시각을 읽었다"는 오류를 남긴다(Cache Components + `partialPrefetching`). 로그인 확인이 필요한 새 함수는 `getAuthState()`/`requireUser()`를 거쳐 쓴다.
+- **proxy의 동작 (PLAN 14번에서 구현):** ① 로그인 쿠키를 `getClaims()`로 확인하고 새로 고친다(`getSession()`은 위조된 쿠키를 믿을 수 있어 쓰지 않는다). ② 로그인하지 않은 화면 요청은 `/login`으로 보내고, 첫 화면이 아니면 `?next=원래주소`를 붙인다. ③ 로그인하지 않은 `/api/…` 요청은 401(`UNAUTHENTICATED`). ④ `/api/cron/…`은 `CRON_SECRET`으로 자체 인증하므로(SEC-09, PLAN 31번) 로그인 검사에서 제외한다. ⑤ 이미 로그인한 사람이 `/login`을 열면 첫 화면으로 보낸다. ⑥ 정적 파일(`_next/static`, 이미지)은 matcher로 제외한다. proxy는 1차 확인일 뿐이며 화면과 서버 액션은 `requireUser()`로 다시 확인한다.
+- **돌아갈 주소(`next`) 검사:** 우리 사이트 안의 주소(`/`로 시작, `//`·`\`·제어 문자 없음, `/login` 제외)만 허용하고 그 밖에는 첫 화면으로 보낸다(열린 리다이렉트 방지, `lib/auth/safe-next.ts`).
 
 ---
 
@@ -109,7 +112,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 
 | 주소 | 화면 | operator | admin |
 |---|---|---|---|
-| `/login` | 로그인 | 사용 | 사용 |
+| `/login` | 로그인 (로그인 없이 열 수 있는 유일한 화면) | 사용 | 사용 |
+| `/no-access` | 사용 권한 없음 (로그인은 했지만 역할이 없는 계정이 가는 화면. 로그아웃만 가능) | — | — |
 | `/` | 통합 운영 대시보드 | 보기 | 보기 |
 | `/anomalies` | 이상징후 목록 | 보기 | 보기 |
 | `/anomalies/[id]` | 이상징후 상세·처리 | 본인 담당 건 처리, 미배정 건 본인 배정 | 모든 건 배정·처리 |
@@ -404,9 +408,15 @@ type ActionResult<T> =
 | 점검 엔진 | Vitest | 타임아웃 10초, 호출 상한 20/100회, 60초 제한, 서비스키·한도 오류 시 탐지 생략, 0건 처리(`EMPTY_RESULT`), 일일 예산, 허용 호스트·HTTPS | PLAN 기준 11 / PRD 5-2 규칙 4~7 |
 | DB | pgTAP | RLS, 이력 수정·삭제 차단, 역할 변경 차단, DB 함수의 전이·버전·트랜잭션, `record_detection`의 중복·재발·억제, `start_check_run`의 동시 실행·멈춘 실행 정리, `mark_schedule_missed` 날짜당 1건 | SEC-04, 05, 07, 12 / 기준 5 / PRD 5-2 규칙 8~11 |
 | 서버 입구 | Vitest | 예약 점검 입구의 `CRON_SECRET` 확인, 오류 응답에 내부 정보 없음 | SEC-09, 11 |
-| 화면 동작 | Playwright | 로그인·로그아웃, 배정, 상태변경 20건 시나리오, 권한 없는 버튼·주소 차단 | SEC-01~03, 08 / 기준 5 |
+| 화면 동작 | Playwright | 로그인·로그아웃, 배정, 상태변경 20건 시나리오, 권한 없는 버튼·주소 차단 (로그인·비로그인 차단 16개는 `tests/e2e/login.spec.ts`로 구현, PLAN 14번) | SEC-01~03, 08 / 기준 5 |
 | 전체 흐름 | Playwright | 수동 점검 → 탐지 확인 → 배정 → 조치 완료 → 보고서 생성(10회, 60초 이내) → 다운로드 | 기준 6, 10 |
 | 산출물 | 스크립트 | 빌드 결과물과 Git 추적 파일 전체에서 비밀키 패턴 검색, 로그·보고서의 키·개인정보 검색, DEMO 데이터의 개인정보 패턴 검색 | SEC-06, 10 / PRD 7-7 |
+
+**화면 테스트(Playwright) 실행 방법 (PLAN 14번에서 정함)**
+- **명령:** `npm run test:e2e` (설정 `playwright.config.ts`, 시험 파일 `tests/e2e/*.spec.ts`). 개발 서버를 테스트 전용 포트 **3100**으로 자동으로 띄운다(이미 떠 있으면 그것을 쓴다). 다른 프로그램이 흔히 쓰는 3000번을 피하기 위해서다.
+- **브라우저:** 컴퓨터에 설치된 Microsoft Edge(`channel: "msedge"`)를 쓴다. Playwright 전용 브라우저를 따로 내려받지 않는다.
+- **로그인 정보:** 시연 계정의 이메일·비밀번호를 `.env`의 `DEMO_*`에서 읽어 입력창에만 넣고 출력하지 않는다. 임시 계정이 필요한 시험은 시험 안에서 만들고 끝나면 반드시 지운다(`try/finally`).
+- **프로덕션 방식 확인:** 배포와 같은 방식으로도 확인하려면 `npm run build` 후 `npx next start -p 3100`을 먼저 띄워 두고 `npm run test:e2e`를 돌린다(이미 떠 있는 서버를 그대로 쓴다).
 
 **DB 테스트(pgTAP) 실행 방법과 범위 (PLAN 12번에서 정함)**
 - **위치·명령:** `supabase/tests/database/*.test.sql`, 실행은 `npm run test:db` (내부에서 `supabase test db --linked`). 연결된 Supabase 프로젝트(원격 DB)에 대해 돌고, 테스트 실행기(pg_prove)가 Docker로 돌기 때문에 Docker Desktop이 켜져 있어야 한다. 로컬 DB를 따로 띄우지 않는다.
