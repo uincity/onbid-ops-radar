@@ -489,6 +489,7 @@ onbid_rader/
 │  │   ├─ iso-datetime.ts       ISO 8601 날짜·시각 해석 (규칙들이 공유, 구현됨)
 │  │   └─ date-order.ts         규칙 1 DATE_ORDER: 종료가 시작보다 엄격히 빠를 때만 (구현됨, PLAN 18)
 │  ├─ checks/                   점검 실행 엔진, 조회기(demo/public), 필드 정리
+│  │   └─ demo-fetcher.ts       DEMO 조회기: 정상·HTTP 오류·타임아웃·0건 흉내 (구현됨, PLAN 21)
 │  ├─ anomalies/                서버 액션, 조회
 │  ├─ reports/                  보고서 집계·Markdown 작성, 서버 액션
 │  ├─ auth/                     로그인 사용자·역할 확인
