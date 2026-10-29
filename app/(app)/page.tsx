@@ -4,6 +4,9 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { requireUser } from "@/lib/auth/current-user";
+import { loadAvailabilityRows } from "@/lib/availability/queries";
+import { summarizeAvailability } from "@/lib/availability/summary";
+import { createClient } from "@/lib/supabase/server";
 import { loadDashboardRows } from "@/lib/dashboard/queries";
 import { summarizeDashboard } from "@/lib/dashboard/summary";
 
@@ -23,6 +26,7 @@ async function DashboardContent() {
   const now = new Date(); // requireUser 뒤라 요청 시점의 시각이다
   const { runs, anomalies } = await loadDashboardRows(now);
   const summary = summarizeDashboard({ now, runs, anomalies, userId: user.id });
+  const availability = summarizeAvailability(await loadAvailabilityRows(await createClient()));
 
-  return <DashboardView summary={summary} isOperator={user.role === "operator"} />;
+  return <DashboardView summary={summary} availability={availability} isOperator={user.role === "operator"} />;
 }

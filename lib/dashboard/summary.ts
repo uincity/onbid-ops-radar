@@ -3,7 +3,7 @@
 // - 점검 성공/실패와 규칙별 신규 건수는 KST 오늘 [00:00, 24:00) 기준(24:00은 포함하지 않음)
 // - 미배정·미처리·상태별 건수는 날짜와 관계없는 "현재" 건수
 // 날짜 계산은 lib/time.ts를 쓴다(new Date()로 날짜를 직접 자르지 않는다).
-import { RULE_IDS, SOURCES, STATUSES, type RuleId, type Source, type AnomalyStatus } from "@/lib/anomalies/labels";
+import { ALL_RULE_IDS, SOURCES, STATUSES, type AnyRuleId, type Source, type AnomalyStatus } from "@/lib/anomalies/labels";
 import { formatKst, kstDayRange, toKstDateString } from "@/lib/time";
 
 // ── 입력: DB에서 읽은 행(필요한 열만) ──
@@ -54,7 +54,7 @@ export type DashboardSummary = {
     mine: SourceCount | null; // 내 담당 미처리 (userId 없으면 null)
     byStatus: Record<AnomalyStatus, SourceCount>;
   };
-  newToday: Record<RuleId, SourceCount>;
+  newToday: Record<AnyRuleId, SourceCount>;
   recentRuns: RecentRun[];
   isEmpty: boolean; // 점검 기록도 이상징후도 하나도 없음
 };
@@ -64,7 +64,7 @@ export const RECENT_RUN_LIMIT = 5;
 const emptyCount = (): SourceCount => ({ total: 0, DEMO: 0, PUBLIC: 0 });
 const isSource = (v: string): v is Source => (SOURCES as readonly string[]).includes(v);
 const isStatus = (v: string): v is AnomalyStatus => (STATUSES as readonly string[]).includes(v);
-const isRule = (v: string): v is RuleId => (RULE_IDS as readonly string[]).includes(v);
+const isRule = (v: string): v is AnyRuleId => (ALL_RULE_IDS as readonly string[]).includes(v);
 const isRunStatus = (v: string): v is RunStatusKey => (RUN_STATUSES as readonly string[]).includes(v);
 
 function add(count: SourceCount, source: string) {
@@ -116,7 +116,7 @@ export function summarizeDashboard(input: {
   const byStatus = Object.fromEntries(STATUSES.map((s) => [s, emptyCount()])) as Record<AnomalyStatus, SourceCount>;
   const unassigned = emptyCount();
   const mine = input.userId ? emptyCount() : null;
-  const newToday = Object.fromEntries(RULE_IDS.map((r) => [r, emptyCount()])) as Record<RuleId, SourceCount>;
+  const newToday = Object.fromEntries(ALL_RULE_IDS.map((r) => [r, emptyCount()])) as Record<AnyRuleId, SourceCount>;
 
   for (const a of input.anomalies) {
     if (isStatus(a.status)) {

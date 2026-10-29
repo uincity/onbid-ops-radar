@@ -2,6 +2,7 @@
 // 이 모델은 reports.summary(JSON)에 그대로 저장되고, 화면 미리보기가 저장된 값을 다시 읽어 그린다.
 // 브라우저·서버·테스트 어디서나 쓸 수 있도록 순수한 코드만 둔다.
 import { z } from "zod";
+import { reportAvailabilitySchema } from "@/lib/availability/report";
 
 // 미처리 이상징후를 보고서에 최대 몇 건까지 보여 줄지 (넘으면 "외 N건")
 export const UNRESOLVED_LIMIT = 50;
@@ -56,6 +57,8 @@ export const reportModelSchema = z.object({
     ),
   }),
   skipReasons: z.array(z.object({ code: z.string(), count, sample: z.string() })),
+  // PUBLIC 보고서만: 온비드 OpenAPI 26종 가용성 (R05). 이전에 저장된 보고서에는 없으므로 비어 있어도 된다
+  availability: reportAvailabilitySchema.optional(),
   generationMs: z.number().int().min(0).optional(), // 보고서를 만드는 데 걸린 시간(밀리초)
 });
 

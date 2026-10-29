@@ -1,5 +1,7 @@
 // 보고서 모델 → Markdown 문자열 (순수 함수). 같은 모델이면 항상 같은 글이 나온다.
 import { RULE_LABEL, RUN_STATUS_LABEL, STATUS_LABEL, labelOf } from "@/lib/anomalies/labels";
+import { FAIL_CODE_LABEL, PROBE_STATUS_LABEL, PROBE_STATUSES } from "@/lib/checks/probe/status";
+import { REASON_LABEL } from "@/lib/availability/summary";
 import { formatKst } from "@/lib/time";
 import type { ReportModel } from "./model";
 
@@ -19,6 +21,51 @@ const ms = (n: number | null) => (n === null ? "-" : `${num(n)} ms`);
 
 function table(header: string[], rows: string[][]): string[] {
   return [`| ${header.join(" | ")} |`, `| ${header.map(() => "---").join(" | ")} |`, ...rows.map((r) => `| ${r.join(" | ")} |`)];
+}
+
+const pct = (r: { num: number; den: number }) => (r.den > 0 ? `${((r.num / r.den) * 100).toFixed(1)}% (${num(r.num)} / ${num(r.den)})` : `비율 없음 (${num(r.num)} / ${num(r.den)})`);
+const reasonOf = (code: string | null) => (code === null ? "-" : escapeMarkdownCell(REASON_LABEL[code] ?? FAIL_CODE_LABEL[code as keyof typeof FAIL_CODE_LABEL] ?? code));
+const listOf = (map: Record<string, number>) =>
+  Object.entries(map)
+    .filter(([, n]) => n > 0)
+    .map(([c, n]) => `${reasonOf(c)} ${num(n)}`)
+    .join(", ") || "없음";
+
+// PUBLIC 보고서의 26종 가용성 절. 우리 점검 요청 기준이라는 점과 미점검·검증 불가를 정상으로 세지 않는다는 점을 항상 적는다.
+function renderAvailability(a: NonNullable<ReportModel["availability"]>): string[] {
+  const out: string[] = ["## 7. 온비드 OpenAPI 가용성 (PUBLIC)", ""];
+  out.push("> 우리 점검 요청에 관측된 결과이며, 온비드 서버 전체의 가용성·호출량·원천 데이터 건수를 뜻하지 않습니다. 검증 불가·미점검은 정상으로도 실패로도 세지 않습니다. DEMO 결과는 포함하지 않습니다.", "");
+  out.push(`- 관리 대상: 목표 ${num(a.registry.target)}종 · 등록 확인 ${num(a.registry.registered)}종 · 미확정 ${num(a.registry.unconfirmed)}종 · 오퍼레이션 ${num(a.registry.operations)}개`);
+  out.push(`- 가장 최근 판정 시각: ${a.lastCheckedAt ? `${a.lastCheckedAt} KST` : "점검 기록 없음"} (서비스 전체 점검 완료 시각과 다른 값입니다)`);
+  out.push(`- 점검 준비 상태: 준비됨 ${num(a.ready.ready)}개 · 준비 안 됨 ${num(a.ready.notReady)}개`, "");
+  const total = PROBE_STATUSES.reduce((sum, s) => sum + (a.counts[s] ?? 0), 0);
+  out.push(
+    ...table(["판정", "오퍼레이션 수"], [...PROBE_STATUSES.map((s) => [PROBE_STATUS_LABEL[s], num(a.counts[s] ?? 0)]), ["합계", `${num(total)} ${total === a.registry.operations ? "(일치)" : "(불일치: 집계 오류 확인 필요)"}`]]),
+    "",
+  );
+  out.push(
+    ...table(
+      ["지표", "값"],
+      [
+        ["점검 시도율 (요청을 보낸 수 / 준비된 수)", pct(a.attemptRate)],
+        ["기본 정상 비율 (정상 / 실제 시도한 수)", pct(a.basicOk)],
+        ["실데이터 검증률 (실데이터 확인 / Positive 점검 등록)", pct({ num: a.realData.passData, den: a.realData.positiveRegistered })],
+        ["전체 목표 대비 검증률 (모든 오퍼레이션이 실데이터 확인된 서비스 / 목표)", pct(a.serviceCoverage)],
+      ],
+    ),
+    "",
+  );
+  out.push(`- 검증 불가 사유: ${listOf(a.reasons.unverified)}`);
+  out.push(`- 미점검 사유: ${listOf(a.reasons.notRun)} (점검 기록 없음 ${num(a.noRecord)}개 포함)`);
+  out.push(`- 실패 구분: ${listOf(a.failByCode)}`, "");
+  out.push(
+    ...table(
+      ["오퍼레이션", "판정", "사유", "마지막 정상 응답"],
+      a.operations.map((o) => [escapeMarkdownCell(o.key), escapeMarkdownCell(PROBE_STATUS_LABEL[o.status as keyof typeof PROBE_STATUS_LABEL] ?? o.status), reasonOf(o.reason), o.lastOkAt ? `${o.lastOkAt} KST` : "-"]),
+    ),
+    "",
+  );
+  return out;
 }
 
 export const NO_RECORD_MESSAGE = "해당 날짜 점검 기록이 없습니다";
@@ -119,6 +166,8 @@ export function renderReportMarkdown(m: ReportModel): string {
   } else {
     out.push(...table(["코드", "건수", "예시"], m.skipReasons.map((s) => [escapeMarkdownCell(s.code), num(s.count), escapeMarkdownCell(s.sample)])), "");
   }
+
+  if (m.availability) out.push(...renderAvailability(m.availability));
 
   return `${out.join("\n").trimEnd()}\n`;
 }

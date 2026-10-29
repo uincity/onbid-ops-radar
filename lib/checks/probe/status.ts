@@ -86,7 +86,7 @@ export type ProbeSummary = {
   passData: number;
 };
 
-export function summarizeProbes(results: readonly ProbeResult[]): ProbeSummary {
+export function summarizeProbes<T extends { status: ProbeStatus; attempted: boolean }>(results: readonly T[]): ProbeSummary {
   const counts = Object.fromEntries(PROBE_STATUSES.map((s) => [s, 0])) as Record<ProbeStatus, number>;
   for (const r of results) counts[r.status] += 1;
   const attempted = results.filter((r) => r.attempted).length;

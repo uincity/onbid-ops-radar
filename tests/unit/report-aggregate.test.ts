@@ -1,4 +1,5 @@
 // 일일 점검보고서 집계 시험 (PLAN 30번, PRD 5-4): KST 하루 경계, 빈 날, 미처리 50건 경계, 평균 응답시간, 출처 구분
+import { ALL_RULE_IDS } from "@/lib/anomalies/labels";
 import { describe, expect, it } from "vitest";
 import { aggregateReport, type AggregateInput } from "@/lib/reports/aggregate";
 import { UNRESOLVED_LIMIT, parseReportModel, reportFileName } from "@/lib/reports/model";
@@ -49,7 +50,8 @@ describe("빈 날", () => {
     expect(m.runs.total).toBe(0);
     expect(m.anomalies.newCount).toBe(0);
     expect(m.unresolved).toMatchObject({ total: 0, omitted: 0, rows: [] });
-    expect(m.validation.newByRule).toEqual({ DATE_ORDER: 0, REQUIRED_FIELD: 0, LIST_DETAIL_MISMATCH: 0, EMPTY_RESULT: 0 });
+    expect(Object.values(m.validation.newByRule).every((n) => n === 0)).toBe(true);
+    expect(Object.keys(m.validation.newByRule)).toEqual([...ALL_RULE_IDS]); // 이전 4개 + DQ 4개 + API 7개 (R05)
   });
 
   it("결과는 저장 모양 검사를 통과한다", () => {
@@ -184,7 +186,7 @@ describe("이상징후 발생·처리", () => {
         statusCounts: { open: 2, resolved: 1 },
       }),
     );
-    expect(m.validation.newByRule).toEqual({ DATE_ORDER: 2, REQUIRED_FIELD: 0, LIST_DETAIL_MISMATCH: 0, EMPTY_RESULT: 1 });
+    expect(m.validation.newByRule).toMatchObject({ DATE_ORDER: 2, REQUIRED_FIELD: 0, LIST_DETAIL_MISMATCH: 0, EMPTY_RESULT: 1, API_HTTP_ERROR: 0 });
     expect(m.anomalies).toMatchObject({ newCount: 3, recurredCount: 1 });
     expect(m.anomalies.byStatus).toEqual({ open: 2, investigating: 0, resolved: 1, dismissed: 0 });
   });

@@ -3,6 +3,9 @@
 // 읽기는 로그인한 사용자의 연결(RLS)로 한다. 저장(reports 추가)은 서버 액션이 팀장 확인 뒤에 따로 한다.
 import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { loadAvailabilityRows } from "@/lib/availability/queries";
+import { toReportAvailability } from "@/lib/availability/report";
+import { summarizeAvailability } from "@/lib/availability/summary";
 import { kstDayRange } from "@/lib/time";
 import {
   aggregateReport,
@@ -189,8 +192,11 @@ export async function generateReportModel(
     baselineAt = new Date(iso);
   }
 
-  const build = (limit: number) =>
-    aggregateReport({
+  // PUBLIC 보고서: 그날 [00:00, 끝) 안의 마지막 판정으로 26종 가용성을 집계한다 (DEMO 보고서에는 넣지 않는다)
+  const availability = source === "PUBLIC" ? toReportAvailability(summarizeAvailability(await loadAvailabilityRows(supabase, { from: day.start, to: end }))) : undefined;
+
+  const build = (limit: number) => ({
+    ...aggregateReport({
       reportDate: date,
       source,
       generatedAt: now,
@@ -205,7 +211,9 @@ export async function generateReportModel(
       statusCounts,
       unresolved,
       unresolvedLimit: limit,
-    });
+    }),
+    ...(availability ? { availability } : {}),
+  });
 
   // reports.summary에는 크기 제한이 있으므로, 너무 크면 미처리 목록을 줄여 "외 N건"으로 보여 준다
   let limit = UNRESOLVED_LIMIT;

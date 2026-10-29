@@ -137,3 +137,23 @@ describe("결과 모양", () => {
     expect(renderReportMarkdown(m)).not.toMatch(/servicekey=(?!\*)/i);
   });
 });
+
+describe("26종 가용성 절 (R05)", () => {
+  it("PUBLIC 보고서에 가용성 절이 있으면 한계 문구·6종·지표를 적고, 없으면 절 자체를 만들지 않는다", async () => {
+    const { renderReportMarkdown } = await import("@/lib/reports/markdown");
+    const { aggregateReport } = await import("@/lib/reports/aggregate");
+    const { toReportAvailability } = await import("@/lib/availability/report");
+    const { summarizeAvailability } = await import("@/lib/availability/summary");
+    const base = aggregateReport({
+      reportDate: "2026-10-29", source: "PUBLIC", generatedAt: new Date("2026-10-29T03:00:00Z"), coversUntil: new Date("2026-10-29T03:00:00Z"), baselineAt: null,
+      runs: [], apiChecks: [], logs: [], collectedCount: 0, newAnomalies: [], closedEvents: [], statusCounts: {}, unresolved: [],
+    });
+    expect(renderReportMarkdown(base)).not.toContain("가용성 (PUBLIC)");
+    const md = renderReportMarkdown({ ...base, availability: toReportAvailability(summarizeAvailability({ rows: [], okRows: [] })) });
+    expect(md).toContain("## 7. 온비드 OpenAPI 가용성 (PUBLIC)");
+    expect(md).toContain("온비드 서버 전체의 가용성");
+    expect(md).toContain("(일치)");
+    expect(md).toContain("비율 없음");
+    expect(md).toContain("점검 기록 없음");
+  });
+});

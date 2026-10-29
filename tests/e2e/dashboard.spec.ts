@@ -6,6 +6,27 @@ import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpe
 test.beforeAll(requireDemoAccounts);
 
 test.describe("통합 대시보드", () => {
+  test("26종 가용성: 한계 문구·6종 상태·지표 4개가 보이고, 합계가 맞으며, 서비스별 표가 열린다 (R05)", async ({ page }) => {
+    await signInThroughForm(page, ADMIN);
+
+    const section = page.getByTestId("availability");
+    await expect(section).toBeVisible();
+    await expect(section.getByRole("heading", { name: /가용성/ })).toBeVisible();
+    await expect(page.getByTestId("availability-basis")).toContainText("온비드 서버 전체의 가용성이 아닙니다");
+    await expect(page.getByTestId("availability-registry")).toContainText("목표 26종");
+    for (const status of ["PASS_DATA", "PASS_NO_DATA", "DEGRADED", "FAIL", "UNVERIFIED", "NOT_RUN"]) {
+      await expect(page.getByTestId(`availability-count-${status}`)).toBeVisible();
+    }
+    await expect(page.getByTestId("availability-sum")).toContainText("(일치)");
+    for (const id of ["metric-attempt", "metric-basic", "metric-realdata", "metric-coverage"]) await expect(page.getByTestId(id)).toBeVisible();
+
+    await page.getByTestId("availability-details").locator("summary").click();
+    await expect(page.getByTestId("availability-row").first()).toBeVisible();
+    expect(await page.getByTestId("availability-row").count()).toBeGreaterThanOrEqual(28);
+    // 규칙별 신규: 이전 4개 + 품질 4개 + API 7개
+    await expect(page.getByTestId("new-by-rule").getByRole("listitem")).toHaveCount(15);
+  });
+
   test("팀장: 제목·요약 카드·최근 실행 영역이 보이고 내 담당 카드는 없다", async ({ page }) => {
     await signInThroughForm(page, ADMIN);
 
