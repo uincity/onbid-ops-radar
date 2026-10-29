@@ -107,7 +107,7 @@ PRD가 2026-10-29에 v2.0으로 개정되었다(외부 이용자 관점의 26종
 | R04 | 개별 API·배치별 점검 엔진, 개별 실패 격리 | 22 확장 | **완료(2026-10-29), 단 서비스별 예산·초당 제한은 승인·쿼터 확정 후** — ① 조회기 예외 격리, 판정을 실행 상태에 반영 ② 서비스 단위 배치 계획(`lib/checks/batch-plan.ts`), 조회기 없는 26개는 UNVERIFIED로 기록 ③ 설정 `api_fail_streak_threshold`(기본 3, 코드 먼저 배포→DB 나중 적용) ④ 같은 오퍼레이션 연속 FAIL이 기준에 닿으면 `API_<코드>` 이상징후 등록(서비스키·한도 FAIL은 제외, `lib/checks/api-streak.ts`) |
 | R05 | 26종 가용성 대시보드·일일 보고 | 29·30 확장 | **완료(2026-10-29)** — `lib/availability`(집계·조회·보고서 축약), 대시보드 맨 위 가용성 영역(6종·지표 4개·서비스별 표), PUBLIC 일일 보고서 7절, "규칙별 신규"를 규칙 15개로 확장 |
 | R06 | 품질 4규칙(`DQ_*`) | 18~20 확장 | **완료(2026-10-29)** — `lib/rules/dq-rules.ts`(DQ_SCHEMA·DQ_LIST_DETAIL_REF·DQ_CROSS_API_REF 판정)·`lib/checks/dq-evidence.ts`. PUBLIC은 필수정보를 DQ_REQUIRED로 등록하고 DATE_ORDER는 등록하지 않음. 상세 0건은 판정 보류 메모만, DQ_CROSS_API_REF는 연결 API 점검이 없어 적용 제외(NOT_APPLICABLE). 남음: 상세 0건 재조회, 연결 API(공고·입찰결과) 점검 후 교차 참조 적용 |
-| R07 | 예약 점검(KST 09:00)과 완료·누락 감지 | 31·32 | 대기 |
+| R07 | 예약 점검(KST 09:00)과 완료·누락 감지 | 31·32 | **구현 완료(2026-10-29), Cron 등록은 사용자 실행 대기** — 입구 `POST /api/cron/daily-check`(CRON_SECRET), DB 함수 `mark_schedule_missed()`(적용됨, pgTAP 13개), 대시보드 예약 상태 띠(예정·대기·진행·완료·일부완료·차단·실패·누락), `npm run setup:cron`(기본 미리 보기, `--apply`로 등록). Vercel에 CRON_SECRET 등록과 setup:cron --apply 전에는 예약이 돌지 않음 |
 | R08 | PUBLIC 실호출 증거·보안 SEC-01~12·성공 기준·배포 | 34~37 | 대기 |
 
 R01 이후에도 남은 확인: ① 26번째 서비스의 정체(명세서 파일 16번, 서비스ID 008·009 결번) ② 이상징후 동일성 키와 기존 `item_key` 제약의 호환 방식 ③ 기관 보안·클라우드 이용 승인 확인(PRD 6-4). 38·39번(Gap 분석·완료 보고서)은 R08 뒤에 그대로 한다.

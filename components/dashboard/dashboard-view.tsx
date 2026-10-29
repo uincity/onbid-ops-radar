@@ -5,13 +5,15 @@ import { RunStatusBadge, SourceBadge } from "@/components/ui/badges";
 import { ALL_RULE_IDS, RULE_LABEL, RUN_STATUS_LABEL, RUN_TRIGGER_LABEL, STATUSES, STATUS_LABEL, labelOf } from "@/lib/anomalies/labels";
 import { RUN_STATUSES, type DashboardSummary } from "@/lib/dashboard/summary";
 import type { AvailabilitySummary } from "@/lib/availability/summary";
+import type { ScheduleStatus } from "@/lib/schedule/status";
 import { AvailabilitySection } from "./availability-section";
+import { ScheduleBanner } from "./schedule-banner";
 import { CountCard, SourceBreakdown } from "./count-card";
 
 const sectionTitle = "text-base font-semibold text-zinc-950 dark:text-zinc-50";
 const panel = "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950";
 
-export function DashboardView({ summary, availability, isOperator }: { summary: DashboardSummary; availability: AvailabilitySummary; isOperator: boolean }) {
+export function DashboardView({ summary, availability, schedule, isOperator }: { summary: DashboardSummary; availability: AvailabilitySummary; schedule: ScheduleStatus; isOperator: boolean }) {
   const { today, backlog, newToday, recentRuns } = summary;
   const maxNew = Math.max(1, ...ALL_RULE_IDS.map((r) => newToday[r].total));
 
@@ -29,6 +31,9 @@ export function DashboardView({ summary, availability, isOperator }: { summary: 
           아직 점검 기록과 이상징후가 없습니다. 매일 09:00(KST) 예약 점검이 실행되거나 팀장이 수동 점검을 실행하면 이곳에 결과가 나타납니다.
         </div>
       ) : null}
+
+      {/* 오늘의 예약 점검 상태 (예정·시작·완료·차단·일부 완료·누락) */}
+      <ScheduleBanner status={schedule} />
 
       {/* 26종 가용성 (PUBLIC) — 이 서비스의 1순위 지표 */}
       <AvailabilitySection summary={availability} />

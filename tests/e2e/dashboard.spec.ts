@@ -6,6 +6,15 @@ import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpe
 test.beforeAll(requireDemoAccounts);
 
 test.describe("통합 대시보드", () => {
+  test("오늘의 예약 점검 상태 띠가 보이고 예정·확인 기한을 알려 준다 (R07)", async ({ page }) => {
+    await signInThroughForm(page, ADMIN);
+    const banner = page.getByTestId("schedule-banner");
+    await expect(banner).toBeVisible();
+    await expect(banner).toHaveAttribute("data-state", /^(NOT_DUE|WAITING|RUNNING|COMPLETED|PARTIAL|BLOCKED|FAILED|MISSED)$/);
+    await expect(banner).toContainText("09:00");
+    await expect(banner).toContainText("점검 완료 기한이 아닙니다");
+  });
+
   test("26종 가용성: 한계 문구·6종 상태·지표 4개가 보이고, 합계가 맞으며, 서비스별 표가 열린다 (R05)", async ({ page }) => {
     await signInThroughForm(page, ADMIN);
 
