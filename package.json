@@ -8,10 +8,14 @@
     "start": "next start",
     "lint": "eslint",
     "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs",
+    "check:env": "node --env-file=.env --env-file-if-exists=.env.local scripts/check-env.mjs",
+    "setup:env": "node --env-file=.env --env-file-if-exists=.env.local scripts/setup-env-local.mjs",
     "setup:supabase": "node --env-file=.env --env-file-if-exists=.env.local scripts/setup-supabase-project.mjs",
     "check:supabase": "node --env-file=.env --env-file-if-exists=.env.local scripts/check-supabase-link.mjs"
   },
   "dependencies": {
+    "@supabase/ssr": "^0.12.7",
+    "@supabase/supabase-js": "^2.118.0",
     "next": "16.4.3",
     "react": "19.3.0",
     "react-dom": "19.3.0"
