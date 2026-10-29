@@ -36,6 +36,7 @@ describe.skipIf(!live)("점검 엔진 + 실제 DB", () => {
 
   afterAll(async () => {
     if (!db || createdRuns.length === 0) return;
+    await db.from("probe_results").delete().in("run_id", createdRuns);
     await db.from("api_checks").delete().in("run_id", createdRuns);
     await db.from("collected_items").delete().in("run_id", createdRuns);
     await db.from("run_logs").delete().in("run_id", createdRuns);
@@ -102,4 +103,31 @@ describe.skipIf(!live)("점검 엔진 + 실제 DB", () => {
     const { count } = await db.from("anomalies").select("id", { count: "exact", head: true }).eq("item_key", "LIVE-TEST");
     expect(count).toBe(0);
   });
+  it("점검 판정(probe_results)과 새 호출 기록 칸이 실제 DB에 저장되고 읽힌다 (이상징후는 만들지 않는다)", async () => {
+    const store = createSupabaseCheckStore(db);
+    const run = await store.startRun("manual", "PUBLIC", null);
+    createdRuns.push(run.runId);
+    expect(run.status).toBe("running");
+
+    // 호출 기록: 서비스ID·오퍼레이션 ID·결과코드·마스킹된 요청 요약
+    await store.recordApiCheck(run.runId, { endpointName: "public-list", httpStatus: 200, durationMs: 321, outcome: "success", recordCount: 3, dataValid: true, apiId: "SVC-API-001", operationId: "getRlstCltrList", resultCode: "00", requestSummary: "pageNo=1&numOfRows=3" });
+    // 점검 판정 3종: 정상 · 실패(세부 코드) · 미점검(사유)
+    await store.recordProbe(run.runId, "PUBLIC", { apiId: "SVC-API-001", operationId: "getRlstCltrList", result: { status: "PASS_DATA", attempted: true }, resultCode: "00", httpStatus: 200, durationMs: 321, recordCount: 3, schema: { checked: true, ok: true, inspected: 3, problems: [], warnings: 0 }, requestSummary: "pageNo=1&numOfRows=3" });
+    await store.recordProbe(run.runId, "PUBLIC", { apiId: "SVC-API-004", operationId: "getRlstDtlInf", result: { status: "FAIL", attempted: true, code: "QUOTA_EXCEEDED" }, resultCode: "22", httpStatus: 200, durationMs: 50, recordCount: null, schema: null, requestSummary: null });
+    await store.recordProbe(run.runId, "PUBLIC", { apiId: "SVC-API-007", operationId: "getCltrBidInf", result: { status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP" }, resultCode: null, httpStatus: null, durationMs: null, recordCount: null, schema: null, requestSummary: null });
+    await store.finishRun(run.runId, "partial", 1);
+
+    const { data: probes } = await db.from("probe_results").select("api_id, operation_id, status, attempted, reason, result_code, schema_summary").eq("run_id", run.runId).order("api_id");
+    expect(probes).toEqual([
+      { api_id: "SVC-API-001", operation_id: "getRlstCltrList", status: "PASS_DATA", attempted: true, reason: null, result_code: "00", schema_summary: { checked: true, ok: true, inspected: 3, warnings: 0, problems: [] } },
+      { api_id: "SVC-API-004", operation_id: "getRlstDtlInf", status: "FAIL", attempted: true, reason: "QUOTA_EXCEEDED", result_code: "22", schema_summary: null },
+      { api_id: "SVC-API-007", operation_id: "getCltrBidInf", status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP", result_code: null, schema_summary: null },
+    ]);
+    const { data: check } = await db.from("api_checks").select("api_id, operation_id, result_code, request_summary").eq("run_id", run.runId).single();
+    expect(check).toEqual({ api_id: "SVC-API-001", operation_id: "getRlstCltrList", result_code: "00", request_summary: "pageNo=1&numOfRows=3" });
+
+    // 같은 점검에서 같은 오퍼레이션을 두 번 저장하면 DB가 거부한다 (오퍼레이션당 판정 1줄)
+    await expect(store.recordProbe(run.runId, "PUBLIC", { apiId: "SVC-API-001", operationId: "getRlstCltrList", result: { status: "PASS_DATA", attempted: true }, resultCode: "00", httpStatus: 200, durationMs: 1, recordCount: 1, schema: null, requestSummary: null })).rejects.toThrow();
+  });
+
 });

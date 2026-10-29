@@ -10,8 +10,9 @@ import * as anomalies from "./db-checks/anomalies.mjs";
 import * as anomalyEvents from "./db-checks/anomaly-events.mjs";
 import * as settings from "./db-checks/settings.mjs";
 import * as reports from "./db-checks/reports.mjs";
+import * as probeResults from "./db-checks/probe-results.mjs";
 
-const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports];
+const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports, probeResults];
 const ctx = createChecker();
 
 // 시험을 시작하기 전의 줄 수를 기록해 둔다. 시험이 끝난 뒤 줄 수가 같은지(저장된 줄이 없는지) 비교하기 위해서다.

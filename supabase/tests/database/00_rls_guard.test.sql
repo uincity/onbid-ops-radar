@@ -20,14 +20,14 @@ select is(
   'public의 모든 테이블에 RLS(출입 규칙)가 켜져 있음'
 );
 
--- 2. 설계한 9개 테이블이 모두 있다 (실수로 빠지거나 이름이 바뀌면 알려 준다)
+-- 2. 설계한 10개 테이블이 모두 있다 (실수로 빠지거나 이름이 바뀌면 알려 준다)
 select is(
   (select count(*)::int from pg_tables
     where schemaname = 'public'
       and tablename = any (array['profiles', 'settings', 'check_runs', 'run_logs', 'api_checks',
-                                 'collected_items', 'anomalies', 'anomaly_events', 'reports'])),
-  9,
-  'DESIGN의 테이블 9개가 모두 있음'
+                                 'collected_items', 'anomalies', 'anomaly_events', 'reports', 'probe_results'])),
+  10,
+  'DESIGN의 테이블 10개가 모두 있음'
 );
 
 -- 3. 비로그인(anon)은 어떤 테이블에도 아무 권한이 없다
@@ -50,15 +50,15 @@ select is(
   '로그인 사용자(authenticated)는 어떤 테이블에도 쓰기 권한이 없음 (읽기만 가능)'
 );
 
--- 5. 로그인 사용자는 설계한 9개 테이블을 모두 읽을 수 있다
+-- 5. 로그인 사용자는 설계한 10개 테이블을 모두 읽을 수 있다
 select is(
   (select count(*)::int from pg_class c join pg_namespace n on n.oid = c.relnamespace
     where n.nspname = 'public' and c.relkind in ('r', 'p')
       and c.relname = any (array['profiles', 'settings', 'check_runs', 'run_logs', 'api_checks',
-                                   'collected_items', 'anomalies', 'anomaly_events', 'reports'])
+                                   'collected_items', 'anomalies', 'anomaly_events', 'reports', 'probe_results'])
       and has_table_privilege('authenticated', c.oid, 'SELECT')),
-  9,
-  '로그인 사용자는 테이블 9개를 모두 읽을 수 있음'
+  10,
+  '로그인 사용자는 테이블 10개를 모두 읽을 수 있음'
 );
 
 -- 6. 정책은 "로그인 사용자 읽기(SELECT)" 뿐이다. 추가·수정·삭제 정책이 하나라도 있으면 알려 준다

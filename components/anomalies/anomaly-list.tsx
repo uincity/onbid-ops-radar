@@ -1,7 +1,7 @@
 // 이상징후 목록 화면의 조각들: 빠른 필터 · 세부 필터 · 표 · 쪽 이동 (서버 컴포넌트, 자바스크립트 없이 링크·폼으로 동작)
 import Link from "next/link";
 import { RuleBadge, SourceBadge, StatusBadge, VerdictBadge } from "@/components/ui/badges";
-import { RULE_IDS, RULE_LABEL, SOURCES, STATUS_LABEL } from "@/lib/anomalies/labels";
+import { ALL_RULE_IDS, RULE_LABEL, SOURCES, STATUS_LABEL } from "@/lib/anomalies/labels";
 import {
   QUICK_FILTERS,
   STATUS_FILTERS,
@@ -64,7 +64,7 @@ export function DetailFilters({ query }: { query: ListQuery }) {
         규칙
         <select name="rule" defaultValue={query.rule ?? ""} className={selectClass}>
           <option value="">전체</option>
-          {RULE_IDS.map((r) => (
+          {ALL_RULE_IDS.map((r) => (
             <option key={r} value={r}>
               {RULE_LABEL[r]}
             </option>

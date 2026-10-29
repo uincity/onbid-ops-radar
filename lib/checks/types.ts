@@ -1,8 +1,9 @@
 // Design Ref: DESIGN §5.1(점검 흐름), §6.1(check_runs·api_checks·run_logs·collected_items) — 점검 엔진이 쓰는 공통 모양
 // 엔진은 "무엇을 조회하는지(조회기)"와 "어디에 저장하는지(저장소)"를 직접 알지 못하고, 아래 두 약속(인터페이스)으로만 대화한다.
 // 그래서 DB 없이 가짜 저장소로 엔진을 빠르게 시험할 수 있고, 나중에 PUBLIC 조회기도 같은 약속만 지키면 끼워 넣을 수 있다.
-import type { RuleId } from "@/lib/rules/detect-item";
+import type { AnyRuleId } from "@/lib/anomalies/labels";
 import type { SchemaCheckResult } from "./probe/schema-check";
+import type { ProbeResult } from "./probe/status";
 
 // api_checks.outcome 값과 같다. 서비스키·한도 문제(auth_or_quota)는 PUBLIC 조회기가 만든다.
 export type ApiOutcome = "success" | "http_error" | "timeout" | "auth_or_quota" | "empty_result";
@@ -21,9 +22,12 @@ export type ApiCheckRecord = {
   outcome: ApiOutcome;
   recordCount: number | null;
   dataValid: boolean | null;
-  // 아래 둘은 점검 상태 판정(lib/checks/probe)에만 쓰고 DB(api_checks)에는 아직 저장하지 않는다 (저장은 R03에서)
-  resultCode?: string | null; // 응답 본문의 업무 결과코드 (00 정상, 03 데이터없음, 22 호출 한도 초과 …). 알 수 없으면 null
-  schema?: SchemaCheckResult | null; // 필수 응답 항목 확인 결과. 확인하지 못했으면 null
+  // 아래는 PUBLIC 점검이 채운다. DEMO는 비어 있다(이전 방식 그대로)
+  apiId?: string | null; // 서비스 등록부의 서비스ID (SVC-API-NNN) → api_checks.api_id
+  operationId?: string | null; // 오퍼레이션 ID → api_checks.operation_id
+  requestSummary?: string | null; // 마스킹된 요청 요약(인증키 제외) → api_checks.request_summary
+  resultCode?: string | null; // 응답 본문의 업무 결과코드 (00 정상, 03 데이터없음, 22 호출 한도 초과 …) → api_checks.result_code
+  schema?: SchemaCheckResult | null; // 필수 응답 항목 확인 결과 (점검 판정에 쓰고 probe_results에 요약만 저장)
 };
 
 export type ApiFetchResult = ApiCheckRecord & {
@@ -44,11 +48,24 @@ export type RunSource = "DEMO" | "PUBLIC";
 export type RunStatus = "succeeded" | "partial" | "failed";
 export type LogLevel = "info" | "warn" | "error";
 
+// 오퍼레이션별 점검 판정 1줄 (DB probe_results). 판정(result)과 그 근거가 된 관측값을 함께 담는다
+export type ProbeRecord = {
+  apiId: string;
+  operationId: string;
+  result: ProbeResult;
+  resultCode: string | null;
+  httpStatus: number | null;
+  durationMs: number | null;
+  recordCount: number | null;
+  schema: SchemaCheckResult | null;
+  requestSummary: string | null;
+};
+
 // 등록할 탐지 결과 1건 (DB 함수 record_detection의 입력). 데이터 이상징후는 itemKey가 물건 식별값, EMPTY_RESULT는 API 이름이다.
 export type DetectionRecord = {
   source: RunSource;
   itemKey: string;
-  ruleId: RuleId | "EMPTY_RESULT";
+  ruleId: AnyRuleId; // 이전 4개 + DQ_* + API_* (DB 허용 목록과 같다)
   evidence: Record<string, unknown>;
   valueHash: string;
 };
@@ -61,6 +78,8 @@ export interface CheckStore {
   // DB 함수 start_check_run을 부른다. 이미 실행 중이면 status가 "blocked"로 돌아온다.
   startRun(trigger: RunTrigger, source: RunSource, triggeredBy: string | null): Promise<{ runId: number; status: "running" | "blocked" }>;
   recordApiCheck(runId: number, result: ApiCheckRecord): Promise<void>;
+  // 오퍼레이션별 점검 판정을 probe_results에 저장한다 (PUBLIC 점검)
+  recordProbe(runId: number, source: RunSource, probe: ProbeRecord): Promise<void>;
   // 오늘(KST) 이미 쓴 PUBLIC API 호출 수 (일일 호출 예산 확인용, DESIGN 5.1 2단계)
   countPublicCallsToday(): Promise<number>;
   saveCollected(runId: number, source: RunSource, kind: "list" | "detail", records: FetchedRecord[]): Promise<void>;

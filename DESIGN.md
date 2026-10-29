@@ -5,7 +5,7 @@
 > **작성일:** 2026-10-29 · **단계:** Design · **상태:** 초안
 > **선택한 설계 방식:** C. 실용 균형 (2장)
 >
-> **⚠ PRD v2.0(2026-10-29)과의 관계:** 이 설계서는 v1 PRD 기준으로 쓰였고 아직 갱신하지 않았다. 구현이 끝난 부분(로그인·DB·점검 엔진·이상징후 처리·대시보드·보고서)은 그대로 유효하다. 아래는 v2.0과 **충돌하거나 확장이 필요한 부분**이며, R03(DB 확장) 착수 전에 이 문서를 갱신한다: ① 빈 결과 정책(`EMPTY_RESULT`, 6.1·5.1 4단계) ② `api_checks.endpoint_name` 중심 저장(서비스·오퍼레이션 식별 부족) ③ `anomalies.item_key`·`rule_id` 4개 제한(API 단위 이상징후·`DQ_*` 규칙 ID) ④ `settings` 14개 고정 항목(서비스별 Probe·예산) ⑤ 한 번 20회·60초 실행(26종 배치) ⑥ 대시보드·보고서의 상태 체계(6종). 문서 속 "PRD 5-2 규칙 N"·"U번호"는 v1 번호다(PRD 부록 E).
+> **⚠ PRD v2.0(2026-10-29)과의 관계:** 이 설계서는 v1 PRD 기준으로 쓰였고 아직 갱신하지 않았다. 구현이 끝난 부분(로그인·DB·점검 엔진·이상징후 처리·대시보드·보고서)은 그대로 유효하다. 아래는 v2.0과 **충돌하거나 확장이 필요한 부분**이다. R03(2026-10-29)에서 DB 구조를 확장했고 해당 절(6.1·6.4)은 갱신했다: ① 빈 결과 정책 — **해결**(PUBLIC 0건은 점검 판정으로만, `EMPTY_RESULT`는 이전 기록·DEMO 호환용) ② `api_checks.endpoint_name` 중심 저장 — **해결**(`api_id`·`operation_id`·`result_code`·`request_summary` 추가, 오퍼레이션별 판정은 새 `probe_results`) ③ `anomalies` 규칙 ID 4개 제한 — **해결**(15개로 확장, 동일성 키 구조는 그대로) ④ `settings` 14개 고정 항목 — 서비스별 Probe·예산은 서비스 등록부(`data/registry`, R01)가 맡고 `settings`는 그대로 둠 ⑤ 한 번 20회·60초 실행(26종 배치) — **미해결**(R04) ⑥ 대시보드·보고서의 상태 체계(6종) — **미해결**(R05). 문서 속 "PRD 5-2 규칙 N"·"U번호"는 v1 번호다(PRD 부록 E).
 
 ## Context Anchor
 
@@ -280,7 +280,8 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `settings` | PRD 5-5 설정값과 탐지 설정 (정해진 14개 항목, 기본값이 들어 있음) | `key`, `value`(JSON), `updated_at`. 키 14개: `compare_window_minutes`, `api_timeout_seconds`, `api_call_limit_default`, `api_call_limit_max`, `public_daily_budget`, `run_time_limit_seconds`, `reason_min_length`, `schedule_missed_grace_minutes`, `stale_running_seconds`, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint` (DEMO 값은 PRD 부록 B) |
 | `check_runs` | 점검 실행 1회 | `trigger`(`scheduled`/`manual`), `source`, `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `api_call_count`, `triggered_by` |
 | `run_logs` | 실행 중 남길 메모 | `run_id`(비울 수 있음), `log_date`(KST 날짜), `level`, `code`(상한 도달, 시간 초과, 비교 제외, 일일 예산 초과, 예약 누락 등), `message` |
-| `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid` |
+| `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid`, **R03 추가(비어 있을 수 있음):** `api_id`(서비스ID), `operation_id`, `result_code`(응답 본문 업무 결과코드), `request_summary`(인증키를 뺀 요청 요약) |
+| `probe_results` | **(R03 추가)** 한 번의 점검에서 오퍼레이션마다 "판정 1줄" — API 호출 결과와 데이터 품질 이상징후를 섞지 않는다 | `run_id`+`source`(점검 실행과 출처가 같아야 함), `api_id`, `operation_id`, `status`(`PASS_DATA`/`PASS_NO_DATA`/`DEGRADED`/`FAIL`/`UNVERIFIED`/`NOT_RUN`), `attempted`, `reason`(상태별 세부 사유), `had_data`, `result_code`, `http_status`, `duration_ms`, `record_count`, `schema_summary`(응답 구조 확인 요약), `probe_version`, `request_summary`, `checked_at`. 같은 점검에서 같은 오퍼레이션은 1줄 |
 | `collected_items` | 정리된 수집 데이터 | `run_id`, `source`, `item_key`, `kind`(`list`/`detail`), `fields`(허용 필드만), `collected_at` |
 | `anomalies` | 이상징후 1건 | `source`, `item_key`, `rule_id`, `status`(기본 `open`), `verdict`(기본 `undetermined`), `assignee_id`, `version`, `evidence`, `value_hash`, `detect_count`, `first_detected_at`, `last_detected_at`, `previous_anomaly_id` |
 | `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `actor_role`(행동 당시의 역할 `operator`/`admin`), `event_type`(`created`/`detected_again`/`assigned`/`status_changed`/`verdict_changed`), `from_value`, `to_value`, `note`, `created_at` |
@@ -305,7 +306,9 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - **상태·판정 짝:** `anomalies`는 `open`이면 반드시 `undetermined`, `resolved`이면 반드시 `confirmed_issue`, `dismissed`이면 반드시 `false_positive`여야 한다. `investigating`은 어느 판정이든 가능하다(판정만 따로 바꿀 수 있으므로). DB 제약이 강제한다(PRD 5-3 규칙 2·4).
 - **재발 연결:** `previous_anomaly_id`는 같은 출처·물건·규칙의 이상징후만 가리킬 수 있다(복합 연결). 가리키는 건이 "종결(`resolved`/`dismissed`)된 건인지"는 `record_detection` 함수(PLAN 23번)가 확인한다.
 - **식별 정보 보호:** 한번 저장된 `anomalies`의 `source`·`item_key`·`rule_id`·`first_detected_at`·`previous_anomaly_id`는 바꿀 수 없다(트리거). 같은 줄을 다른 물건의 이상징후로 바꿔치기하는 것을 막는다.
-- **규칙 ID 제한:** `rule_id`는 `DATE_ORDER`·`REQUIRED_FIELD`·`LIST_DETAIL_MISMATCH`·`EMPTY_RESULT` 네 가지만 저장할 수 있다. 새 규칙은 마이그레이션으로만 추가한다(PRD 6-3 범위 밖 규칙 차단).
+- **규칙 ID 제한:** `rule_id`는 15개만 저장할 수 있다 — 이전 4개(`DATE_ORDER`·`REQUIRED_FIELD`·`LIST_DETAIL_MISMATCH`·`EMPTY_RESULT`) + 데이터 품질 4개(`DQ_SCHEMA`·`DQ_REQUIRED`·`DQ_LIST_DETAIL_REF`·`DQ_CROSS_API_REF`) + API 상태 7개(`API_` + 판정 FAIL의 세부 코드). 새 규칙은 마이그레이션으로만 추가한다(PRD 6-3 범위 밖 규칙 차단). 코드와 같은지 `tests/unit/rule-id-drift.test.ts`가 확인한다.
+- **이상징후 동일성 키(R03 결정):** 기존 구조 그대로 `(출처, 대상 식별값 item_key, 규칙 rule_id)`다. 데이터 이상징후는 `item_key` = 업무 식별값(물건관리번호 등), API 상태 이상징후는 `item_key` = `"서비스ID/오퍼레이션ID"`, `rule_id` = `API_<세부 코드>`다. 이렇게 하면 열린 건 중복 방지 제약·재발 연결·`record_detection`을 바꾸지 않고도 PRD 4-6의 `api_id + operation_id + issue_code`를 지킨다. `api_id`·`operation_id`는 `evidence`에 함께 담는다.
+- **점검 판정 상태·사유의 짝:** `probe_results`는 상태와 세부 사유가 맞는 조합만 저장한다(예: `NOT_RUN`은 요청을 보내지 않은 것으로만, `FAIL`은 세부 코드 필수). SQL의 `in`은 NULL을 통과시키므로 `reason is not null`을 함께 둔다(20261029060100).
 - **동시 실행 방지:** `check_runs`에서 `status = 'running'`인 줄은 동시에 하나만 있도록 DB 제약을 건다. 차단된 시도는 `blocked` 줄로 남는다.
 - **예약 누락 기록:** `run_logs`에서 `code = 'SCHEDULE_MISSED'`인 줄은 `log_date`당 하나만 있도록 DB 제약을 건다.
 - **`value_hash`:** 탐지 대상 값으로 만든 지문. `dismissed` 건과 같은 값인지 비교할 때 쓴다(PRD 5-2 규칙 9).
@@ -351,7 +354,7 @@ anomalies 1 ─── 0..1 anomalies(이전 사례, 재발 연결)
 | 테이블 | 읽기 | 쓰기 |
 |---|---|---|
 | `profiles` | 로그인 사용자 | 본인 역할 변경 불가, 관리 절차로만 (SEC-07) |
-| `check_runs`, `api_checks`, `run_logs`, `collected_items` | 로그인 사용자 | 시스템만 |
+| `check_runs`, `api_checks`, `run_logs`, `collected_items`, `probe_results` | 로그인 사용자 | 시스템만 |
 | `anomalies` | 로그인 사용자 | DB 함수로만 (직접 수정 차단) |
 | `anomaly_events` | 로그인 사용자 | DB 함수로만 추가, 수정·삭제 불가 |
 | `reports` | 로그인 사용자 | 서버가 admin 확인 후 추가만(관리용 키), 로그인 사용자의 직접 쓰기 불가, 수정·삭제 불가 |

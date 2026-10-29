@@ -5,7 +5,7 @@ import { describe, expect, it } from "vitest";
 import { runCheck, type RunCheckInput } from "@/lib/checks/run-check";
 import { createDemoFetcher } from "@/lib/checks/demo-fetcher";
 import { createPublicFetcher } from "@/lib/checks/public-fetcher";
-import type { ApiCheckRecord, CheckStore, DetectionRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
+import type { ApiCheckRecord, CheckStore, DetectionRecord, ProbeRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
 import { DEMO_SCENARIOS } from "@/lib/demo/scenarios";
 import { DEFAULT_SETTING_VALUES, parseSettings, type Settings } from "@/lib/settings/schema";
 
@@ -22,6 +22,7 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     logs: [] as { level: LogLevel; code: string; message: string }[],
     finished: [] as { status: RunStatus; calls: number }[],
     recorded: [] as DetectionRecord[],
+    probeRows: [] as ProbeRecord[],
   };
   const store: CheckStore = {
     async startRun() {
@@ -36,6 +37,9 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     },
     async countPublicCallsToday() {
       return 0;
+    },
+    async recordProbe(_id, _source, probe) {
+      rec.probeRows.push(probe);
     },
     async recordDetection(detection) {
       rec.recorded.push(detection);
@@ -506,6 +510,63 @@ describe("PUBLIC 점검", () => {
       const { store } = fakeStore();
       const result = await runPublic({ store }); // 물건 5는 상세가 데이터없음
       expect(probeMap(result.probes)["public-detail"]).toEqual({ status: "PASS_DATA", attempted: true });
+    });
+
+    it("판정은 DB에 남길 모양(probe_results 한 줄)으로 저장 요청된다: 서비스ID·오퍼레이션 ID·결과코드·응답시간·요청 요약", async () => {
+      const { store, rec } = fakeStore();
+      const result = await runPublic({ store });
+      expect(rec.probeRows).toHaveLength(2);
+      const [list, detail] = rec.probeRows;
+      expect(list).toMatchObject({ apiId: "SVC-API-001", operationId: "getRlstCltrList", result: { status: "PASS_DATA" }, resultCode: "00", httpStatus: 200, recordCount: 5 });
+      expect(list.requestSummary).toContain("pageNo=1");
+      expect(detail).toMatchObject({ apiId: "SVC-API-004", operationId: "getRlstDtlInf", result: { status: "PASS_DATA" } });
+      // 메모리에 돌려준 판정(probes)과 저장 요청한 판정이 같다
+      expect(rec.probeRows.map((p) => p.result)).toEqual(result.probes.map((p) => p.result));
+    });
+
+    it("호출 기록(api_checks)에도 서비스ID·오퍼레이션 ID·결과코드·요청 요약이 담기고, 서비스키는 어디에도 없다", async () => {
+      const { store, rec } = fakeStore();
+      await runPublic({ store });
+      for (const check of rec.apiChecks) {
+        expect(check.apiId, check.endpointName).toMatch(/^SVC-API-\d{3}$/);
+        expect(check.operationId, check.endpointName).toMatch(/^[A-Za-z]/);
+        expect(check.resultCode, check.endpointName).toMatch(/^\d{2}$/);
+        expect(check.requestSummary?.length ?? 0, check.endpointName).toBeGreaterThan(0);
+      }
+      expect(rec.apiChecks.find((c) => c.endpointName === "public-detail")?.requestSummary).toContain("cltrMngNo=");
+      expect(JSON.stringify([rec.apiChecks, rec.probeRows])).not.toMatch(/servicekey|abc%2Fdef/i);
+    });
+
+    it("요청을 보내지 못한 점검(blocked·예산 소진·호출 상한)의 판정도 저장 요청된다", async () => {
+      const blocked = fakeStore({ blocked: true });
+      await runPublic({ store: blocked.store });
+      expect(blocked.rec.probeRows.map((p) => [p.operationId, p.result.status, p.httpStatus])).toEqual([["getRlstCltrList", "NOT_RUN", null], ["getRlstDtlInf", "NOT_RUN", null]]);
+
+      const budget = fakeStore({
+        async countPublicCallsToday() {
+          return 900;
+        },
+      });
+      await runPublic({ store: budget.store });
+      expect(budget.rec.probeRows).toHaveLength(2);
+
+      const limited = fakeStore();
+      await runPublic({ store: limited.store, callLimit: 1 });
+      expect(limited.rec.probeRows.map((p) => p.result.status)).toEqual(["PASS_DATA", "NOT_RUN"]);
+    });
+
+    it("서비스키 문제로 실패한 점검의 판정(FAIL·UNVERIFIED)과 결과코드가 저장 요청된다", async () => {
+      const { store, rec } = fakeStore();
+      await runPublic({ store, fetcher: publicFetcher({ list: code("22") }).fetcher });
+      expect(rec.probeRows[0]).toMatchObject({ result: { status: "FAIL", code: "QUOTA_EXCEEDED" }, resultCode: "22" });
+      expect(rec.probeRows[1].result).toMatchObject({ status: "UNVERIFIED", reason: "PRECONDITION_FAILED" });
+    });
+
+    it("DEMO 점검에는 판정을 저장하지 않고 호출 기록의 새 칸은 비어 있다 (이전 방식 그대로)", async () => {
+      const { store, rec } = fakeStore();
+      await run({ store });
+      expect(rec.probeRows).toEqual([]);
+      for (const check of rec.apiChecks) expect([check.apiId ?? null, check.operationId ?? null, check.requestSummary ?? null]).toEqual([null, null, null]);
     });
 
     it("DEMO 점검에는 점검 판정(probes)을 만들지 않는다", async () => {

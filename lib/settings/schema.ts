@@ -113,7 +113,7 @@ export const DEFAULT_SETTING_VALUES: SettingValues = {
   },
   compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"], PUBLIC: ["onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"] },
   excluded_fields: { DEMO: ["item_status"], PUBLIC: ["pbctStatCd"] },
-  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false, "public-list": false, "public-detail": true },
+  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false }, // DEMO만. PUBLIC의 0건은 설정이 아니라 점검 판정으로 다룬다 (PRD 5-2-3)
 };
 
 function overlap(a: readonly string[] = [], b: readonly string[] = []): string[] {

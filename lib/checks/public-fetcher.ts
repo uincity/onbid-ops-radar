@@ -79,6 +79,9 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
     const url = `${baseUrl}?serviceKey=${encodedKey}&${new URLSearchParams(params).toString()}`;
     assertAllowedUrl(url);
     const started = now();
+    // 기록용 요청 요약: 서비스키를 뺀 조회 조건만 (PRD 5-2-2 7단계, SEC-10)
+    const requestSummary = new URLSearchParams(params).toString();
+    const [apiId, operationId] = (PUBLIC_ENDPOINT_OPERATIONS[endpointName as (typeof PUBLIC_ENDPOINTS)[number]] ?? "/").split("/");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
     const done = (
@@ -89,7 +92,7 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       resultCode: string | null = null,
       schema: SchemaCheckResult | null = null,
     ): CallResult => ({
-      check: { endpointName, httpStatus, durationMs: Math.max(0, now() - started), outcome, recordCount, dataValid: outcome === "success" ? true : null, resultCode, schema },
+      check: { endpointName, httpStatus, durationMs: Math.max(0, now() - started), outcome, recordCount, dataValid: outcome === "success" ? true : null, resultCode, schema, apiId: apiId || null, operationId: operationId || null, requestSummary },
       items,
     });
     try {
@@ -179,6 +182,7 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       endpointName: "public-detail",
       resultCode: decisive?.resultCode ?? null,
       schema: mergeSchemaChecks(subChecks.map((c) => c.schema)),
+      requestSummary: `물건관리번호·공매조건번호로 ${subChecks.length}건 조회`,
       httpStatus: subChecks.at(-1)?.httpStatus ?? null,
       durationMs: Math.max(0, now() - startedAll),
       outcome,

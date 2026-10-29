@@ -19,7 +19,7 @@ const EXPECTED = {
   },
   compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"], PUBLIC: ["onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"] },
   excluded_fields: { DEMO: ["item_status"], PUBLIC: ["pbctStatCd"] },
-  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false, "public-list": false, "public-detail": true },
+  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false }, // PUBLIC 항목은 R03에서 뺐다 (PUBLIC의 0건은 점검 판정으로만 남김)
 };
 
 export async function run(ctx) {

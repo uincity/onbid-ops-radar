@@ -12,7 +12,7 @@ import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
 import { describeProbe, type NotRunReason, type ProbeResult, type UnverifiedReason } from "./probe/status";
 import { PUBLIC_ENDPOINT_OPERATIONS, type PUBLIC_ENDPOINTS } from "./public-fetcher";
-import type { ApiCheckRecord, CheckStore, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
+import type { ApiCheckRecord, CheckStore, ProbeRecord, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
 
 // 출처별로 부르는 조회 이름. 목록 → 상세 순서다.
 const ENDPOINTS: Record<RunSource, { name: string; kind: "list" | "detail" }[]> = {
@@ -67,6 +67,23 @@ function unprobed(source: RunSource, endpoints: readonly string[], why: { notRun
   }));
 }
 
+// 점검 판정 1줄을 DB(probe_results)에 남긴다. 요청을 못 보낸 점검은 관측값(check)이 없어 비어 있다
+async function saveProbe(store: CheckStore, runId: number, source: RunSource, entry: ProbeEntry, check?: ApiCheckRecord): Promise<void> {
+  const [apiId, operationId] = entry.operationKey.split("/");
+  const probe: ProbeRecord = {
+    apiId,
+    operationId,
+    result: entry.result,
+    resultCode: check?.resultCode ?? null,
+    httpStatus: check?.httpStatus ?? null,
+    durationMs: check?.durationMs ?? null,
+    recordCount: check?.recordCount ?? null,
+    schema: check?.schema ?? null,
+    requestSummary: check?.requestSummary ?? null,
+  };
+  await store.recordProbe(runId, source, probe);
+}
+
 export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const { trigger, source, settings, store, fetcher, clock = Date.now } = input;
 
@@ -79,7 +96,9 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const started = await store.startRun(trigger, source, input.triggeredBy ?? null);
   const allEndpoints = ENDPOINTS[source].map((e) => e.name);
   if (started.status === "blocked") {
-    return { runId: started.runId, status: "blocked", apiCallCount: 0, detections: [], registered: noRegistered(), probes: unprobed(source, allEndpoints, { notRun: "RUN_BLOCKED" }) };
+    const blockedProbes = unprobed(source, allEndpoints, { notRun: "RUN_BLOCKED" });
+    for (const entry of blockedProbes) await saveProbe(store, started.runId, source, entry);
+    return { runId: started.runId, status: "blocked", apiCallCount: 0, detections: [], registered: noRegistered(), probes: blockedProbes };
   }
   const runId = started.runId;
 
@@ -97,7 +116,9 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       if (left <= 0) {
         await store.log(runId, "error", "BUDGET_EXCEEDED", `PUBLIC 일일 호출 예산 ${settings.publicDailyBudget}회를 오늘 모두 써서 호출하지 않았습니다.`);
         await store.finishRun(runId, "failed", 0);
-        return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered(), probes: unprobed(source, allEndpoints, { notRun: "BUDGET_SKIP" }) };
+        const skipped = unprobed(source, allEndpoints, { notRun: "BUDGET_SKIP" });
+        for (const entry of skipped) await saveProbe(store, runId, source, entry);
+        return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered(), probes: skipped };
       }
       effectiveLimit = Math.min(callLimit, left);
     }
@@ -109,10 +130,12 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     let authProblem = false;
     let limitHit = false;
 
-    // 점검 하나의 판정을 모으고 실행 메모로 남긴다 (PUBLIC만). 메모 코드: PROBE_RESULT
-    const record = async (endpoint: string, result: ProbeResult) => {
+    // 점검 하나의 판정을 모으고 DB(probe_results)와 실행 메모(PROBE_RESULT)로 남긴다 (PUBLIC만)
+    const record = async (endpoint: string, result: ProbeResult, check?: ApiCheckRecord) => {
       const operationKey = PUBLIC_ENDPOINT_OPERATIONS[endpoint as (typeof PUBLIC_ENDPOINTS)[number]];
-      probes.push({ endpoint, operationKey, result });
+      const entry: ProbeEntry = { endpoint, operationKey, result };
+      probes.push(entry);
+      await saveProbe(store, runId, source, entry, check);
       await store.log(runId, result.status === "FAIL" ? "warn" : "info", "PROBE_RESULT", `'${endpoint}' 점검 판정: ${describeProbe(result)}`);
     };
 
@@ -146,7 +169,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       calls += result.httpCalls ?? 1; // 조회 하나가 실제 호출을 여러 번 했으면(PUBLIC 상세) 그만큼 센다
       const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
       for (const check of checks) await store.recordApiCheck(runId, check);
-      if (op) await record(name, classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) }));
+      if (op) await record(name, classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) }), result);
 
       if (result.outcome === "success") {
         succeeded += 1;

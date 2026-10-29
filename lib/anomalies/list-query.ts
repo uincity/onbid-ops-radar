@@ -1,7 +1,7 @@
 // 이상징후 목록의 주소 쿼리(?status=open&page=2 …)를 안전하게 읽고, DB에 물어볼 조건으로 바꾸는 순수 함수들
 // (PLAN 25번, DESIGN §4.4) DB·화면을 모른다. 잘못된 값은 오류로 멈추지 않고 "없는 것"으로 무시한다.
 import { z } from "zod";
-import { RULE_IDS, SOURCES, STATUSES, type RuleId, type Source } from "./labels";
+import { ALL_RULE_IDS, SOURCES, STATUSES, type AnyRuleId, type Source } from "./labels";
 
 export const PAGE_SIZE = 20; // 한 쪽에 보여 줄 건수
 export const MAX_PAGE = 10000; // 터무니없이 큰 쪽 번호는 여기까지만 인정
@@ -14,14 +14,14 @@ export type AssigneeFilter = (typeof ASSIGNEE_FILTERS)[number];
 
 export type ListQuery = {
   status?: StatusFilter;
-  rule?: RuleId;
+  rule?: AnyRuleId;
   source?: Source;
   assignee?: AssigneeFilter;
   page: number;
 };
 
 const statusSchema = z.enum(STATUS_FILTERS);
-const ruleSchema = z.enum(RULE_IDS);
+const ruleSchema = z.enum(ALL_RULE_IDS);
 const sourceSchema = z.enum(SOURCES);
 const assigneeSchema = z.enum(ASSIGNEE_FILTERS);
 const pageSchema = z.string().regex(/^\d{1,9}$/);

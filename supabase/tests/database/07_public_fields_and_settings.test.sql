@@ -78,10 +78,11 @@ select is(
   'PUBLIC 목록·상세 비교 필드 4개가 정해져 있음 (진행상태 pbctStatCd는 제외)'
 );
 select is((select value::text from public.settings where key = 'public_daily_budget'), '900', 'PUBLIC 일일 호출 예산은 900회');
+-- R03(20261029060000)에서 PUBLIC 항목을 뺐다: PUBLIC의 0건은 설정이 아니라 점검 판정(PASS_NO_DATA·UNVERIFIED)으로 다룬다 (PRD 5-2-3)
 select is(
   (select value::text from public.settings where key = 'empty_allowed_by_endpoint'),
-  '{"demo-list": false, "demo-detail": false, "public-list": false, "public-detail": true}',
-  'API별 빈 결과 허용: 목록은 불허, 상세는 허용'
+  '{"demo-list": false, "demo-detail": false}',
+  'API별 빈 결과 허용 설정에는 DEMO 항목만 남음 (PUBLIC 0건은 점검 판정으로 다룸)'
 );
 
 select * from finish();

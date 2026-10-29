@@ -12,7 +12,7 @@ export async function run(ctx) {
   );
   await checkReadOnlyTable(
     "api_checks",
-    ["id", "run_id", "endpoint_name", "http_status", "duration_ms", "outcome", "record_count", "data_valid", "checked_at"],
+    ["id", "run_id", "endpoint_name", "http_status", "duration_ms", "outcome", "record_count", "data_valid", "checked_at", "api_id", "operation_id", "result_code", "request_summary"],
     { run_id: 1, endpoint_name: "demo-list", duration_ms: 1, outcome: "success" },
   );
   await checkReadOnlyTable(

@@ -18,13 +18,37 @@ export const VERDICT_LABEL: Record<AnomalyVerdict, string> = {
   false_positive: "정상(오탐)",
 };
 
+// 이전 규칙 4개 (기존 기록·DEMO 회귀 테스트 보존). 대시보드·보고서의 "규칙별 신규" 집계는 아직 이 4개만 센다(R05에서 확장)
 export const RULE_IDS = ["DATE_ORDER", "REQUIRED_FIELD", "LIST_DETAIL_MISMATCH", "EMPTY_RESULT"] as const;
 export type RuleId = (typeof RULE_IDS)[number];
-export const RULE_LABEL: Record<RuleId, string> = {
+
+// PRD v2.0 데이터 품질 핵심 4규칙 (R06에서 구현)
+export const DQ_RULE_IDS = ["DQ_SCHEMA", "DQ_REQUIRED", "DQ_LIST_DETAIL_REF", "DQ_CROSS_API_REF"] as const;
+
+// API 상태 이상징후: 점검 판정 FAIL의 세부 오류 코드별 "API_<코드>" (대상 식별값은 "서비스ID/오퍼레이션ID"). 생성 규칙은 R04에서 정한다
+// (FAIL 세부 코드 7개 앞에 "API_"를 붙인 것. 같은 값인지 tests/unit/rule-id-drift.test.ts가 확인한다)
+export const API_RULE_IDS = ["API_HTTP_ERROR", "API_TIMEOUT", "API_BUSINESS_ERROR", "API_SCHEMA_ERROR", "API_POSITIVE_DATA_MISSING", "API_AUTH_ERROR", "API_QUOTA_EXCEEDED"] as const;
+
+// DB(anomalies_rule_id_check)가 허용하는 규칙 ID 전체. 둘이 같은지 tests/unit/rule-id-drift.test.ts가 지킨다
+export const ALL_RULE_IDS = [...RULE_IDS, ...DQ_RULE_IDS, ...API_RULE_IDS] as const;
+export type AnyRuleId = (typeof ALL_RULE_IDS)[number];
+
+export const RULE_LABEL: Record<AnyRuleId, string> = {
   DATE_ORDER: "날짜 정합성",
   REQUIRED_FIELD: "필수정보",
   LIST_DETAIL_MISMATCH: "목록·상세 정합성",
   EMPTY_RESULT: "API 빈 결과",
+  DQ_SCHEMA: "응답 구조 변화",
+  DQ_REQUIRED: "필수 항목 누락·형식 오류",
+  DQ_LIST_DETAIL_REF: "목록→상세 참조 불가",
+  DQ_CROSS_API_REF: "API 간 연결 불일치",
+  API_HTTP_ERROR: "API 호출 오류(HTTP)",
+  API_TIMEOUT: "API 시간 초과",
+  API_BUSINESS_ERROR: "API 업무 결과코드 오류",
+  API_SCHEMA_ERROR: "API 응답 구조 오류",
+  API_POSITIVE_DATA_MISSING: "API 기대한 실데이터 없음",
+  API_AUTH_ERROR: "API 서비스키·권한 문제",
+  API_QUOTA_EXCEEDED: "API 호출 한도 초과",
 };
 
 export const SOURCES = ["DEMO", "PUBLIC"] as const;
