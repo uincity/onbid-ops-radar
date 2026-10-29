@@ -2,7 +2,8 @@
 // check_runs·api_checks·run_logs·collected_items는 서버 관리용 연결(createAdminClient)로만 쓸 수 있다.
 // 이 파일은 연결을 직접 만들지 않고 호출하는 쪽에서 받는다. 화면(브라우저) 코드에서는 불러오지 않는다.
 import type { SupabaseClient } from "@supabase/supabase-js";
-import type { ApiFetchResult, CheckStore, DetectionRecord, FetchedRecord, LogLevel, RecordAction, RunSource, RunStatus, RunTrigger } from "./types";
+import { kstDayRange, toKstDateString } from "@/lib/time";
+import type { ApiCheckRecord, CheckStore, DetectionRecord, FetchedRecord, LogLevel, RecordAction, RunSource, RunStatus, RunTrigger } from "./types";
 
 const BATCH = 100;
 
@@ -20,7 +21,7 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
       return { runId: Number(row.out_run_id), status: row.out_status as "running" | "blocked" };
     },
 
-    async recordApiCheck(runId: number, r: ApiFetchResult) {
+    async recordApiCheck(runId: number, r: ApiCheckRecord) {
       const { error } = await supabase.from("api_checks").insert({
         run_id: runId,
         endpoint_name: r.endpointName,
@@ -39,6 +40,28 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
         const { error } = await supabase.from("collected_items").insert(rows.slice(i, i + BATCH));
         if (error) fail("수집 데이터를 저장하지 못했습니다");
       }
+    },
+
+    // 오늘(KST) 쓴 PUBLIC API 호출 수: 어제 시작해 오늘까지 이어진 실행까지 놓치지 않도록 하루 전부터의 PUBLIC 실행을 후보로 삼는다
+    async countPublicCallsToday() {
+      const { start, end } = kstDayRange(toKstDateString(new Date()));
+      const { data: runs, error: runError } = await supabase
+        .from("check_runs")
+        .select("id")
+        .eq("source", "PUBLIC")
+        .gte("started_at", new Date(start.getTime() - 24 * 3_600_000).toISOString())
+        .lt("started_at", end.toISOString());
+      if (runError) return fail("오늘 호출 수를 확인하지 못했습니다");
+      const ids = (runs ?? []).map((r) => r.id);
+      if (ids.length === 0) return 0;
+      const { count, error } = await supabase
+        .from("api_checks")
+        .select("id", { count: "exact", head: true })
+        .in("run_id", ids)
+        .gte("checked_at", start.toISOString())
+        .lt("checked_at", end.toISOString());
+      if (error) return fail("오늘 호출 수를 확인하지 못했습니다");
+      return count ?? 0;
     },
 
     async recordDetection(d: DetectionRecord) {

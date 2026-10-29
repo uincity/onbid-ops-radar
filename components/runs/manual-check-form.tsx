@@ -32,15 +32,13 @@ export function ManualCheckForm() {
           출처
           <select name="source" value={source} onChange={(e) => setSource(e.target.value)} className={field}>
             <option value="DEMO">DEMO</option>
-            <option value="PUBLIC" disabled>
-              PUBLIC (준비 중)
-            </option>
+            <option value="PUBLIC">PUBLIC (온비드 OpenAPI 실제 데이터)</option>
           </select>
         </label>
 
         <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
           응답 시뮬레이션
-          <select name="mode" defaultValue="normal" className={field}>
+          <select name="mode" defaultValue="normal" disabled={source === "PUBLIC"} className={field}>
             {MODE_OPTIONS.map((o) => (
               <option key={o.value} value={o.value}>
                 {o.label}
@@ -57,7 +55,7 @@ export function ManualCheckForm() {
           {pending ? "실행 중…" : "수동 점검 실행"}
         </button>
       </div>
-      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">PUBLIC 조회기는 아직 없습니다(PLAN 33번). 응답 시뮬레이션은 DEMO 점검에서만 쓰입니다.</p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">PUBLIC 점검은 공공데이터포털의 온비드 OpenAPI(부동산 물건목록·상세)를 읽기 전용으로 실제 호출하며, 설정값(실행당 호출 상한, 하루 호출 예산) 안에서만 부릅니다. 응답 시뮬레이션은 DEMO 점검에서만 쓰입니다.</p>
 
       <div aria-live="polite">
         {state && (

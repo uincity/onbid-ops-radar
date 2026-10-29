@@ -6,17 +6,18 @@
 import { createHash } from "node:crypto";
 import { detectDateOrder } from "@/lib/rules/date-order";
 import { detectRequiredField } from "@/lib/rules/required-fields";
-import { COMPARE_FIELDS, type ListDetailResult } from "@/lib/rules/list-detail";
+import type { ListDetailResult } from "@/lib/rules/list-detail";
 import type { RuleId } from "@/lib/rules/detect-item";
+import { DEMO_PROFILE, type FieldProfile } from "@/lib/rules/field-profile";
 
 type Fields = Record<string, unknown> | null;
 
-// 규칙마다 "이 규칙이 실제로 읽는 필드"
-const RELEVANT_FIELDS: Record<RuleId, readonly string[]> = {
-  DATE_ORDER: ["bid_start_at", "bid_end_at"],
-  REQUIRED_FIELD: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at", "item_status"],
-  LIST_DETAIL_MISMATCH: COMPARE_FIELDS,
-};
+// 규칙마다 "이 규칙이 실제로 읽는 필드" (출처별 프로필에서 가져온다)
+function relevantFields(ruleId: RuleId, profile: FieldProfile): readonly string[] {
+  if (ruleId === "DATE_ORDER") return [profile.startField, profile.endField];
+  if (ruleId === "REQUIRED_FIELD") return profile.optionalEnum ? [...profile.requiredFields, profile.optionalEnum.field] : profile.requiredFields;
+  return profile.compareFields;
+}
 
 const MAX_TEXT = 200; // 근거에 담는 문자열 길이 제한 (DB 근거 크기 제한 10,000바이트를 넘지 않게)
 
@@ -38,15 +39,15 @@ const clipAll = (obj: Record<string, unknown> | null) => (obj ? Object.fromEntri
 export type BuiltEvidence = { evidence: Record<string, unknown>; valueHash: string };
 
 // 데이터 규칙 3개의 근거와 지문
-export function buildDetectionEvidence(ruleId: RuleId, list: Fields, detail: Fields, listDetail: ListDetailResult): BuiltEvidence {
-  const keys = RELEVANT_FIELDS[ruleId];
+export function buildDetectionEvidence(ruleId: RuleId, list: Fields, detail: Fields, listDetail: ListDetailResult, profile: FieldProfile = DEMO_PROFILE): BuiltEvidence {
+  const keys = relevantFields(ruleId, profile);
   const values = { list: pick(list, keys), detail: pick(detail, keys) };
 
   let summary: Record<string, unknown>;
   if (ruleId === "DATE_ORDER") {
-    summary = { findings: { list: list ? detectDateOrder(list) : null, detail: detail ? detectDateOrder(detail) : null } };
+    summary = { findings: { list: list ? detectDateOrder(list, profile) : null, detail: detail ? detectDateOrder(detail, profile) : null } };
   } else if (ruleId === "REQUIRED_FIELD") {
-    summary = { problems: { list: list ? (detectRequiredField(list)?.problems ?? null) : null, detail: detail ? (detectRequiredField(detail)?.problems ?? null) : null } };
+    summary = { problems: { list: list ? (detectRequiredField(list, profile)?.problems ?? null) : null, detail: detail ? (detectRequiredField(detail, profile)?.problems ?? null) : null } };
   } else {
     const compared = listDetail.outcome === "compared";
     summary = { gapSeconds: listDetail.gapSeconds, diffs: compared && listDetail.finding ? listDetail.finding.diffs.map((d) => ({ field: d.field, list: clip(d.list), detail: clip(d.detail) })) : [] };

@@ -29,3 +29,19 @@ export function parseIsoInstant(value: unknown): number | null {
   const fractionMs = m[7] ? Math.round(Number(`0${m[7]}`) * 1000) : 0;
   return Date.UTC(year, month - 1, day, hour, minute, second) + fractionMs - offsetMs;
 }
+
+// 온비드 OpenAPI의 날짜·시각: yyyyMMddHHmm 12자리 숫자 문자열, 시간대 표기는 없지만 한국 시각(KST, UTC+9)이다. (PRD 부록 A)
+// 올바른 값이면 그 "순간"(ms)을, 아니면 null (자릿수가 다르거나 존재하지 않는 날짜·시각).
+const ONBID_DATETIME = /^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/;
+const KST_OFFSET_MS = 9 * 3_600_000;
+
+export function parseOnbidDateTime(value: unknown): number | null {
+  if (typeof value !== "string") return null;
+  const m = ONBID_DATETIME.exec(value);
+  if (!m) return null;
+  const [year, month, day, hour, minute] = m.slice(1, 6).map(Number);
+  if (month < 1 || month > 12 || hour > 23 || minute > 59) return null;
+  const calendar = new Date(Date.UTC(year, month - 1, day));
+  if (calendar.getUTCMonth() !== month - 1 || calendar.getUTCDate() !== day) return null; // 2026-02-30 같은 날짜
+  return Date.UTC(year, month - 1, day, hour, minute) - KST_OFFSET_MS;
+}

@@ -487,12 +487,15 @@ onbid_rader/
 ├─ lib/
 │  ├─ rules/                    탐지 규칙 3개 (순수 함수)
 │  │   ├─ iso-datetime.ts       ISO 8601 날짜·시각 해석 (규칙들이 공유, 구현됨)
+│  │   ├─ field-profile.ts      출처별 필드 프로필: DEMO(부록 B)·PUBLIC(부록 A)의 필수·비교 필드와 날짜 형식 (구현됨, PLAN 33)
 │  │   └─ date-order.ts         규칙 1 DATE_ORDER: 종료가 시작보다 엄격히 빠를 때만 (구현됨, PLAN 18)
 │  ├─ checks/                   점검 실행 엔진, 조회기(demo/public), 필드 정리
 │  │   ├─ demo-fetcher.ts       DEMO 조회기: 정상·HTTP 오류·타임아웃·0건 흉내 (구현됨, PLAN 21)
 │  │   ├─ run-check.ts          점검 실행 엔진: 시작(중복 차단)→조회(상한·60초)→탐지→마감 (구현됨, PLAN 22)
 │  │   ├─ supabase-store.ts     점검 기록을 실제 DB에 남기는 저장소 (구현됨, PLAN 22)
 │  │   ├─ evidence.ts           탐지 근거와 원본 값 지문(해시) 만들기 (구현됨, PLAN 23)
+│  │   ├─ public-fetcher.ts     PUBLIC 조회기: 온비드 부동산 물건목록·상세 읽기 전용 호출, 호출 상한·일일 예산·오류 구분 (구현됨, PLAN 33)
+│  │   └─ public-response.ts    온비드 응답 해석: 정상·데이터없음(03)·서비스키·한도 문제·XML 오류 (구현됨, PLAN 33)
 │  │   └─ types.ts              엔진·조회기·저장소가 주고받는 공통 모양
 │  ├─ anomalies/                서버 액션, 조회
 │  │   ├─ rpc.ts / labels.ts    사용자 DB 함수(배정·판정·상태) 호출 포장, 한국어 표시 이름 (구현됨, PLAN 26·27)

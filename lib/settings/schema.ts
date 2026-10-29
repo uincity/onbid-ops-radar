@@ -30,7 +30,7 @@ export const INT_RANGES = {
 export const PUBLIC_DAILY_BUDGET_RANGE = { min: 1, max: 1_000_000 } as const;
 
 const intIn = (range: { min: number; max: number }) => z.number().int().min(range.min).max(range.max);
-const fieldName = z.string().regex(/^[a-z][a-z0-9_]{0,59}$/);
+const fieldName = z.string().regex(/^[A-Za-z][A-Za-z0-9_]{0,59}$/); // 실제 API 필드는 cltrMngNo처럼 대소문자가 섞여 있다
 const fieldList = z.array(fieldName).max(30);
 const fieldsBySource = z.strictObject({ DEMO: fieldList.optional(), PUBLIC: fieldList.optional() });
 const endpointName = z.string().regex(/^[A-Za-z0-9_.-]{1,60}$/);
@@ -100,17 +100,20 @@ export const DEFAULT_SETTING_VALUES: SettingValues = {
   api_timeout_seconds: 10,
   api_call_limit_default: 20,
   api_call_limit_max: 100,
-  public_daily_budget: null,
+  public_daily_budget: 900, // 승인 트래픽(서비스별 개발계정 1,000회/일)에서 여유 100회를 남긴 값
   run_time_limit_seconds: 60,
   reason_min_length: 10,
   schedule_missed_grace_minutes: 30,
   stale_running_seconds: 120,
   scheduled_source: "DEMO",
-  // DEMO 필드는 PRD 부록 B. PUBLIC 항목은 부록 A 확정 후 추가한다.
-  required_fields: { DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"] },
-  compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"] },
-  excluded_fields: { DEMO: ["item_status"] },
-  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false },
+  // DEMO 필드는 PRD 부록 B, PUBLIC 필드는 부록 A(온비드 부동산 물건목록·상세)
+  required_fields: {
+    DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"],
+    PUBLIC: ["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"],
+  },
+  compare_fields: { DEMO: ["item_name", "org_name", "bid_start_at", "bid_end_at"], PUBLIC: ["onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"] },
+  excluded_fields: { DEMO: ["item_status"], PUBLIC: ["pbctStatCd"] },
+  empty_allowed_by_endpoint: { "demo-list": false, "demo-detail": false, "public-list": false, "public-detail": true },
 };
 
 function overlap(a: readonly string[] = [], b: readonly string[] = []): string[] {

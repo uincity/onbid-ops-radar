@@ -5,8 +5,9 @@
 import { z } from "zod";
 import type { Settings } from "@/lib/settings/schema";
 import { DEMO_MODES, createDemoFetcher } from "./demo-fetcher";
+import { createPublicFetcher } from "./public-fetcher";
 import type { RunCheckInput, RunCheckResult } from "./run-check";
-import type { CheckStore } from "./types";
+import type { CheckStore, Fetcher } from "./types";
 
 // 화면이 받는 결과. tone은 문구 색(성공/주의/실패)을 정한다.
 export type ManualCheckResult = {
@@ -31,6 +32,8 @@ export type ManualCheckDeps = {
   prepare: () => Promise<{ settings: Settings; store: CheckStore }>;
   runCheck: (input: RunCheckInput) => Promise<RunCheckResult>;
   now: () => number; // 지금 시각(ms)
+  // 공공데이터포털 서비스키(서버 환경변수 DATA_GO_KR_SERVICE_KEY). PUBLIC 점검에서만 읽는다
+  serviceKey: () => string | undefined;
 };
 
 const fail = (message: string): ManualCheckResult => ({ ok: false, tone: "error", message });
@@ -51,18 +54,24 @@ export async function runManualCheck(rawInput: unknown, deps: ManualCheckDeps): 
   const parsed = manualCheckInputSchema.safeParse(rawInput);
   if (!parsed.success) return fail("선택한 값이 올바르지 않습니다. 출처와 응답 시뮬레이션을 다시 골라 주세요.");
   const { source, mode } = parsed.data;
-  if (source !== "DEMO") return fail("PUBLIC 조회기는 아직 없습니다(PLAN 33번). 지금은 DEMO만 점검할 수 있습니다.");
+  const publicKey = source === "PUBLIC" ? deps.serviceKey() : undefined;
+  if (source === "PUBLIC" && !publicKey) return fail("PUBLIC 점검에 필요한 서비스키가 서버에 설정되어 있지 않습니다. (DATA_GO_KR_SERVICE_KEY)");
 
   // ③ 실행. 어떤 예외가 나도 내부 오류 문구는 화면에 내지 않는다
   try {
     const { settings, store } = await deps.prepare();
+    // PUBLIC은 실제 온비드 OpenAPI(읽기 전용)를 부르고, DEMO는 가상 응답을 흉내 낸다 (응답 시뮬레이션은 DEMO에서만 쓰인다)
+    const fetcher: Fetcher =
+      source === "PUBLIC"
+        ? createPublicFetcher({ serviceKey: publicKey!, timeoutSeconds: settings.apiTimeoutSeconds })
+        : createDemoFetcher({ timeoutSeconds: settings.apiTimeoutSeconds, baseMs: deps.now(), mode });
     const result = await deps.runCheck({
       trigger: "manual",
       source,
       triggeredBy: user.id,
       settings,
       store,
-      fetcher: createDemoFetcher({ timeoutSeconds: settings.apiTimeoutSeconds, baseMs: deps.now(), mode }),
+      fetcher,
     });
 
     // ④ 결과 문구

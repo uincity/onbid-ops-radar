@@ -4,18 +4,20 @@
 import { describe, expect, it } from "vitest";
 import { runCheck, type RunCheckInput } from "@/lib/checks/run-check";
 import { createDemoFetcher } from "@/lib/checks/demo-fetcher";
-import type { ApiFetchResult, CheckStore, DetectionRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
+import { createPublicFetcher } from "@/lib/checks/public-fetcher";
+import type { ApiCheckRecord, CheckStore, DetectionRecord, Fetcher, FetchedRecord, LogLevel, RecordAction, RunStatus } from "@/lib/checks/types";
 import { DEMO_SCENARIOS } from "@/lib/demo/scenarios";
 import { DEFAULT_SETTING_VALUES, parseSettings, type Settings } from "@/lib/settings/schema";
 
 const settings: Settings = parseSettings(Object.entries(DEFAULT_SETTING_VALUES).map(([key, value]) => ({ key, value })));
 const BASE = Date.parse("2026-03-01T00:00:00Z");
+const CTX = { remainingCalls: 20, remainingMs: 60_000 };
 
 // 메모리 가짜 저장소: 엔진이 무엇을 기록했는지 그대로 모아 둔다
 function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
   const rec = {
     started: 0,
-    apiChecks: [] as ApiFetchResult[],
+    apiChecks: [] as ApiCheckRecord[],
     collected: [] as { kind: string; records: FetchedRecord[] }[],
     logs: [] as { level: LogLevel; code: string; message: string }[],
     finished: [] as { status: RunStatus; calls: number }[],
@@ -31,6 +33,9 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean } = {}) {
     },
     async saveCollected(_id, _source, kind, records) {
       rec.collected.push({ kind, records });
+    },
+    async countPublicCallsToday() {
+      return 0;
     },
     async recordDetection(detection) {
       rec.recorded.push(detection);
@@ -124,7 +129,7 @@ describe("이상징후 등록 (PLAN 23)", () => {
 
   it("서비스키·한도 문제가 있었던 실행은 아무것도 등록하지 않는다", async () => {
     const normal = demoFetcher();
-    const quota: Fetcher = (e) => (e === "demo-detail" ? { endpointName: e, httpStatus: 429, durationMs: 1, outcome: "auth_or_quota", recordCount: null, dataValid: null, records: [] } : normal(e));
+    const quota: Fetcher = (e) => (e === "demo-detail" ? { endpointName: e, httpStatus: 429, durationMs: 1, outcome: "auth_or_quota", recordCount: null, dataValid: null, records: [] } : normal(e, CTX));
     const { store, rec } = fakeStore();
     await run({ store, fetcher: quota });
     expect(rec.recorded).toHaveLength(0);
@@ -203,7 +208,7 @@ describe("실행시간 60초 제한", () => {
     let first = true;
     const inner = demoFetcher();
     const fetcher: Fetcher = (endpoint) => {
-      const r = inner(endpoint);
+      const r = inner(endpoint, CTX);
       if (first) now += advanceMs; // 첫 호출(목록)에서만 시간이 흐른다
       first = false;
       return r;
@@ -233,7 +238,7 @@ describe("오류 · 타임아웃 · 0건", () => {
     const normal = demoFetcher();
     const failing = demoFetcher("http_error");
     const { store, rec } = fakeStore();
-    const result = await run({ store, fetcher: (e) => (n++ === 0 ? normal(e) : failing(e)) });
+    const result = await run({ store, fetcher: (e) => (n++ === 0 ? normal(e, CTX) : failing(e, CTX)) });
     expect(result.status).toBe("partial");
     expect(codes(rec)).toContain("API_HTTP_ERROR");
     expect(rec.apiChecks.map((a) => a.outcome)).toEqual(["success", "http_error"]);
@@ -277,7 +282,7 @@ describe("오류 · 타임아웃 · 0건", () => {
 describe("서비스키·한도 문제", () => {
   it("실패로 마감하고 데이터 이상징후를 만들지 않는다 (DETECTION_SKIPPED)", async () => {
     const normal = demoFetcher();
-    const quota: Fetcher = (endpoint) => (endpoint === "demo-detail" ? { endpointName: endpoint, httpStatus: 429, durationMs: 50, outcome: "auth_or_quota", recordCount: null, dataValid: null, records: [] } : normal(endpoint));
+    const quota: Fetcher = (endpoint) => (endpoint === "demo-detail" ? { endpointName: endpoint, httpStatus: 429, durationMs: 50, outcome: "auth_or_quota", recordCount: null, dataValid: null, records: [] } : normal(endpoint, CTX));
     const { store, rec } = fakeStore();
     const result = await run({ store, fetcher: quota });
     expect(result).toMatchObject({ status: "failed", detections: [] });
@@ -300,10 +305,166 @@ describe("예상 못 한 오류", () => {
   });
 });
 
-describe("지원하지 않는 요청", () => {
-  it("PUBLIC은 아직 조회기가 없어 실행 기록을 만들기 전에 거부한다", async () => {
+// ---------------------------------------------------------------- PUBLIC 출처 (PLAN 33) — 가짜 fetch로 온비드 응답을 흉내 낸다
+describe("PUBLIC 점검", () => {
+  const KEY = "abc%2Fdef%3D%3D";
+  const body = (item: unknown) => new Response(JSON.stringify({ header: { resultCode: "00", resultMsg: "NORMAL_CODE" }, body: { items: { item }, totalCount: 1 } }));
+  const nodata = () => new Response(JSON.stringify({ result: { resultCode: "03", resultMsg: "NODATA_ERROR" } }));
+  const item = (n: number, over: Record<string, unknown> = {}) => ({
+    cltrMngNo: `2026-1100-00000${n}`,
+    pbctCdtnNo: 100 + n,
+    onbidCltrNm: `물건 ${n}`,
+    orgNm: "한국자산관리공사",
+    cltrBidBgngDt: "202605180900",
+    cltrBidEndDt: "202605201700",
+    pbctStatCd: "0002",
+    ...over,
+  });
+
+  // 목록 물건 5개: 1 정상 / 2 날짜 역전 / 3 상세의 물건명이 다름 / 4 공고기관 없음 / 5 상세가 데이터없음
+  const listItems = [item(1), item(2, { cltrBidEndDt: "202605180859" }), item(3), item(4, { orgNm: undefined }), item(5)];
+  const detailOf = (id: string) => {
+    const n = Number(id.slice(-1));
+    if (n === 5) return nodata();
+    if (n === 3) return body(item(3, { onbidCltrNm: "다른 이름" }));
+    return body(listItems[n - 1]);
+  };
+  const publicFetcher = (over: { list?: () => Response; detail?: (id: string) => Response } = {}) => {
+    const urls: string[] = [];
+    const impl = (async (input: string | URL | Request) => {
+      const url = String(input);
+      urls.push(url);
+      if (url.includes("getRlstCltrList2")) return (over.list ?? (() => body(listItems)))();
+      return (over.detail ?? detailOf)(new URL(url).searchParams.get("cltrMngNo")!);
+    }) as typeof fetch;
+    return { fetcher: createPublicFetcher({ serviceKey: KEY, timeoutSeconds: 10, fetchImpl: impl }), urls };
+  };
+  const runPublic = (over: Partial<RunCheckInput> & { store: CheckStore }) => runCheck({ trigger: "manual", source: "PUBLIC", settings, ...over, fetcher: over.fetcher ?? publicFetcher().fetcher });
+
+  it("목록 1번 + 상세 5번 = 6번 호출하고, 호출마다 api_checks 한 줄이 남는다", async () => {
     const { store, rec } = fakeStore();
-    await expect(run({ store, source: "PUBLIC" })).rejects.toThrow();
-    expect(rec.started).toBe(0);
+    const { fetcher, urls } = publicFetcher();
+    const result = await runPublic({ store, fetcher });
+    expect(result).toMatchObject({ status: "succeeded", apiCallCount: 6 });
+    expect(urls).toHaveLength(6);
+    expect(rec.apiChecks.map((c) => [c.endpointName, c.outcome])).toEqual([
+      ["public-list", "success"],
+      ["public-detail", "success"],
+      ["public-detail", "success"],
+      ["public-detail", "success"],
+      ["public-detail", "success"],
+      ["public-detail", "empty_result"],
+    ]);
+  });
+
+  it("수집한 줄은 허용된 필드만 담아 저장 요청된다", async () => {
+    const { store, rec } = fakeStore();
+    await runPublic({ store });
+    expect(rec.collected.map((c) => [c.kind, c.records.length])).toEqual([["list", 5], ["detail", 4]]);
+    const allowed = ["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt", "pbctStatCd"];
+    for (const c of rec.collected) for (const r of c.records) expect(Object.keys(r.fields).every((k) => allowed.includes(k))).toBe(true);
+  });
+
+  it("탐지: 날짜 역전 · 물건명 불일치 · 필수정보 누락을 각각 잡고, 정상 물건과 상세가 없는 물건은 잡지 않는다", async () => {
+    const { store, rec } = fakeStore();
+    const result = await runPublic({ store });
+    expect(result.detections.map((d) => [d.itemKey, d.ruleId, d.source])).toEqual([
+      ["2026-1100-000002", "DATE_ORDER", "PUBLIC"],
+      ["2026-1100-000003", "LIST_DETAIL_MISMATCH", "PUBLIC"],
+      ["2026-1100-000004", "REQUIRED_FIELD", "PUBLIC"],
+    ]);
+    expect(rec.recorded.map((d) => d.ruleId)).toEqual(["DATE_ORDER", "LIST_DETAIL_MISMATCH", "REQUIRED_FIELD"]);
+    // 근거에는 PUBLIC 필드의 실제 값이 담긴다
+    const mismatch = rec.recorded.find((d) => d.ruleId === "LIST_DETAIL_MISMATCH")!;
+    expect(mismatch.evidence).toMatchObject({ diffs: [{ field: "onbidCltrNm", list: "물건 3", detail: "다른 이름" }] });
+    // 상세가 없는 물건은 비교하지 않고 사유를 남긴다
+    expect(rec.logs.some((l) => l.code === "COMPARE_SKIPPED" && l.message.includes("NO_COUNTERPART") && l.message.includes("2026-1100-000005"))).toBe(true);
+  });
+
+  it("목록이 0건이면 EMPTY_RESULT(빈 결과 불허), 상세가 0건인 것은 정상(허용)", async () => {
+    const { store } = fakeStore();
+    const emptyList = await runPublic({ store, fetcher: publicFetcher({ list: nodata }).fetcher });
+    expect(emptyList.status).toBe("succeeded");
+    expect(emptyList.detections.map((d) => [d.ruleId, d.itemKey])).toEqual([["EMPTY_RESULT", "public-list"]]);
+  });
+
+  it("서비스키·한도 문제가 목록에서 나면 상세를 부르지 않고, 실패로 마감하며 탐지·등록을 하지 않는다", async () => {
+    const { store, rec } = fakeStore();
+    const { fetcher, urls } = publicFetcher({ list: () => new Response(JSON.stringify({ result: { resultCode: "30", resultMsg: "SERVICE_KEY_IS_NOT_REGISTERED_ERROR" } })) });
+    const result = await runPublic({ store, fetcher });
+    expect(result).toMatchObject({ status: "failed", apiCallCount: 1, detections: [] });
+    expect(urls).toHaveLength(1);
+    expect(rec.recorded).toHaveLength(0);
+    expect(codes(rec)).toEqual(expect.arrayContaining(["AUTH_OR_QUOTA", "DETECTION_SKIPPED"]));
+  });
+
+  it("호출 상한 3회: 목록 1번 + 상세 2번만 부른다 (남은 호출 − 1건만 가져온다)", async () => {
+    const { store } = fakeStore();
+    const { fetcher, urls } = publicFetcher();
+    const result = await runPublic({ store, fetcher, callLimit: 3 });
+    expect(result.apiCallCount).toBe(3);
+    expect(urls).toHaveLength(3);
+    expect(new URL(urls[0]).searchParams.get("numOfRows")).toBe("2");
+  });
+
+  describe("일일 호출 예산 (설정값 public_daily_budget = 900)", () => {
+    const withUsed = (used: number) =>
+      fakeStore({
+        async countPublicCallsToday() {
+          return used;
+        },
+      });
+
+    it("오늘 900회를 모두 썼으면 호출하지 않고 BUDGET_EXCEEDED를 남겨 실패로 마감한다", async () => {
+      const { store, rec } = withUsed(900);
+      const { fetcher, urls } = publicFetcher();
+      const result = await runPublic({ store, fetcher });
+      expect(result).toMatchObject({ status: "failed", apiCallCount: 0, detections: [] });
+      expect(urls).toHaveLength(0);
+      expect(codes(rec)).toContain("BUDGET_EXCEEDED");
+      expect(rec.finished).toEqual([{ status: "failed", calls: 0 }]);
+    });
+
+    it("899회 썼으면 1회만 남아 목록만 부르고 호출 상한 도달로 부분 완료", async () => {
+      const { store, rec } = withUsed(899);
+      const { fetcher, urls } = publicFetcher();
+      const result = await runPublic({ store, fetcher });
+      expect(urls).toHaveLength(1);
+      expect(result).toMatchObject({ status: "partial", apiCallCount: 1 });
+      expect(codes(rec)).toContain("CALL_LIMIT_REACHED");
+    });
+
+    it("895회 썼으면 5회가 남아 목록 1번 + 상세 4번까지 부른다", async () => {
+      const { store } = withUsed(895);
+      const { fetcher, urls } = publicFetcher();
+      const result = await runPublic({ store, fetcher });
+      expect(urls).toHaveLength(5);
+      expect(result.apiCallCount).toBe(5);
+    });
+
+    it("예산이 아직 정해지지 않았으면(null) 오늘 호출 수를 확인하지 않고 실행당 상한만 적용한다", async () => {
+      let asked = 0;
+      const { store } = fakeStore({
+        async countPublicCallsToday() {
+          asked += 1;
+          return 999_999;
+        },
+      });
+      const result = await runPublic({ store, settings: { ...settings, publicDailyBudget: null } });
+      expect(asked).toBe(0);
+      expect(result.apiCallCount).toBe(6);
+    });
+
+    it("DEMO 점검은 예산을 확인하지 않는다", async () => {
+      let asked = 0;
+      const { store } = fakeStore({
+        async countPublicCallsToday() {
+          asked += 1;
+          return 999_999;
+        },
+      });
+      await run({ store });
+      expect(asked).toBe(0);
+    });
   });
 });

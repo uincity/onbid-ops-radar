@@ -19,14 +19,14 @@ const result = (over: Partial<RunCheckResult> = {}): RunCheckResult => ({
   ...over,
 });
 
-function setup(user: ManualCheckUser | null, engine: Partial<RunCheckResult> | Error = {}) {
+function setup(user: ManualCheckUser | null, engine: Partial<RunCheckResult> | Error = {}, serviceKey: string | null = "test-key") {
   const runCheck = vi.fn(async (input: RunCheckInput) => {
     void input;
     if (engine instanceof Error) throw engine;
     return result(engine);
   });
   const prepare = vi.fn(async () => ({ settings, store }));
-  const deps: ManualCheckDeps = { getUser: async () => user, prepare, runCheck, now: () => 1_000_000 };
+  const deps: ManualCheckDeps = { getUser: async () => user, prepare, runCheck, now: () => 1_000_000, serviceKey: () => serviceKey ?? undefined };
   return { deps, runCheck, prepare };
 }
 
@@ -75,12 +75,36 @@ describe("입력 검사", () => {
     expect(runCheck).not.toHaveBeenCalled();
   });
 
-  it("PUBLIC은 아직 조회기가 없어 거부한다", async () => {
+  it("PUBLIC: 팀장이 서비스키가 설정된 서버에서 실행하면 PUBLIC 출처로 엔진을 부른다", async () => {
     const { deps, runCheck } = setup(ADMIN);
     const r = await runManualCheck({ source: "PUBLIC", mode: "normal" }, deps);
+    expect(r.ok).toBe(true);
+    expect(runCheck.mock.calls[0][0]).toMatchObject({ trigger: "manual", source: "PUBLIC", triggeredBy: "admin-1" });
+  });
+
+  it("PUBLIC: 서비스키가 서버에 없으면 엔진도 서버 관리용 연결도 만들지 않고 안내한다 (키 값은 어디에도 나오지 않는다)", async () => {
+    for (const missing of [null, ""]) {
+      const { deps, runCheck, prepare } = setup(ADMIN, {}, missing);
+      const r = await runManualCheck({ source: "PUBLIC", mode: "normal" }, deps);
+      expect(r).toMatchObject({ ok: false, tone: "error" });
+      expect(r.message).toContain("서비스키");
+      expect(runCheck).not.toHaveBeenCalled();
+      expect(prepare).not.toHaveBeenCalled();
+    }
+  });
+
+  it("PUBLIC: 운영 담당자는 서비스키가 있어도 거부한다", async () => {
+    const { deps, runCheck } = setup(OPERATOR);
+    const r = await runManualCheck({ source: "PUBLIC", mode: "normal" }, deps);
     expect(r.ok).toBe(false);
-    expect(r.message).toContain("PLAN 33번");
     expect(runCheck).not.toHaveBeenCalled();
+  });
+
+  it("DEMO 점검은 서비스키를 읽지 않는다", async () => {
+    let asked = 0;
+    const { deps } = setup(ADMIN);
+    await runManualCheck(good, { ...deps, serviceKey: () => { asked += 1; return "k"; } });
+    expect(asked).toBe(0);
   });
 
   it.each(["normal", "http_error", "timeout", "empty"])("응답 종류 %s 를 받아들인다", async (mode) => {

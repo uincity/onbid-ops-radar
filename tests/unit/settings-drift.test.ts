@@ -34,6 +34,13 @@ describe("settings 마이그레이션과 lib/settings/schema.ts", () => {
   it("DB에 들어 있는 기본값 14개가 코드의 기본값(PRD 5-5)과 같다", () => {
     const seeded: Record<string, unknown> = {};
     for (const m of sql.matchAll(/\(\s*'([a-z_]+)'\s*,\s*'([^']*)'::jsonb\s*\)/g)) seeded[m[1]] = JSON.parse(m[2]);
+    // 처음 만든 뒤에 마이그레이션이 값을 고쳤다면(update public.settings set value = '…'::jsonb where key = '…') 파일 이름 순서대로 반영한다.
+    // 예: PUBLIC 필드·일일 호출 예산을 정한 …_allow_public_fields_and_settings.sql
+    for (const name of readdirSync(migrationsDir).filter((n) => n.endsWith(".sql")).sort()) {
+      if (name === file) continue;
+      const later = readFileSync(path.join(migrationsDir, name), "utf8");
+      for (const m of later.matchAll(/update public\.settings\s+set value = '([^']*)'::jsonb\s+where key = '([a-z_]+)'/g)) seeded[m[2]] = JSON.parse(m[1]);
+    }
     expect(Object.keys(seeded).sort()).toEqual([...SETTING_KEYS].sort());
     for (const key of SETTING_KEYS) expect(seeded[key], key).toEqual(DEFAULT_SETTING_VALUES[key]);
   });

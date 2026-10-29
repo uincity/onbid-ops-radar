@@ -46,7 +46,7 @@ describe("기본값 (PRD 5-5)", () => {
     expect(s.scheduleMissedGraceMinutes).toBe(30);
     expect(s.staleRunningSeconds).toBe(120);
     expect(s.scheduledSource).toBe("DEMO");
-    expect(s.publicDailyBudget).toBeNull();
+    expect(s.publicDailyBudget).toBe(900); // 승인 트래픽 1,000회/일에서 여유 100회를 남긴 값 (부록 A)
   });
 
   it("항목은 정확히 14개다", () => {
@@ -101,13 +101,14 @@ describe("출처 · 필드 목록 · 빈 결과 허용", () => {
     }
   });
 
-  it("필드 목록은 출처(DEMO/PUBLIC)별 영문 소문자·숫자·밑줄 이름만 허용한다", () => {
+  it("필드 목록은 출처(DEMO/PUBLIC)별 영문·숫자·밑줄 이름만 허용한다 (실제 API 필드는 cltrMngNo처럼 대소문자가 섞인다)", () => {
     expect(parseSettings(withValue("required_fields", { DEMO: ["a", "b_1"], PUBLIC: [] })).requiredFields).toEqual({ DEMO: ["a", "b_1"], PUBLIC: [] });
+    expect(parseSettings(withValue("required_fields", { PUBLIC: ["cltrMngNo", "onbidCltrNm"] })).requiredFields).toEqual({ PUBLIC: ["cltrMngNo", "onbidCltrNm"] });
     expect(parseSettings(withValue("required_fields", {})).requiredFields).toEqual({});
     const bad: unknown[] = [
       { TEST: ["a"] }, // 모르는 출처
       { DEMO: "a" }, // 목록이 아님
-      { DEMO: ["Name"] }, // 대문자
+      { DEMO: ["Na-me"] }, // 하이픈
       { DEMO: ["1abc"] }, // 숫자로 시작
       { DEMO: [1] }, // 글자가 아님
       { DEMO: ["bad name"] }, // 공백
@@ -190,9 +191,10 @@ describe("항목 사이의 관계 (DB는 항목 하나씩만 검사하므로 코
 });
 
 describe("도우미", () => {
-  it("fieldsFor: 출처에 항목이 없으면 빈 목록 (부록 A 확정 전의 PUBLIC)", () => {
+  it("fieldsFor: 출처별 필드 목록을 돌려주고, 항목이 없는 출처는 빈 목록", () => {
     expect(fieldsFor(DEFAULT_SETTINGS.requiredFields, "DEMO")).toEqual(["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"]);
-    expect(fieldsFor(DEFAULT_SETTINGS.requiredFields, "PUBLIC")).toEqual([]);
+    expect(fieldsFor(DEFAULT_SETTINGS.requiredFields, "PUBLIC")).toEqual(["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "orgNm", "cltrBidBgngDt", "cltrBidEndDt"]);
+    expect(fieldsFor({ DEMO: ["a"] }, "PUBLIC")).toEqual([]);
   });
 
   it("isEmptyAllowed: 설정에 없는 API는 허용하지 않는 것으로 본다", () => {

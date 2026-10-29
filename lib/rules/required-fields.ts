@@ -1,13 +1,9 @@
 // Design Ref: PRD 5-2 규칙 2 / 부록 B — 탐지 규칙 2: 필수정보·형식 (REQUIRED_FIELD)
-// 순수 함수다. 부록 B의 DEMO 가상 스키마 필드만 검사하고, 부록에 없는 필드는 만들지 않는다.
-import { parseIsoInstant } from "./iso-datetime";
+// 순수 함수다. 검사할 필드는 출처별 프로필(DEMO: 부록 B, PUBLIC: 부록 A)이 정한다. 부록에 없는 필드는 만들지 않는다.
+import { DEMO_PROFILE, type FieldProfile } from "./field-profile";
 
 export const REQUIRED_FIELD_RULE_ID = "REQUIRED_FIELD" as const;
 
-const REQUIRED_KEYS = ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"] as const;
-const DATE_KEYS = new Set<string>(["bid_start_at", "bid_end_at"]);
-const ITEM_ID_PATTERN = /^DEMO-\d{4}$/;
-const ALLOWED_STATUSES = ["ready", "bidding", "closed"];
 
 export type RequiredFieldInput = Record<string, unknown>;
 
@@ -24,19 +20,21 @@ export type RequiredFieldFinding = {
 const isBlank = (v: unknown) => typeof v !== "string" || v.trim() === "";
 
 // 문제가 있으면 어떤 필드가 왜 문제인지 모두 담아 돌려주고, 없으면 null
-export function detectRequiredField(input: RequiredFieldInput): RequiredFieldFinding | null {
+export function detectRequiredField(input: RequiredFieldInput, profile: FieldProfile = DEMO_PROFILE): RequiredFieldFinding | null {
   const problems: RequiredFieldProblem[] = [];
 
-  for (const key of REQUIRED_KEYS) {
+  const dateFields = new Set([profile.startField, profile.endField]);
+  for (const key of profile.requiredFields) {
     const value = input[key];
     if (isBlank(value)) problems.push({ field: key, reason: "MISSING" });
-    else if (DATE_KEYS.has(key) && parseIsoInstant(value) === null) problems.push({ field: key, reason: "BAD_FORMAT" });
-    else if (key === "demo_item_id" && !ITEM_ID_PATTERN.test(value as string)) problems.push({ field: key, reason: "BAD_FORMAT" });
+    else if (dateFields.has(key) && profile.parseDate(value) === null) problems.push({ field: key, reason: "BAD_FORMAT" });
+    else if (key === profile.idField && profile.idPattern && !profile.idPattern.test(value as string)) problems.push({ field: key, reason: "BAD_FORMAT" });
   }
 
-  // item_status는 선택이지만, 있으면 허용된 소문자 값이어야 한다
-  if (input.item_status !== undefined && !ALLOWED_STATUSES.includes(input.item_status as string)) {
-    problems.push({ field: "item_status", reason: "BAD_FORMAT" });
+  // 선택이지만, 있으면 허용된 값이어야 하는 필드 (DEMO의 item_status)
+  const optional = profile.optionalEnum;
+  if (optional && input[optional.field] !== undefined && !optional.allowed.includes(input[optional.field] as string)) {
+    problems.push({ field: optional.field, reason: "BAD_FORMAT" });
   }
 
   return problems.length > 0 ? { ruleId: REQUIRED_FIELD_RULE_ID, problems } : null;

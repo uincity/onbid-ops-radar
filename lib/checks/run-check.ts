@@ -3,15 +3,20 @@
 // 탐지 결과는 저장소의 recordDetection(= DB 함수 record_detection)으로 등록한다. 중복·재발·정상 판정 억제는 DB 함수가 지킨다 (PLAN 23).
 // 서비스키·한도 문제가 생긴 실행에서는 데이터 이상징후를 만들지 않는다 (PRD 5-2 규칙 6).
 import { detectItem, type ItemDetection } from "@/lib/rules/detect-item";
+import { profileOf } from "@/lib/rules/field-profile";
 import type { Settings } from "@/lib/settings/schema";
 import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
-import type { ApiFetchResult, CheckStore, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
+import type { ApiCheckRecord, CheckStore, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
 
 // 출처별로 부르는 조회 이름. 목록 → 상세 순서다.
-const ENDPOINTS: Record<"DEMO", { name: string; kind: "list" | "detail" }[]> = {
+const ENDPOINTS: Record<RunSource, { name: string; kind: "list" | "detail" }[]> = {
   DEMO: [
     { name: "demo-list", kind: "list" },
     { name: "demo-detail", kind: "detail" },
+  ],
+  PUBLIC: [
+    { name: "public-list", kind: "list" },
+    { name: "public-detail", kind: "detail" },
   ],
 };
 
@@ -43,7 +48,6 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const { trigger, source, settings, store, fetcher, clock = Date.now } = input;
 
   // 시작 전에 막을 수 있는 잘못된 요청은 실행 기록을 만들지 않고 거부한다
-  if (source !== "DEMO") throw new Error("PUBLIC 조회기는 아직 없습니다 (PLAN 33번). DEMO만 점검할 수 있습니다.");
   const callLimit = input.callLimit ?? settings.apiCallLimitDefault;
   if (!Number.isInteger(callLimit) || callLimit < 1 || callLimit > settings.apiCallLimitMax) {
     throw new Error(`호출 상한은 1~${settings.apiCallLimitMax} 사이의 정수여야 합니다.`);
@@ -56,6 +60,20 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   let calls = 0;
   try {
     const t0 = clock();
+    const profile = profileOf(source);
+
+    // PUBLIC: 오늘(KST) 이미 쓴 호출 수를 합산해 일일 호출 예산을 넘으면 호출하지 않고 이유만 남긴다 (DESIGN 5.1 2단계).
+    // 예산이 아직 정해지지 않았으면(null) 실행당 상한만 적용한다.
+    let effectiveLimit = callLimit;
+    if (source === "PUBLIC" && settings.publicDailyBudget !== null) {
+      const left = settings.publicDailyBudget - (await store.countPublicCallsToday());
+      if (left <= 0) {
+        await store.log(runId, "error", "BUDGET_EXCEEDED", `PUBLIC 일일 호출 예산 ${settings.publicDailyBudget}회를 오늘 모두 써서 호출하지 않았습니다.`);
+        await store.finishRun(runId, "failed", 0);
+        return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered() };
+      }
+      effectiveLimit = Math.min(callLimit, left);
+    }
     const timeLimitMs = settings.runTimeLimitSeconds * 1000;
     const collected: Record<"list" | "detail", FetchedRecord[]> = { list: [], detail: [] };
     const emptyApis: string[] = [];
@@ -71,15 +89,16 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         limitHit = true;
         break;
       }
-      if (calls >= callLimit) {
-        await store.log(runId, "warn", "CALL_LIMIT_REACHED", `호출 상한 ${callLimit}회에 도달해 '${name}' 이후 작업을 하지 않았습니다.`);
+      if (calls >= effectiveLimit) {
+        await store.log(runId, "warn", "CALL_LIMIT_REACHED", `호출 상한 ${effectiveLimit}회에 도달해 '${name}' 이후 작업을 하지 않았습니다.`);
         limitHit = true;
         break;
       }
 
-      const result: ApiFetchResult = await fetcher(name);
-      calls += 1;
-      await store.recordApiCheck(runId, result);
+      const result = await fetcher(name, { remainingCalls: effectiveLimit - calls, remainingMs: timeLimitMs - (clock() - t0) });
+      calls += result.httpCalls ?? 1; // 조회 하나가 실제 호출을 여러 번 했으면(PUBLIC 상세) 그만큼 센다
+      const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
+      for (const check of checks) await store.recordApiCheck(runId, check);
 
       if (result.outcome === "success") {
         succeeded += 1;
@@ -94,6 +113,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         failed += 1;
         authProblem = true;
         await store.log(runId, "error", "AUTH_OR_QUOTA", `'${name}' 호출에서 서비스키 또는 호출 한도 문제가 있었습니다.`);
+        break; // 키·한도 문제가 난 뒤에는 더 부르지 않는다
       } else {
         failed += 1;
         await store.log(runId, "warn", result.outcome === "timeout" ? "API_TIMEOUT" : "API_HTTP_ERROR", `'${name}' 호출이 실패했습니다 (${result.outcome}).`);
@@ -118,9 +138,10 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         const detection = detectItem(
           { list: list ? { fields: list.fields as Record<string, unknown>, collectedAtMs: list.collectedAtMs } : null, detail: detail ? { fields: detail.fields as Record<string, unknown>, collectedAtMs: detail.collectedAtMs } : null },
           windowSeconds,
+          profile,
         );
         for (const ruleId of detection.rules) {
-          const built = buildDetectionEvidence(ruleId, list?.fields ?? null, detail?.fields ?? null, detection.listDetail);
+          const built = buildDetectionEvidence(ruleId, list?.fields ?? null, detail?.fields ?? null, detection.listDetail, profile);
           detections.push({ source, itemKey, ruleId, detection, ...built });
         }
         if (detection.listDetail.outcome === "skipped") (skipped[detection.listDetail.reason] ??= []).push(itemKey);

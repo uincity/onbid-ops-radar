@@ -26,6 +26,7 @@ export async function startManualCheck(_prev: ManualCheckState, formData: FormDa
       },
       runCheck,
       now: () => Date.now(),
+      serviceKey: () => process.env.DATA_GO_KR_SERVICE_KEY,
     },
   );
 

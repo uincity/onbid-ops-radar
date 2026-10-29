@@ -7,7 +7,7 @@ import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThrough
 test.beforeAll(requireDemoAccounts);
 
 test.describe("점검 이력 /runs", () => {
-  test("팀장: 수동 점검 패널이 보이고 PUBLIC은 고를 수 없다", async ({ page }) => {
+  test("팀장: 수동 점검 패널이 보이고 PUBLIC도 고를 수 있다(고르면 응답 시뮬레이션은 꺼진다)", async ({ page }) => {
     await signInThroughForm(page, ADMIN, "/runs");
     await expect(page.getByRole("heading", { level: 1, name: "점검 이력" })).toBeVisible();
 
@@ -15,9 +15,13 @@ test.describe("점검 이력 /runs", () => {
     await expect(panel).toBeVisible();
     await expect(panel.getByRole("button", { name: "수동 점검 실행" })).toBeEnabled();
     await expect(panel.getByLabel("출처")).toHaveValue("DEMO");
-    await expect(panel.getByRole("option", { name: /PUBLIC/ })).toHaveAttribute("disabled", "");
+    await expect(panel.getByRole("option", { name: /PUBLIC/ })).not.toHaveAttribute("disabled", "");
     await expect(panel.getByLabel("응답 시뮬레이션").locator("option")).toHaveText(["정상 응답", "HTTP 오류", "타임아웃", "빈 결과(0건)"]);
     await expect(page.getByTestId("manual-check-notice")).toHaveCount(0);
+    await panel.getByLabel("출처").selectOption("PUBLIC");
+    await expect(panel.getByLabel("응답 시뮬레이션")).toBeDisabled();
+    await panel.getByLabel("출처").selectOption("DEMO");
+    await expect(panel.getByLabel("응답 시뮬레이션")).toBeEnabled();
 
     await signOutThroughButton(page);
   });
