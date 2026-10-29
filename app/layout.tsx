@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "OnBid Ops Radar",
+  title: { default: "OnBid Ops Radar", template: "%s · OnBid Ops Radar" },
   description: "온비드 운영·품질 통합 모니터링",
 };
 

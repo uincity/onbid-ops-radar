@@ -2,12 +2,23 @@
 
 // Design Ref: DESIGN §4.1(/login 로그인 화면) — 이메일·비밀번호 입력 폼
 // 서버 액션(signIn)의 결과(오류 문구)를 화면에 보여 준다. 비밀번호는 서버로 보내기만 하고 다시 받지 않는다.
-import { useActionState } from "react";
+import { Suspense, useActionState } from "react";
+import { useSearchParams } from "next/navigation";
 import { signIn, type SignInState } from "@/lib/auth/actions";
+import { safeNextPath } from "@/lib/auth/safe-next";
 
 const initialState: SignInState = {};
 
-export function LoginForm({ next }: { next: string }) {
+// 로그인 뒤 돌아갈 주소(?next=...)를 숨은 입력칸에 담는다.
+// 주소의 값은 요청마다 달라서 Suspense가 필요한데, "입력칸 전체"가 아니라 이 숨은 칸만 감싼다.
+// (폼 전체를 Suspense로 감싸면 처음 그린 폼이 나중에 다른 폼으로 통째로 교체되어, 그 사이에 입력한 값이 사라진다)
+function NextField() {
+  const searchParams = useSearchParams();
+  // 서버(signIn)도 같은 규칙으로 한 번 더 다듬는다. 여기서 다듬는 것은 편의일 뿐이다.
+  return <input type="hidden" name="next" value={safeNextPath(searchParams.get("next"))} />;
+}
+
+export function LoginForm() {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
   const inputClass =
@@ -17,7 +28,9 @@ export function LoginForm({ next }: { next: string }) {
 
   return (
     <form action={formAction} className="space-y-5" noValidate>
-      <input type="hidden" name="next" value={next} />
+      <Suspense fallback={<input type="hidden" name="next" value="/" />}>
+        <NextField />
+      </Suspense>
 
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-zinc-800 dark:text-zinc-200">
