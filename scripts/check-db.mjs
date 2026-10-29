@@ -1,0 +1,23 @@
+// 만들어 둔 DB 테이블이 DESIGN대로인지 한꺼번에 확인하는 스크립트 (PLAN 작업 6~)
+// 실행: npm run check:db
+// 새 테이블을 만들 때마다 scripts/db-checks/ 에 확인 파일을 하나 추가하고 아래 목록에 넣는다.
+// 구조는 읽기 전용으로 조회하고, 동작은 "거부되는지 보기"와 "되돌리는 시험"으로만 확인한다. (저장되는 줄 없음)
+import { createChecker } from "./lib/db-check.mjs";
+import * as profiles from "./db-checks/profiles.mjs";
+import * as checkRuns from "./db-checks/check-runs.mjs";
+
+const modules = [profiles, checkRuns];
+const ctx = createChecker();
+
+for (const mod of modules) {
+  console.log(`\n== ${mod.title} ==`);
+  try {
+    await mod.run(ctx);
+  } catch (error) {
+    ctx.report(false, `${mod.title} 확인 중 오류`, error instanceof Error ? error.message : String(error));
+  }
+}
+
+const failed = ctx.finish();
+console.log(failed === 0 ? "\nDB 테이블 확인 완료" : `\n실패 ${failed}건`);
+process.exit(failed === 0 ? 0 : 1);

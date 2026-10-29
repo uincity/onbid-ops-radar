@@ -60,7 +60,7 @@
 | 환경변수·키 확인 | `npm run check:env` |
 | DB 반영 미리 보기 | `npm run db:push -- --dry-run` |
 | DB 반영 (`supabase/migrations`의 새 파일) | `npm run db:push` |
-| profiles 테이블 확인 | `npm run check:db` |
+| DB 테이블 전체 확인 (새 테이블은 `scripts/db-checks/`에 확인 파일 추가) | `npm run check:db` |
 
 DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). 테스트 도구(Vitest·Playwright·pgTAP) 실행 명령은 PLAN 4번과 12번에서 정한 뒤 이 표에 추가합니다.
 
