@@ -260,7 +260,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | 테이블 | 담는 것 | 주요 칸 |
 |---|---|---|
 | `profiles` | 사용자 이름과 역할 | `id`(로그인 계정과 같음), `display_name`, `role`(`operator`/`admin`) |
-| `settings` | PRD 5-5 설정값과 탐지 설정 | `key`, `value`, `updated_at`. 키: 5-5 값들, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint` (DEMO 값은 PRD 부록 B) |
+| `settings` | PRD 5-5 설정값과 탐지 설정 (정해진 14개 항목, 기본값이 들어 있음) | `key`, `value`(JSON), `updated_at`. 키 14개: `compare_window_minutes`, `api_timeout_seconds`, `api_call_limit_default`, `api_call_limit_max`, `public_daily_budget`, `run_time_limit_seconds`, `reason_min_length`, `schedule_missed_grace_minutes`, `stale_running_seconds`, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint` (DEMO 값은 PRD 부록 B) |
 | `check_runs` | 점검 실행 1회 | `trigger`(`scheduled`/`manual`), `source`, `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `api_call_count`, `triggered_by` |
 | `run_logs` | 실행 중 남길 메모 | `run_id`(비울 수 있음), `log_date`(KST 날짜), `level`, `code`(상한 도달, 시간 초과, 비교 제외, 일일 예산 초과, 예약 누락 등), `message` |
 | `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid` |
@@ -269,6 +269,12 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `actor_role`(행동 당시의 역할 `operator`/`admin`), `event_type`(`created`/`detected_again`/`assigned`/`status_changed`/`verdict_changed`), `from_value`, `to_value`, `note`, `created_at` |
 | `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
+- **설정값 검증:** `settings`는 14개 항목만 둘 수 있고, 항목마다 값의 모양과 범위를 DB가 검사한다(예: 호출 상한 1~100, 타임아웃 1~60초, 출처는 `DEMO`/`PUBLIC`). 항목 이름은 바꾸거나 지울 수 없다(값만 바꿀 수 있음). `public_daily_budget`은 승인 트래픽 확인 전까지 JSON `null`이다.
+- **설정값 사이의 관계는 서버가 확인한다:** DB는 항목 하나씩만 검사하므로, "호출 기본 상한 ≤ 최대 상한", "멈춘 실행 정리 기준(`stale_running_seconds`) > 점검 실행시간 제한(`run_time_limit_seconds`)"은 `lib/settings.ts`(PLAN 16번)가 값을 읽을 때·바꿀 때 함께 확인한다.
+- **사유 최소 글자 수:** `reason_min_length`는 10 이상으로만 올릴 수 있다. `anomaly_events`의 DB 제약이 공백 제외 10자 미만을 항상 거부하므로 10 아래로는 내릴 수 없다.
+- **보고서 날짜·집계 시각:** `reports.report_date`는 KST 날짜이고 아직 오지 않은 날짜는 저장할 수 없다. `covers_until`은 그 날짜(KST 00:00~다음 날 00:00) 안에 있어야 하고 `generated_at`을 넘을 수 없다.
+- **보고서는 서버가 팀장 확인 후 추가한다:** 로그인 사용자에게는 `reports`의 읽기만 주고, 서버 관리용 키(`service_role`)에게 읽기와 추가(INSERT)만 준다(수정·삭제·비우기 권한 없음). 서버 액션 `generateDailyReport`가 먼저 admin 역할을 확인하고, DB 트리거가 `generated_by`가 admin 역할인지 한 번 더 확인한다(SEC-03). 로그인 사용자가 API로 직접 보고서를 만들 수는 없다(보고서 내용을 위조할 수 없게 하려는 것이다).
+- **보고서를 만든 사용자 보호:** 보고서를 만든 사용자는 지울 수 없다(연결). 이력을 남긴 사용자와 같은 방식이다.
 - **중복 방지:** `anomalies`에 "출처 + 물건 + 규칙"이 같고 상태가 `open`/`investigating`인 건은 하나만 있도록 DB 제약을 건다.
 - **상태·판정 짝:** `anomalies`는 `open`이면 반드시 `undetermined`, `resolved`이면 반드시 `confirmed_issue`, `dismissed`이면 반드시 `false_positive`여야 한다. `investigating`은 어느 판정이든 가능하다(판정만 따로 바꿀 수 있으므로). DB 제약이 강제한다(PRD 5-3 규칙 2·4).
 - **재발 연결:** `previous_anomaly_id`는 같은 출처·물건·규칙의 이상징후만 가리킬 수 있다(복합 연결). 가리키는 건이 "종결(`resolved`/`dismissed`)된 건인지"는 `record_detection` 함수(PLAN 23번)가 확인한다.
@@ -322,8 +328,8 @@ anomalies 1 ─── 0..1 anomalies(이전 사례, 재발 연결)
 | `check_runs`, `api_checks`, `run_logs`, `collected_items` | 로그인 사용자 | 시스템만 |
 | `anomalies` | 로그인 사용자 | DB 함수로만 (직접 수정 차단) |
 | `anomaly_events` | 로그인 사용자 | DB 함수로만 추가, 수정·삭제 불가 |
-| `reports` | 로그인 사용자 | admin의 생성만, 수정·삭제 불가 |
-| `settings` | 로그인 사용자 | 시스템만 |
+| `reports` | 로그인 사용자 | 서버가 admin 확인 후 추가만(관리용 키), 로그인 사용자의 직접 쓰기 불가, 수정·삭제 불가 |
+| `settings` | 로그인 사용자 | 시스템만 (값만 변경, 항목 삭제·이름 변경 불가) |
 
 ---
 

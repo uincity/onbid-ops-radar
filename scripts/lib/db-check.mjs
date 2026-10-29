@@ -76,7 +76,9 @@ export function createChecker() {
 
   // 읽기 전용 테이블(로그인 사용자 읽기, 쓰기는 서버만)의 공통 확인
   // sampleRow: 규칙에는 맞는 올바른 줄. 로그인 없이 보냈을 때 "모양이 틀려서"가 아니라 "권한이 없어서" 거부되는지 보려는 것이다.
-  async function checkReadOnlyTable(table, requiredColumns, sampleRow) {
+  // options.selectColumn: 읽기 시험에 쓸 칸 이름. 기본은 id이고, id 칸이 없는 표(예: settings는 key)는 따로 지정한다.
+  async function checkReadOnlyTable(table, requiredColumns, sampleRow, options = {}) {
+    const selectColumn = options.selectColumn ?? "id";
     const [found] = await query(
       `select c.relrowsecurity as rls from pg_class c join pg_namespace n on n.oid = c.relnamespace
        where n.nspname = 'public' and c.relname = '${table}' and c.relkind = 'r'`,
@@ -110,7 +112,7 @@ export function createChecker() {
     report(grants.every((g) => g.grantee !== "anon"), `${table}: 비로그인(anon)은 아무 권한 없음`);
     report(authPrivs.length === 1 && authPrivs[0] === "SELECT", `${table}: 로그인 사용자는 읽기(SELECT)만 가능`, `권한: ${authPrivs.join(",") || "없음"}`);
 
-    const read = await rest(table, "GET", publishable);
+    const read = await rest(table, "GET", publishable, undefined, `?select=${selectColumn}&limit=1`);
     report([401, 403].includes(read.status), `${table}: 로그인 없이 읽기 시도 → 거부`, `응답 ${read.status}`);
     const write = await rest(table, "POST", publishable, sampleRow);
     report(

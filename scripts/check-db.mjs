@@ -8,8 +8,10 @@ import * as checkRuns from "./db-checks/check-runs.mjs";
 import * as collectedItems from "./db-checks/collected-items.mjs";
 import * as anomalies from "./db-checks/anomalies.mjs";
 import * as anomalyEvents from "./db-checks/anomaly-events.mjs";
+import * as settings from "./db-checks/settings.mjs";
+import * as reports from "./db-checks/reports.mjs";
 
-const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents];
+const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports];
 const ctx = createChecker();
 
 for (const mod of modules) {
