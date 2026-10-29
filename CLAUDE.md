@@ -65,6 +65,9 @@
 | DB 테이블 전체 확인 (새 테이블은 `scripts/db-checks/`에 확인 파일 추가) | `npm run check:db` |
 | DB 보안 테스트 pgTAP (`supabase/tests/database/*.test.sql`, Docker Desktop 필요) | `npm run test:db` |
 | 단위 테스트 Vitest (`tests/unit/*.test.ts`, DB·브라우저 없이 빠르게) | `npm run test:unit` |
+| DEMO 시나리오 160건 파일 다시 만들기 (`data/demo/scenarios.json`, 손으로 고치지 않음) | `npm run generate:demo` |
+| DEMO 시나리오를 DB에 주입 (다시 실행하면 이전 주입분을 지우고 새로 넣음, 지우기만: `-- --clear`) | `npm run seed:demo` |
+| DB에 주입된 DEMO 시나리오가 파일과 같은지 확인 | `npm run check:demo` |
 | 화면 자동 테스트 Playwright (`tests/e2e/*.spec.ts`, 개발 서버를 3100번 포트로 자동 실행, Edge 사용, `.env`의 시연 계정 필요) | `npm run test:e2e` |
 
 DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 `.env`의 `DEMO_*` 계정을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). `npm run test:e2e`는 로그인을 약 20번 하므로 Supabase 제한(5분에 약 30회) 때문에 5분 안에 연달아 두 번 돌리면 실패할 수 있습니다. 규칙·계산 같은 순수한 코드를 바꾼 작업은 `npm run test:unit`도 통과해야 하고, 새 규칙에는 경계값(한 칸 안·밖)을 포함한 단위 테스트를 함께 만듭니다.
