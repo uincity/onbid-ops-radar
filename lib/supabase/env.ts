@@ -8,7 +8,7 @@ export function getSupabasePublicEnv() {
 
   if (!url || !publishableKey) {
     throw new Error(
-      "Supabase 환경변수가 없습니다. .env.local에 NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY를 넣어 주세요. (npm run setup:env)",
+      "Supabase 환경변수가 없습니다. .env에 NEXT_PUBLIC_SUPABASE_URL과 NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY를 넣어 주세요. (npm run setup:env)",
     );
   }
 

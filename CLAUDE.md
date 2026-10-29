@@ -56,7 +56,7 @@
 | Supabase·Vercel CLI 로그인 확인 | `npm run check:cli` |
 | Supabase 프로젝트 만들기·연결 | `npm run setup:supabase` |
 | Supabase 연결 확인 | `npm run check:supabase` |
-| 앱 환경변수 채우기 (`.env.local`) | `npm run setup:env` |
+| 앱 환경변수 채우기 (`.env`) | `npm run setup:env` |
 | 환경변수·키 확인 | `npm run check:env` |
 | DB 반영 미리 보기 | `npm run db:push -- --dry-run` |
 | DB 반영 (`supabase/migrations`의 새 파일) | `npm run db:push` |
@@ -96,11 +96,12 @@ DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는
 
 ## 보안 규칙
 
-- **`.env` 내용 금지:** `.env`, `.env.local`의 값을 읽어서 출력하거나 로그·답변·커밋에 넣지 않습니다. 확인이 필요하면 "값 있음/없음"으로만 말합니다.
+- **`.env` 내용 금지:** `.env`의 값을 읽어서 출력하거나 로그·답변·커밋에 넣지 않습니다. 확인이 필요하면 "값 있음/없음"으로만 말합니다.
 - **서버 전용 키:** `SUPABASE_SECRET_KEY`, `DATA_GO_KR_SERVICE_KEY`, `CRON_SECRET` 등에는 `NEXT_PUBLIC_`을 붙이지 않고, 브라우저 코드에서 사용하지 않습니다.
 - **키 마스킹:** API 요청 URL을 로그에 남길 때는 `serviceKey` 등 인증정보를 가립니다. 오류 응답에 서버 내부정보를 노출하지 않습니다.
 - **권한 검사:** 권한은 화면이 아니라 서버와 Supabase RLS에서 검사합니다. 모든 테이블에 RLS를 적용합니다.
 - **LLM 키:** `.env`에 `OPENAI_API_KEY`가 있지만, MVP에서는 앱 코드에서 사용하지 않습니다.
+- **`.env` 하나로 관리:** 개발 도구용 토큰과 앱용 변수가 모두 `.env`에 있습니다. 변수 목록과 구분은 `.env.example`을 따르고, Vercel에는 "앱용" 변수만 등록합니다. `GITHUB_TOKEN`·`SUPABASE_ACCESS_TOKEN`·`VERCEL_TOKEN`·`OPENAI_API_KEY`·`SUPABASE_PROJECT_REF`·`SUPABASE_DB_PASSWORD`는 등록하지 않습니다.
 - **개인정보:** 실제 개인정보를 저장하지 않습니다. 공개 API 응답에서도 필요한 필드만 골라 저장합니다.
 - **쓰기 요청 금지:** 실제 온비드 운영시스템이나 공개 API에 쓰기 요청을 보내지 않습니다.
 

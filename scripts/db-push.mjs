@@ -8,7 +8,7 @@ const SECRET_NAMES = ["SUPABASE_DB_PASSWORD", "SUPABASE_ACCESS_TOKEN"];
 const dryRun = process.argv.includes("--dry-run");
 
 if (!process.env.SUPABASE_DB_PASSWORD) {
-  console.error("실패: .env.local에 SUPABASE_DB_PASSWORD가 없습니다. (npm run setup:supabase)");
+  console.error("실패: .env에 SUPABASE_DB_PASSWORD가 없습니다. (npm run setup:supabase)");
   process.exit(1);
 }
 

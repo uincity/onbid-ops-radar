@@ -1,4 +1,4 @@
-// 앱이 쓰는 환경변수를 .env.local에 채워 넣는 스크립트 (PLAN 작업 3)
+// 앱이 쓰는 환경변수를 .env에 채워 넣는 스크립트 (PLAN 작업 3)
 // 실행: npm run setup:env
 // - 이미 값이 있는 변수는 건드리지 않고, 비어 있거나 잘못된 것만 채운다. (여러 번 실행해도 안전)
 // - Supabase 주소·키는 Supabase 관리 API로 가져오고, 값은 화면에 출력하지 않는다.
@@ -8,7 +8,7 @@ import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import { rootDir } from "./lib/supabase-cli.mjs";
 
-const envLocalPath = path.join(rootDir, ".env.local");
+const envPath = path.join(rootDir, ".env");
 
 function fail(message) {
   console.error(`실패: ${message}`);
@@ -28,7 +28,7 @@ const validators = {
   CRON_SECRET: (v) => v.length >= 32,
 };
 
-const original = existsSync(envLocalPath) ? readFileSync(envLocalPath, "utf8") : "";
+const original = existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
 const lines = original === "" ? [] : original.split(/\r?\n/);
 
 function currentValue(name) {
@@ -89,7 +89,7 @@ if (currentValue("DATA_GO_KR_SERVICE_KEY") === undefined) {
 }
 
 if (updates.length === 0) {
-  console.log(".env.local에 채울 값이 없습니다. (이미 모두 있음)");
+  console.log(".env에 채울 값이 없습니다. (이미 모두 있음)");
   process.exit(0);
 }
 
@@ -104,4 +104,4 @@ for (const { name, value, note } of updates) {
   }
   console.log(`${name}: ${value === "" ? "빈 줄 추가 (직접 입력 필요)" : "값 저장됨"}`);
 }
-writeFileSync(envLocalPath, `${lines.join("\n").replace(/\n+$/, "")}\n`);
+writeFileSync(envPath, `${lines.join("\n").replace(/\n+$/, "")}\n`);

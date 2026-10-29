@@ -18,7 +18,7 @@ function warn(label, detail) {
   console.log(`주의 | ${label} — ${detail}`);
 }
 
-// 1. .env.example에 적힌 이름이 모두 .env.local에 있는지 (값은 출력하지 않음)
+// 1. .env.example에 적힌 이름이 모두 .env에 있는지 (값은 출력하지 않음)
 const examplePath = path.join(rootDir, ".env.example");
 const exampleLines = readFileSync(examplePath, "utf8").split(/\r?\n/);
 const names = exampleLines.map((l) => l.match(/^([A-Z0-9_]+)=(.*)$/)).filter(Boolean);
@@ -32,7 +32,7 @@ const SERVICE_KEY = "DATA_GO_KR_SERVICE_KEY"; // 활용신청 승인 후 직접 
 for (const [, name] of names) {
   const filled = Boolean(process.env[name]?.trim());
   if (name === SERVICE_KEY && !filled) {
-    warn(name, "값 없음 — 공공데이터포털 활용신청 승인 후 .env.local에 직접 입력하세요 (PUBLIC 점검 전까지는 비워 둬도 됨)");
+    warn(name, "값 없음 — 공공데이터포털 활용신청 승인 후 .env에 직접 입력하세요 (PUBLIC 점검 전까지는 비워 둬도 됨)");
   } else {
     report(filled, name, filled ? "값 있음" : "값 없음");
   }

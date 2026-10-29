@@ -21,12 +21,12 @@ for (const name of [...SECRET_NAMES, "SUPABASE_PROJECT_REF"]) {
 // 2. supabase/ 폴더가 준비됐는지
 report(existsSync(path.join(rootDir, "supabase", "config.toml")), "supabase/config.toml 있음");
 
-// 3. 연결된 프로젝트가 .env.local의 프로젝트와 같은지
+// 3. 연결된 프로젝트가 .env의 프로젝트와 같은지
 const refFile = path.join(rootDir, "supabase", ".temp", "project-ref");
 const linkedRef = existsSync(refFile) ? readFileSync(refFile, "utf8").trim() : "";
 report(
   linkedRef !== "" && linkedRef === process.env.SUPABASE_PROJECT_REF,
-  "supabase/ 폴더가 .env.local의 프로젝트와 연결됨",
+  "supabase/ 폴더가 .env의 프로젝트와 연결됨",
 );
 
 // 4. 프로젝트가 실행 중인지

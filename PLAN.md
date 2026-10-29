@@ -35,7 +35,7 @@ PRD 6-5(완료 기준)와 7-7(보안 완료 기준)을 그대로 따른다. 아�
 **준비 — 도구와 연결**
 1. Supabase CLI·Vercel CLI를 설치하고 `.env`의 토큰으로 인증되는지 확인한다(값은 출력하지 않음) (CLAUDE.md) [U01]
 2. Supabase 프로젝트를 만들고 연결한 뒤, 마이그레이션을 담을 `supabase/` 폴더를 초기화한다 (8-2) [U01]
-3. `.env.local`·`.env.example`을 PRD의 변수명으로 만들고, 서버용·브라우저용 Supabase 클라이언트를 분리한다 (7-3) [U01]
+3. `.env`·`.env.example`을 PRD의 변수명으로 만들고, 서버용·브라우저용 Supabase 클라이언트를 분리한다 (7-3) [U01]
 4. 승인된 도구(`@supabase/supabase-js`·`@supabase/ssr`·Zod·Vitest·Playwright)를 설치한다 — 2026-10-29 승인 완료 (8-2) [U01]
 5. 공공데이터포털에 온비드 OpenAPI 활용신청을 넣는다 — 사용자 작업, 승인까지 기다리는 동안 다음 작업을 계속 진행 (부록 A)
 

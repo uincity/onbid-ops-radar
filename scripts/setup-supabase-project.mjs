@@ -1,16 +1,16 @@
 // Supabase 프로젝트를 만들고 이 폴더(supabase/)와 연결하는 스크립트 (PLAN 작업 2)
 // 실행: npm run setup:supabase
-// - .env.local에 SUPABASE_PROJECT_REF가 이미 있으면 새로 만들지 않고 연결만 다시 한다.
-// - DB 비밀번호는 무작위로 만들어 .env.local에만 저장하고 화면에 출력하지 않는다.
+// - .env에 SUPABASE_PROJECT_REF가 이미 있으면 새로 만들지 않고 연결만 다시 한다.
+// - DB 비밀번호는 무작위로 만들어 .env에만 저장하고 화면에 출력하지 않는다.
 import { randomBytes } from "node:crypto";
-import { appendFileSync, existsSync } from "node:fs";
+import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { runSupabase, maskSecrets, rootDir } from "./lib/supabase-cli.mjs";
 
 const PROJECT_NAME = "onbid-ops-radar";
 const REGION = "ap-northeast-2"; // 서울
 const SECRET_NAMES = ["SUPABASE_ACCESS_TOKEN", "SUPABASE_DB_PASSWORD"];
-const envLocalPath = path.join(rootDir, ".env.local");
+const envPath = path.join(rootDir, ".env");
 
 function fail(message, output = "") {
   console.error(`실패: ${message}`);
@@ -35,7 +35,7 @@ if (!process.env.SUPABASE_PROJECT_REF) {
   if (orgList.length !== 1) fail(`조직이 ${orgList.length}개라 자동으로 고를 수 없습니다.`);
 
   if (listProjects().some((p) => p.name === PROJECT_NAME)) {
-    fail(`'${PROJECT_NAME}' 프로젝트가 이미 있습니다. .env.local에 SUPABASE_PROJECT_REF를 확인해 주세요.`);
+    fail(`'${PROJECT_NAME}' 프로젝트가 이미 있습니다. .env에 SUPABASE_PROJECT_REF를 확인해 주세요.`);
   }
 
   const dbPassword = randomBytes(24).toString("base64url");
@@ -54,14 +54,16 @@ if (!process.env.SUPABASE_PROJECT_REF) {
   if (!project) fail("만든 프로젝트를 목록에서 찾지 못했습니다.");
   process.env.SUPABASE_PROJECT_REF = project.id;
 
-  // 비밀번호를 잃어버리지 않도록 만든 직후 바로 .env.local에 저장한다 (.gitignore 대상)
-  const prefix = existsSync(envLocalPath) ? "\n" : "";
+  // 비밀번호를 잃어버리지 않도록 만든 직후 바로 .env에 저장한다 (.gitignore 대상)
+  // .env는 직접 만든 파일이라 마지막 줄 끝에 줄바꿈이 없을 수 있다. 없으면 먼저 줄을 바꿔 앞 줄과 붙지 않게 한다.
+  const existing = existsSync(envPath) ? readFileSync(envPath, "utf8") : "";
+  const prefix = existing === "" ? "" : existing.endsWith("\n") ? "\n" : "\n\n";
   appendFileSync(
-    envLocalPath,
+    envPath,
     `${prefix}# Supabase 프로젝트 (npm run setup:supabase가 기록)\n` +
       `SUPABASE_PROJECT_REF=${project.id}\nSUPABASE_DB_PASSWORD=${dbPassword}\n`,
   );
-  console.log("프로젝트를 만들었고, 연결 정보를 .env.local에 저장했습니다.");
+  console.log("프로젝트를 만들었고, 연결 정보를 .env에 저장했습니다.");
 }
 
 // 2. 프로젝트가 사용 가능해질 때까지 기다림 (최대 5분)
@@ -75,7 +77,7 @@ for (let waited = 0; ; waited += 10) {
 }
 
 // 3. 이 폴더의 supabase/와 연결 (비밀번호는 환경변수로만 넘김)
-if (!process.env.SUPABASE_DB_PASSWORD) fail(".env.local에 SUPABASE_DB_PASSWORD 값이 없습니다.");
+if (!process.env.SUPABASE_DB_PASSWORD) fail(".env에 SUPABASE_DB_PASSWORD 값이 없습니다.");
 const linked = runSupabase(["link", "--project-ref", ref], {
   env: { SUPABASE_DB_PASSWORD: process.env.SUPABASE_DB_PASSWORD },
 });

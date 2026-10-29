@@ -12,7 +12,7 @@ export function createAdminClient() {
   const secretKey = process.env.SUPABASE_SECRET_KEY;
 
   if (!secretKey) {
-    throw new Error("SUPABASE_SECRET_KEY가 없습니다. .env.local을 확인해 주세요. (npm run setup:env)");
+    throw new Error("SUPABASE_SECRET_KEY가 없습니다. .env을 확인해 주세요. (npm run setup:env)");
   }
 
   // 서버에서 한 번 쓰고 버리는 연결이므로 로그인 세션을 저장하거나 갱신하지 않는다.
