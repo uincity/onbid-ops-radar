@@ -17,6 +17,7 @@
     "test:unit": "vitest run",
     "test:e2e": "node --env-file=.env node_modules/@playwright/test/cli.js test",
     "test:engine-live": "node --env-file=.env scripts/test-engine-live.mjs",
+    "seed:sample": "node --env-file=.env scripts/seed-sample-ops.mjs",
     "test:db": "node --env-file=.env scripts/test-db.mjs",
     "check:db": "node --env-file=.env scripts/check-db.mjs",
     "check:env": "node --env-file=.env scripts/check-env.mjs",

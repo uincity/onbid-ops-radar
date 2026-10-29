@@ -495,6 +495,8 @@ onbid_rader/
 │  │   ├─ evidence.ts           탐지 근거와 원본 값 지문(해시) 만들기 (구현됨, PLAN 23)
 │  │   └─ types.ts              엔진·조회기·저장소가 주고받는 공통 모양
 │  ├─ anomalies/                서버 액션, 조회
+│  │   ├─ rpc.ts / labels.ts    사용자 DB 함수(배정·판정·상태) 호출 포장, 한국어 표시 이름 (구현됨, PLAN 26·27)
+│  │   └─ list-query.ts · event-view.ts · action-input.ts  목록 필터·이력 표시·처리 입력 검사 (구현됨, PLAN 25·28)
 │  ├─ reports/                  보고서 집계·Markdown 작성, 서버 액션
 │  ├─ auth/                     로그인 사용자·역할 확인
 │  ├─ supabase/                 server.ts(사용자용), client.ts(브라우저용), admin.ts(서버 관리용)
