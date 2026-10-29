@@ -11,6 +11,7 @@
     "db:push": "node --env-file=.env scripts/db-push.mjs",
     "setup:accounts": "node --env-file=.env scripts/setup-test-accounts.mjs",
     "check:accounts": "node --env-file=.env scripts/check-test-accounts.mjs",
+    "test:e2e": "node --env-file=.env node_modules/@playwright/test/cli.js test",
     "test:db": "node --env-file=.env scripts/test-db.mjs",
     "check:db": "node --env-file=.env scripts/check-db.mjs",
     "check:env": "node --env-file=.env scripts/check-env.mjs",
@@ -23,9 +24,11 @@
     "@supabase/supabase-js": "^2.118.0",
     "next": "16.4.3",
     "react": "19.3.0",
-    "react-dom": "19.3.0"
+    "react-dom": "19.3.0",
+    "zod": "^4.6.7"
   },
   "devDependencies": {
+    "@playwright/test": "^1.64.1",
     "@tailwindcss/turbopack": "^4",
     "@types/node": "^20",
     "@types/react": "^19",

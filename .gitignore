@@ -13,6 +13,11 @@
 # testing
 /coverage
 
+# playwright (화면 자동 테스트 결과물)
+/test-results/
+/playwright-report/
+/playwright/.cache/
+
 # next.js
 /.next/
 /out/
