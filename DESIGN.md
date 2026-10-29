@@ -285,7 +285,16 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
 - **설정값 검증:** `settings`는 14개 항목만 둘 수 있고, 항목마다 값의 모양과 범위를 DB가 검사한다(예: 호출 상한 1~100, 타임아웃 1~60초, 출처는 `DEMO`/`PUBLIC`). 항목 이름은 바꾸거나 지울 수 없다(값만 바꿀 수 있음). `public_daily_budget`은 승인 트래픽 확인 전까지 JSON `null`이다.
-- **설정값 사이의 관계는 서버가 확인한다:** DB는 항목 하나씩만 검사하므로, "호출 기본 상한 ≤ 최대 상한", "멈춘 실행 정리 기준(`stale_running_seconds`) > 점검 실행시간 제한(`run_time_limit_seconds`)"은 `lib/settings.ts`(PLAN 16번)가 값을 읽을 때·바꿀 때 함께 확인한다.
+- **설정값 사이의 관계는 서버가 확인한다:** DB는 항목 하나씩만 검사하므로, "호출 기본 상한 ≤ 최대 상한", "멈춘 실행 정리 기준(`stale_running_seconds`) > 점검 실행시간 제한(`run_time_limit_seconds`)"은 설정값 모듈(`lib/settings/schema.ts`의 `findRelationProblems`, PLAN 16번)이 값을 읽을 때 함께 확인한다. 같은 곳에서 "비교 대상과 비교 제외에 같은 필드가 있으면 안 된다"도 확인한다.
+
+**설정값 모듈 구현 내용 (PLAN 16번에서 만듦)**
+- **파일:** `lib/settings/schema.ts`(항목의 모양·범위·기본값·관계·도우미, 순수한 코드), `lib/settings/load.ts`(서버 전용: DB에서 읽어 검증), `lib/time.ts`(KST 계산). DESIGN 11.1의 `lib/settings.ts` 한 파일을 둘로 나눈 것이다. 순수한 부분은 DB·Next.js를 몰라서 단위 테스트가 쉽고, 서버 전용 부분만 `server-only`와 `connection()`을 쓴다.
+- **사용법:** 코드는 설정값을 직접 읽지 않고 `loadSettings(await createClient())`(화면·서버 액션, 로그인한 사용자 권한) 또는 `loadSettings(createAdminClient())`(점검 엔진·예약 점검)를 거쳐 `Settings` 객체(camelCase)로 받는다. 숫자를 코드에 직접 쓰지 않는다. 도우미: `resolveCallLimit`(요청이 없으면 기본 20회, 최대 100회로 줄임), `isEmptyAllowed`(설정에 없는 API는 허용 안 함), `fieldsFor`, `apiTimeoutMs`, `runTimeLimitMs`, `compareWindowMs`.
+- **몰래 기본값으로 대신하지 않는다:** DB에서 읽지 못하거나(오류·권한 문제로 줄이 없음) 값이 규칙에 어긋나면 `SettingsError`로 멈추고, 어떤 항목이 왜 문제인지 모아서 알려 준다. 오류 문구에는 잘못된 값이 아니라 규칙을 적고, DB가 돌려준 오류 문구는 옮기지 않는다(SEC-11). 점검 엔진은 설정을 모르면 점검하지 않는 것이 안전하기 때문이다. `DEFAULT_SETTING_VALUES`(PRD 5-5 기본값)는 시험과 기준 확인용이다.
+- **위쪽 막대의 출처 배지:** 이제 이 모듈로 `scheduled_source`를 읽는다. `SettingsError`일 때만 "출처 확인 불가"로 보이고, 그 밖의 예상하지 못한 오류는 그대로 올려 보낸다.
+- **고정 값 (DB 설정이 아님):** 예약 점검 시각 KST 09:00(`SCHEDULED_RUN_KST`)과 이를 UTC로 바꾼 값(`SCHEDULED_RUN_UTC` = 00:00)은 `lib/time.ts`에 있다. 예약 누락 확인 작업은 `scheduleMissedDeadline`(예정 + 대기 30분 = KST 09:30 = UTC 00:30)과 같아야 한다(PLAN 31·32번에서 Cron을 이 값으로 설정).
+- **KST 계산 (`lib/time.ts`):** `toKstDateString`, `kstDayRange`(하루 = [00:00, 다음 날 00:00) — 끝은 포함하지 않음), `addDaysKst`, `formatKst`, `scheduledRunAt`, `scheduleMissedDeadline`. 한국은 일광절약시간이 없어 항상 UTC+9로 계산하고, 없는 날짜(2026-02-30)는 거부한다.
+- **코드와 DB가 어긋나지 않게 지킨다:** 설정값 규칙은 DB(CHECK 제약·기본값)와 코드 두 곳에 있어서, `tests/unit/settings-drift.test.ts`가 마이그레이션 SQL을 직접 읽어 항목 이름 14개, 숫자 범위, 기본값 14개가 코드와 같은지 비교한다. 한쪽만 고치면 이 시험이 실패한다.
 - **사유 최소 글자 수:** `reason_min_length`는 10 이상으로만 올릴 수 있다. `anomaly_events`의 DB 제약이 공백 제외 10자 미만을 항상 거부하므로 10 아래로는 내릴 수 없다.
 - **보고서 날짜·집계 시각:** `reports.report_date`는 KST 날짜이고 아직 오지 않은 날짜는 저장할 수 없다. `covers_until`은 그 날짜(KST 00:00~다음 날 00:00) 안에 있어야 하고 `generated_at`을 넘을 수 없다.
 - **보고서는 서버가 팀장 확인 후 추가한다:** 로그인 사용자에게는 `reports`의 읽기만 주고, 서버 관리용 키(`service_role`)에게 읽기와 추가(INSERT)만 준다(수정·삭제·비우기 권한 없음). 서버 액션 `generateDailyReport`가 먼저 admin 역할을 확인하고, DB 트리거가 `generated_by`가 admin 역할인지 한 번 더 확인한다(SEC-03). 로그인 사용자가 API로 직접 보고서를 만들 수는 없다(보고서 내용을 위조할 수 없게 하려는 것이다).
@@ -415,7 +424,7 @@ type ActionResult<T> =
 
 | 수준 | 도구 | 무엇을 | 성공 기준 연결 |
 |---|---|---|---|
-| 단위 | Vitest | 탐지 규칙 3개를 DEMO 시나리오(이상 30·정상 100·경계 30)로 채점, 설정값·KST 계산 | PLAN 기준 3, 4 |
+| 단위 | Vitest | 탐지 규칙 3개를 DEMO 시나리오(이상 30·정상 100·경계 30)로 채점, 설정값·KST 계산 (설정값 모듈·KST 계산·코드-DB 규칙 일치 53개는 `tests/unit/`에 구현, PLAN 16번. 실행 `npm run test:unit`, DB·브라우저 없이 2초 안에 끝남) | PLAN 기준 3, 4 |
 | 점검 엔진 | Vitest | 타임아웃 10초, 호출 상한 20/100회, 60초 제한, 서비스키·한도 오류 시 탐지 생략, 0건 처리(`EMPTY_RESULT`), 일일 예산, 허용 호스트·HTTPS | PLAN 기준 11 / PRD 5-2 규칙 4~7 |
 | DB | pgTAP | RLS, 이력 수정·삭제 차단, 역할 변경 차단, DB 함수의 전이·버전·트랜잭션, `record_detection`의 중복·재발·억제, `start_check_run`의 동시 실행·멈춘 실행 정리, `mark_schedule_missed` 날짜당 1건 | SEC-04, 05, 07, 12 / 기준 5 / PRD 5-2 규칙 8~11 |
 | 서버 입구 | Vitest | 예약 점검 입구의 `CRON_SECRET` 확인, 오류 응답에 내부 정보 없음 | SEC-09, 11 |

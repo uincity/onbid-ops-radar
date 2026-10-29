@@ -64,9 +64,10 @@
 | DB 반영 (`supabase/migrations`의 새 파일) | `npm run db:push` |
 | DB 테이블 전체 확인 (새 테이블은 `scripts/db-checks/`에 확인 파일 추가) | `npm run check:db` |
 | DB 보안 테스트 pgTAP (`supabase/tests/database/*.test.sql`, Docker Desktop 필요) | `npm run test:db` |
+| 단위 테스트 Vitest (`tests/unit/*.test.ts`, DB·브라우저 없이 빠르게) | `npm run test:unit` |
 | 화면 자동 테스트 Playwright (`tests/e2e/*.spec.ts`, 개발 서버를 3100번 포트로 자동 실행, Edge 사용, `.env`의 시연 계정 필요) | `npm run test:e2e` |
 
-DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 `.env`의 `DEMO_*` 계정을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). `npm run test:e2e`는 로그인을 약 20번 하므로 Supabase 제한(5분에 약 30회) 때문에 5분 안에 연달아 두 번 돌리면 실패할 수 있습니다. Vitest 실행 명령은 PLAN 4번에서 정한 뒤 이 표에 추가합니다.
+DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 `.env`의 `DEMO_*` 계정을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). `npm run test:e2e`는 로그인을 약 20번 하므로 Supabase 제한(5분에 약 30회) 때문에 5분 안에 연달아 두 번 돌리면 실패할 수 있습니다. 규칙·계산 같은 순수한 코드를 바꾼 작업은 `npm run test:unit`도 통과해야 하고, 새 규칙에는 경계값(한 칸 안·밖)을 포함한 단위 테스트를 함께 만듭니다.
 
 ## 기술 스택 (고정)
 
@@ -95,7 +96,8 @@ DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는
 - **데이터 출처:** DEMO와 PUBLIC 데이터를 항상 구분해 저장하고, 화면과 보고서에 출처를 표시합니다. 모든 기능은 DEMO 데이터만으로 동작해야 합니다.
 - **처리상태:** `open` → `investigating` → `resolved`/`dismissed`, 종결 건의 재개(`investigating`)만 허용합니다. 나머지 전이는 거부합니다(PRD 5-3).
 - **감사이력:** 이벤트는 추가만 하고 수정·삭제하지 않습니다. 업무 데이터 변경과 이력 기록은 같은 DB 트랜잭션에서 저장합니다.
-- **설정값:** 타임아웃 10초, 호출 상한 20/100회, 실행시간 60초 등은 코드에 흩어 두지 않고 한곳(PRD 5-5)에서 관리합니다.
+- **설정값:** 타임아웃 10초, 호출 상한 20/100회, 실행시간 60초 등은 코드에 흩어 두지 않고 한곳(PRD 5-5)에서 관리합니다. 코드는 숫자를 직접 쓰지 않고 `lib/settings`의 `loadSettings()`로 읽은 `Settings`를 씁니다. 설정을 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 `SettingsError`로 멈춥니다. 설정값 규칙(DB와 코드)을 바꾸면 두 곳을 함께 고치고 `tests/unit/settings-drift.test.ts`가 통과해야 합니다.
+- **시각 계산:** KST 날짜·하루 범위·예약 시각 계산은 `lib/time.ts`를 씁니다. `new Date()`로 직접 날짜를 잘라 쓰지 않습니다(서버 시각은 UTC이므로 날짜가 하루 어긋날 수 있음).
 - **시간대:** 집계와 표시는 KST 기준입니다. Supabase Cron은 UTC이므로 KST 09:00은 UTC 00:00으로 설정합니다.
 
 ## 보안 규칙
