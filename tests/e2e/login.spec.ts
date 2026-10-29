@@ -5,41 +5,10 @@
 // 계정은 `npm run setup:accounts`가 만든다.
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
 
-const ADMIN = {
-  email: process.env.DEMO_ADMIN_EMAIL ?? "",
-  password: process.env.DEMO_ADMIN_PASSWORD ?? "",
-  name: "시연 팀장",
-  roleLabel: "팀장",
-};
-const OPERATOR = {
-  email: process.env.DEMO_OPERATOR_EMAIL ?? "",
-  password: process.env.DEMO_OPERATOR_PASSWORD ?? "",
-  name: "시연 담당자",
-  roleLabel: "운영 담당자",
-};
-
-test.beforeAll(() => {
-  const missing = ["DEMO_ADMIN_EMAIL", "DEMO_ADMIN_PASSWORD", "DEMO_OPERATOR_EMAIL", "DEMO_OPERATOR_PASSWORD"].filter(
-    (name) => !process.env[name],
-  );
-  if (missing.length > 0) {
-    throw new Error(`시연 계정 정보가 .env에 없습니다: ${missing.join(", ")} — npm run setup:accounts를 먼저 실행해 주세요.`);
-  }
-});
-
-async function signInThroughForm(page: Page, account: { email: string; password: string }, startUrl = "/login") {
-  await page.goto(startUrl);
-  await page.getByLabel("이메일").fill(account.email);
-  await page.getByLabel("비밀번호").fill(account.password);
-  await page.getByRole("button", { name: "로그인", exact: true }).click();
-}
-
-async function signOutThroughButton(page: Page) {
-  await page.getByRole("button", { name: "로그아웃" }).click();
-  await expect(page).toHaveURL(/\/login$/);
-}
+test.beforeAll(requireDemoAccounts);
 
 test.describe("비로그인 차단 (SEC-01)", () => {
   test("로그인하지 않고 첫 화면을 열면 /login으로 이동한다", async ({ page }) => {

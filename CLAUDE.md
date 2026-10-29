@@ -18,7 +18,7 @@
 ## 작업 방식
 
 - **파일 위치:** 새 파일은 이 프로젝트 폴더(`onbid_rader`) 안에만 만듭니다.
-- **파일 삭제:** 파일을 바로 삭제하지 않습니다. 프로젝트 폴더 안에 `trash-can` 폴더를 만들어 그 안으로 옮겨만 두고, 사용자가 작업 후 직접 확인하고 삭제합니다.
+- **파일 삭제:** 파일을 바로 삭제하지 않습니다. 프로젝트 폴더 안에 `trash-can` 폴더를 만들어 그 안으로 옮겨만 두고, 사용자가 작업 후 직접 확인하고 삭제합니다. `trash-can`은 타입 검사(`tsconfig.json`)와 린트(`eslint.config.mjs`)에서 제외되어 있어, 옮겨 둔 코드 파일이 검사를 깨뜨리지 않습니다.
 - **서브에이전트:** 이미 설치된 서브에이전트(bkit 에이전트 등)를 필요할 때마다 적극 활용합니다.
 - **외부 서비스 인증:** 토큰 값을 사용자에게 묻거나 채팅에 출력하지 않고, `.env`에 있는 값을 읽어서 사용합니다.
   - Supabase 작업이 필요하면 Supabase CLI를 설치해 `.env`의 `SUPABASE_ACCESS_TOKEN`으로 인증합니다.
@@ -66,7 +66,7 @@
 | DB 보안 테스트 pgTAP (`supabase/tests/database/*.test.sql`, Docker Desktop 필요) | `npm run test:db` |
 | 화면 자동 테스트 Playwright (`tests/e2e/*.spec.ts`, 개발 서버를 3100번 포트로 자동 실행, Edge 사용, `.env`의 시연 계정 필요) | `npm run test:e2e` |
 
-DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 `.env`의 `DEMO_*` 계정을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). Vitest 실행 명령은 PLAN 4번에서 정한 뒤 이 표에 추가합니다.
+DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 `.env`의 `DEMO_*` 계정을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). `npm run test:e2e`는 로그인을 약 20번 하므로 Supabase 제한(5분에 약 30회) 때문에 5분 안에 연달아 두 번 돌리면 실패할 수 있습니다. Vitest 실행 명령은 PLAN 4번에서 정한 뒤 이 표에 추가합니다.
 
 ## 기술 스택 (고정)
 
