@@ -32,7 +32,7 @@ test.describe("비로그인 차단 (SEC-01)", () => {
 
   test("예약 점검 입구(/api/cron/)는 로그인 검사 대상이 아니다 (CRON_SECRET으로 따로 인증, PLAN 31번)", async ({ request }) => {
     const res = await request.get("/api/cron/daily-check", { maxRedirects: 0 });
-    // 아직 입구를 만들지 않아 404이다. 중요한 것은 로그인 화면으로 넘기거나(3xx) 401로 막지 않는다는 점이다.
+    // 입구는 POST만 받아 GET은 405이다. 중요한 것은 로그인 검사가 로그인 화면으로 넘기거나(3xx) 로그인 401로 막지 않는다는 점이다 (입구 자체의 비밀값 검사는 cron.spec.ts).
     expect(res.status()).not.toBe(401);
     expect(res.status() >= 300 && res.status() < 400).toBe(false); // 3xx(로그인 화면으로 넘기기)가 아니어야 한다
   });

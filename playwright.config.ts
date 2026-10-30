@@ -6,6 +6,9 @@ import { defineConfig } from "@playwright/test";
 // 이 컴퓨터에서 다른 프로그램이 흔히 쓰는 3000번을 피하고, 개발 서버를 테스트 전용 포트로 띄운다.
 const PORT = 3100;
 
+// 배포한 사이트에 같은 화면 시험을 돌릴 때: E2E_BASE_URL=https://배포주소 npm run test:e2e  (개발 서버를 띄우지 않고 그 주소에 붙는다. 로그인이 약 20번이라 5분 안에 두 번 돌리지 말 것)
+const REMOTE = process.env.E2E_BASE_URL;
+
 export default defineConfig({
   testDir: "tests/e2e",
   // 로그인 시험은 순서대로 하나씩 돌린다 (같은 개발 서버·같은 계정을 쓰므로)
@@ -17,16 +20,18 @@ export default defineConfig({
   reporter: [["list"]],
   outputDir: "test-results",
   use: {
-    baseURL: `http://localhost:${PORT}`,
+    baseURL: REMOTE ?? `http://localhost:${PORT}`,
     channel: "msedge",
     headless: true,
     locale: "ko-KR",
     trace: "off",
   },
-  webServer: {
-    command: `npx next dev -p ${PORT}`,
-    url: `http://localhost:${PORT}/login`,
-    reuseExistingServer: true,
-    timeout: 180_000,
-  },
+  webServer: REMOTE
+    ? undefined
+    : {
+        command: `npx next dev -p ${PORT}`,
+        url: `http://localhost:${PORT}/login`,
+        reuseExistingServer: true,
+        timeout: 180_000,
+      },
 });
