@@ -43,7 +43,7 @@ test.describe("공통 화면 틀 (넓은 화면)", () => {
 
     for (const menu of [...MENUS.slice(1), MENUS[0]]) {
       await nav.getByRole("link", { name: menu.label, exact: true }).click();
-      await expect(page).toHaveURL(new RegExp(`localhost:\\d+${menu.href === "/" ? "/$" : `${menu.href}$`}`));
+      await expect(page).toHaveURL(new RegExp(`//[^/]+${menu.href === "/" ? "/$" : `${menu.href}$`}`));
       await expect(page.getByRole("heading", { level: 1, name: menu.title })).toBeVisible();
       await expect(page).toHaveTitle(`${menu.title} · OnBid Ops Radar`);
       // 지금 화면의 메뉴만 강조(aria-current)된다
@@ -61,7 +61,7 @@ test.describe("공통 화면 틀 (넓은 화면)", () => {
     await page.getByRole("navigation", { name: "주 메뉴", exact: true }).getByRole("link", { name: "보고서", exact: true }).click();
     await expect(page).toHaveURL(/\/reports$/);
     await page.getByRole("banner").getByRole("link", { name: "OnBid Ops Radar" }).click();
-    await expect(page).toHaveURL(/localhost:\d+\/$/);
+    await expect(page).toHaveURL(/[^/]+\/$/);
     await signOutThroughButton(page);
   });
 
@@ -88,7 +88,7 @@ test.describe("로그인하지 않고 각 화면 주소로 들어갈 때", () =>
       await page.goto(menu.href);
       await expect(page).toHaveURL(new RegExp(`/login\\?next=${encodeURIComponent(menu.href).replace(/%/g, "%")}$`));
       await signInThroughForm(page, OPERATOR, page.url());
-      await expect(page).toHaveURL(new RegExp(`localhost:\\d+${menu.href}$`));
+      await expect(page).toHaveURL(new RegExp(`//[^/]+${menu.href}$`));
       await expect(page.getByRole("heading", { level: 1, name: menu.title })).toBeVisible();
       await signOutThroughButton(page);
     });

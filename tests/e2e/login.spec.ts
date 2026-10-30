@@ -68,7 +68,7 @@ test.describe("로그인 실패", () => {
 test.describe("로그인·로그아웃", () => {
   test("팀장 계정으로 로그인하면 이름과 역할이 보이고, 로그아웃하면 다시 막힌다", async ({ page }) => {
     await signInThroughForm(page, ADMIN);
-    await expect(page).toHaveURL(/localhost:\d+\/$/);
+    await expect(page).toHaveURL(/[^/]+\/$/);
     await expect(page.getByTestId("user-name")).toHaveText(ADMIN.name);
     await expect(page.getByTestId("user-role")).toHaveText(ADMIN.roleLabel);
 
@@ -85,7 +85,7 @@ test.describe("로그인·로그아웃", () => {
     await expect(page.getByTestId("user-role")).toHaveText(OPERATOR.roleLabel);
 
     await page.goto("/login");
-    await expect(page).toHaveURL(/localhost:\d+\/$/);
+    await expect(page).toHaveURL(/[^/]+\/$/);
     await expect(page.getByTestId("user-name")).toHaveText(OPERATOR.name);
 
     await signOutThroughButton(page);
@@ -103,7 +103,7 @@ test.describe("로그인·로그아웃", () => {
 test.describe("로그인 뒤 돌아갈 주소(next)", () => {
   test("우리 사이트 안의 주소는 로그인 뒤 그 주소로 돌아간다", async ({ page }) => {
     await signInThroughForm(page, OPERATOR, "/login?next=%2F%3Fwelcome%3D1");
-    await expect(page).toHaveURL(/localhost:\d+\/\?welcome=1$/);
+    await expect(page).toHaveURL(/[^/]+\/\?welcome=1$/);
     await signOutThroughButton(page);
   });
 
@@ -112,7 +112,8 @@ test.describe("로그인 뒤 돌아갈 주소(next)", () => {
       await signInThroughForm(page, OPERATOR, `/login?next=${encodeURIComponent(evil)}`);
       await expect(page.getByTestId("user-name")).toHaveText(OPERATOR.name);
       const url = new URL(page.url());
-      expect(url.hostname).toBe("localhost");
+      expect(url.hostname).not.toContain("evil"); // 우리 사이트 안(개발 서버 또는 E2E_BASE_URL의 배포 주소)에 머문다
+      expect(url.origin).toBe(new URL(process.env.E2E_BASE_URL ?? "http://localhost:3100").origin);
       expect(url.pathname).toBe("/");
       await signOutThroughButton(page);
     });
