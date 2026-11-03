@@ -119,7 +119,9 @@ describe("점검 준비 상태 (점검할 수 없는 이유는 장애가 아니�
     for (const { operation, key } of allOperations()) {
       const reason = checkReadiness(operation, { hasValidInput: false });
       if (operation.verification.state === "SPEC_ONLY") {
-        expect(`UNVERIFIED:${reason}`, key).toBe(operation.availabilityBeforeProbe);
+        // 승인되고 식별값도 필요 없는데 점검 입력(probe.input)을 정하지 않은 오퍼레이션은 readiness가 통과(null)시키지만, 등록부는 NO_VALID_INPUT(점검 입력 미정)으로 둔다
+        expect(`UNVERIFIED:${reason ?? "NO_VALID_INPUT"}`, key).toBe(operation.availabilityBeforeProbe);
+        if (reason === null) expect(operation.probe.input, key).toBeNull();
       } else {
         // 실호출 확인이 끝난 오퍼레이션: 입력값만 있으면 점검할 수 있다
         expect(checkReadiness(operation, { hasValidInput: true }), key).toBeNull();

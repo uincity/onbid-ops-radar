@@ -27,15 +27,21 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     expect(liveVerifiedOperations().map((o) => o.key)).toEqual(["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"]);
   });
 
-  it("나머지 26개 오퍼레이션은 명세만 확인했으므로 점검 전 상태가 UNVERIFIED이고 점검 방식·쿼터는 비어 있다", () => {
+  it("나머지 26개 오퍼레이션은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
     expect(others).toHaveLength(26);
     for (const { operation, key } of others) {
-      expect(operation.availabilityBeforeProbe, key).toMatch(/^UNVERIFIED:(NO_VALID_INPUT|APPROVAL_UNCONFIRMED)$/);
-      expect(operation.approval, key).toBe("UNCONFIRMED");
-      expect(operation.probe, key).toEqual({ mode: null, input: null, inputSource: null });
+      expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
+      expect(operation.approval, key).toBe("APPROVED");
+      expect(operation.probe, key).toEqual({ mode: null, input: null, inputSource: null }); // 점검 방식·입력값은 근거가 생기기 전에 만들지 않는다
       expect(operation.noDataPolicy, key).toBe("UNDEFINED");
-      expect(operation.quota, key).toBeNull();
+    }
+  });
+
+  it("사용자가 확인한 일일 쿼터(100,000회)가 25종 모든 오퍼레이션에 근거와 함께 들어 있다", () => {
+    for (const { operation, key } of allOperations()) {
+      expect(operation.quota, key).toMatchObject({ dailyLimit: 100000 });
+      expect(operation.quota?.source, key).toContain("사용자 확인 2026-11-03");
     }
   });
 
@@ -147,9 +153,9 @@ describe("잘못된 등록부는 거부된다", () => {
   it("실호출 확인인데 확인 날짜가 없음", () => expect(rejects((r) => (r.services[0].operations[0].verification.verifiedAt = null))).toBe(true));
   it("명세만 확인한 오퍼레이션에 점검 전 상태가 없음", () => expect(rejects((r) => (r.services[1].operations[0].availabilityBeforeProbe = null))).toBe(true));
   it("승인을 확인하지 못했는데 점검 방식이 채워져 있음 (지어낸 값)", () =>
-    expect(rejects((r) => (r.services[1].operations[0].probe.mode = "positive" as never))).toBe(true));
+    expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = null as never; r.services[1].operations[0].probe.mode = "positive" as never; })).toBe(true));
   it("승인을 확인하지 못했는데 쿼터가 채워져 있음", () =>
-    expect(rejects((r) => (r.services[1].operations[0].quota = { dailyLimit: 1000, source: "추정" } as never))).toBe(true));
+    expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = { dailyLimit: 1000, source: "추정" } as never; })).toBe(true));
   it("입력값 출처 후보가 등록부에 없음", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-999/nothing"]))).toBe(true));
   it("자기 자신이 입력값 출처 후보", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-004/getRlstDtlInf"]))).toBe(true));
   it("오퍼레이션 ID 중복", () => expect(rejects((r) => r.services[0].operations.push(structuredClone(r.services[0].operations[0])))).toBe(true));

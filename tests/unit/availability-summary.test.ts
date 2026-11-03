@@ -44,11 +44,11 @@ describe("summarizeAvailability", () => {
     expect(s.counts.PASS_DATA).toBe(0);
   });
 
-  it("지표: 시도율은 준비된 오퍼레이션 기준, 기본 정상 비율은 시도한 수 기준 (미점검·검증 불가는 분모에 넣지 않음)", () => {
+  it("지표: 시도율은 승인된(준비된) 오퍼레이션 기준, 기본 정상 비율은 시도한 수 기준 (미점검·검증 불가는 분모에 넣지 않음)", () => {
     const rows = [row(LIST, "PASS_DATA"), row(DETAIL, "FAIL", { reason: "HTTP_ERROR" })];
     const s = summarizeAvailability({ rows, okRows: [] });
-    expect(s.ready.ready).toBe(2); // 승인이 확인된 목록·상세
-    expect(s.attemptRate).toMatchObject({ num: 2, den: 2, ratio: 1 });
+    expect(s.ready).toEqual({ ready: total, notReady: 0 }); // 사용자가 25종 승인을 확인했다(2026-11-03)
+    expect(s.attemptRate).toMatchObject({ num: 2, den: total, ratio: 2 / total }); // 요청을 보낸 것은 2개뿐 → 시도율이 낮은 것이 현재 실상이다
     expect(s.basicOk).toMatchObject({ num: 1, den: 2, ratio: 0.5 });
   });
 

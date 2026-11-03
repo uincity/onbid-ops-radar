@@ -594,7 +594,10 @@
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": null
         }
       ]
@@ -1153,15 +1156,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -1684,15 +1690,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -2315,7 +2324,10 @@
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": null
         }
       ]
@@ -2995,14 +3007,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -3626,14 +3641,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -4130,14 +4148,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -4463,15 +4484,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -4863,14 +4887,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -5070,15 +5097,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -5325,14 +5355,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -5496,14 +5529,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -5765,14 +5801,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -5958,15 +5997,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -6178,14 +6220,17 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
           "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
@@ -6395,15 +6440,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -6612,15 +6660,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -6843,15 +6894,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7032,15 +7086,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7214,15 +7271,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7396,15 +7456,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7480,15 +7543,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7550,15 +7616,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         },
         {
           "operationId": "getOnbidDtlAddrInfo",
@@ -7608,15 +7677,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -7754,15 +7826,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         },
         {
           "operationId": "getOrgCltrClarStats",
@@ -7875,15 +7950,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },
@@ -8021,15 +8099,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         },
         {
           "operationId": "getOrgCltrUsgStats",
@@ -8142,15 +8223,18 @@
             "evidence": "명세서 확인만 함. 실호출 없음",
             "verifiedAt": null
           },
-          "approval": "UNCONFIRMED",
+          "approval": "APPROVED",
           "probe": {
             "mode": null,
             "input": null,
             "inputSource": null
           },
           "noDataPolicy": "UNDEFINED",
-          "quota": null,
-          "availabilityBeforeProbe": "UNVERIFIED:APPROVAL_UNCONFIRMED"
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     }

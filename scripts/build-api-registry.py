@@ -19,6 +19,9 @@ import xml.etree.ElementTree as ET
 
 W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 REGISTRY_DATE = "2026-10-29"
+# 사용자 확인(2026-11-03): 온비드 OpenAPI 25종 서비스 모두 공공데이터포털에서 승인되어 있고 서비스별 일일 100,000회 트래픽이 가능하다.
+APPROVAL_CONFIRMED_DATE = "2026-11-03"
+USER_QUOTA = {"dailyLimit": 100000, "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"}
 TARGET_SERVICES = 26  # 사용자가 정한 관리 목표 수 (PRD 용어 주의)
 
 # 2026-10-29에 실제 호출로 응답 형식을 확인한 오퍼레이션 (PRD 부록 A-1, tests/unit/public-live.test.ts)
@@ -195,11 +198,12 @@ for d in docs:
                     "verifiedAt": REGISTRY_DATE if live else None,
                 },
                 # 명세서로는 알 수 없는 항목: 확인 전까지 '미정'이며 점검 결과를 정상으로 세지 않는다 (PRD 3-3, 5-2-3)
-                "approval": "CONFIRMED_BY_USER_2026_10_29" if live else "UNCONFIRMED",
+                "approval": "CONFIRMED_BY_USER_2026_10_29" if live else "APPROVED",
                 "probe": {"mode": None, "input": None, "inputSource": None},
                 "noDataPolicy": "UNDEFINED",
-                "quota": None,
-                "availabilityBeforeProbe": None if live else ("UNVERIFIED:NO_VALID_INPUT" if needs_ids else "UNVERIFIED:APPROVAL_UNCONFIRMED"),
+                "quota": USER_QUOTA,
+                # 승인은 확인됐지만 점검에 쓸 유효 입력값(probe.input)은 아직 정하지 않았다. 정하기 전에는 요청을 보내지 않고 검증 불가로 둔다
+                "availabilityBeforeProbe": None if live else "UNVERIFIED:NO_VALID_INPUT",
             }
         )
     services.append(
