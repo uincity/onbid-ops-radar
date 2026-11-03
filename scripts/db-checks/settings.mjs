@@ -40,8 +40,10 @@ export async function run(ctx) {
   const actual = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   report(rows.length === Object.keys(EXPECTED).length, `설정 항목 ${Object.keys(EXPECTED).length}개가 모두 있음`, `${rows.length}개`);
   // 예약 점검 출처(scheduled_source)는 운영하면서 DEMO↔PUBLIC으로 바꾸는 값이라 기본값과 같은지는 보지 않고, 허용된 값(DEMO·PUBLIC)인지만 본다
-  const OPERATIONAL = ["scheduled_source"];
+  const OPERATIONAL = ["scheduled_source", "run_time_limit_seconds"];
   report(["DEMO", "PUBLIC"].includes(actual.scheduled_source), "예약 점검 출처(scheduled_source)가 DEMO 또는 PUBLIC", `현재 ${actual.scheduled_source}`);
+  // 실행시간 제한(run_time_limit_seconds)도 운영하며 조정하는 값이다(2026-11-04 60→80초). 기본값 비교 대신 허용 범위(10~300초)와, 멈춘 실행 기준(stale_running_seconds)보다 작은지만 본다
+  report(Number.isInteger(actual.run_time_limit_seconds) && actual.run_time_limit_seconds >= 10 && actual.run_time_limit_seconds <= 300 && actual.run_time_limit_seconds < actual.stale_running_seconds, "실행시간 제한(run_time_limit_seconds)이 10~300초이고 멈춘 실행 기준보다 작음", `현재 ${actual.run_time_limit_seconds}`);
   const wrong = Object.entries(EXPECTED)
     .filter(([key]) => !OPERATIONAL.includes(key))
     .filter(([key, value]) => JSON.stringify(actual[key]) !== JSON.stringify(value))
