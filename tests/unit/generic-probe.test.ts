@@ -40,14 +40,14 @@ describe("resolveProbeInput (자리표시자 해석)", () => {
 
 describe("genericProbeTargets", () => {
   const targets = genericProbeTargets(NOW);
-  it("1·2단계 13개 + 교차 참조 자식 8개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
-    expect(targets).toHaveLength(21);
+  it("1·2단계 13개 + 명세 샘플 5개 + 교차 참조 자식 8개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
+    expect(targets).toHaveLength(26);
     expect(targets.map((t) => t.operationKey)).toContain("SVC-API-016/getPbancDtlInf");
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-001/getRlstCltrList");
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-004/getRlstDtlInf");
   });
   it("점검 이름은 api_checks 허용 형식이고 서로 다르며, 호출 주소는 https 허용 호스트다", () => {
-    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(21);
+    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(26);
     for (const t of targets) {
       expect(t.endpoint).toMatch(/^[A-Za-z0-9_.-]{1,60}$/);
       expect(t.url).toMatch(/^https:\/\/apis\.data\.go\.kr\//);
@@ -67,9 +67,13 @@ describe("genericProbeTargets", () => {
       expect(targets.find((t) => t.operationKey === key)!.params).toEqual({ cltrTypeCd: "0001", prptDivCd: "0007", opbdDtStart: "20261027", opbdDtEnd: "20261103" });
     }
   });
-  it("근거가 없는 공고 입찰결과(getPbancBidRsltList)와 정부재산 등은 목록에 없다", () => {
-    expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-019/getPbancBidRsltList");
-    expect(targets.some((t) => /SVC-API-02[1-4]/.test(t.operationKey))).toBe(false);
+  it("명세 샘플 값 5개(공고 입찰결과 목록, 정부재산 4종)가 목록에 있고, 입력은 등록부의 값 그대로다", () => {
+    const by = (k: string) => targets.find((t) => t.operationKey === k)!;
+    expect(by("SVC-API-019/getPbancBidRsltList").params).toEqual({ cltrTypeCd: "0001", prptDivCd: "0007", opbdDtStart: "20261027", opbdDtEnd: "20261103" }); // 013·015와 같은 입력
+    expect(by("SVC-API-021/getGvwsGnrPrptInf").params).toEqual({ sdnm: "서울특별시" });
+    expect(by("SVC-API-022/getPbownGnrPrptInf").params).toEqual({ sdnm: "강원도" });
+    expect(by("SVC-API-023/getPjpnBlnPrptInf").params).toEqual({ sdnm: "서울특별시" });
+    expect(by("SVC-API-024/getDisuseCmdtyInf").params).toEqual({}); // 필수 입력 없음
   });
   it("통계 오퍼레이션의 입력이 풀어 쓴 값으로 들어 있다", () => {
     const stats = targets.find((t) => t.operationKey === "SVC-API-026/getKamcoCltrClarStats")!;
@@ -182,14 +186,14 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     return runCheck({ trigger: "manual", source: "PUBLIC", settings, store: mem.store, fetcher, extraEndpoints: built.extraEndpoints, callLimit: over.callLimit }).then((result) => ({ result, rec: mem.rec }));
   };
 
-  it("목록·상세 2개 + 추가 21개(교차 참조 자식 8개 포함) = 점검 23개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
+  it("목록·상세 2개 + 추가 26개(교차 참조 자식 8개, 명세 샘플 5개 포함) = 점검 28개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
     const api = mixedApi(() => okBody({ ctgrId: "1", ctgrNm: "x", upCtgrId: "0", pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", pbctNo: "1" }));
     const { result, rec } = await run(api);
-    expect(result.probes).toHaveLength(23);
-    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(23);
+    expect(result.probes).toHaveLength(28);
+    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(28);
     expect(rec.collected).toBe(2); // 목록·상세만 저장
-    // 등록부 28개 중 점검한 23개 + 요청 없이 검증 불가로 남긴 5개(근거 없는 019·021~024) = 28개가 중복 없이 기록됨
-    expect(result.unprobeable).toHaveLength(5);
+    // 등록부 28개 모두 점검 대상이라 요청 없이 검증 불가로 남기는 오퍼레이션은 없다 (28개가 중복 없이 기록됨)
+    expect(result.unprobeable).toHaveLength(0);
     const keys = rec.probes.map((p) => `${p.apiId}/${p.operationId}`);
     expect(new Set(keys).size).toBe(28);
   });
@@ -220,23 +224,23 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     expect(result.detections).toEqual([]);
   });
 
-  it("호출 상한 30회: 추가 오퍼레이션 21개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 21개는 모두 호출된다 (총 30회)", async () => {
+  it("호출 상한 30회: 추가 오퍼레이션 26개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 26개는 모두 호출된다 (총 30회)", async () => {
     // 목록이 물건 30개를 돌려줘도(상세를 30번 부르려 해도) 추가 오퍼레이션 13개 몫은 남아 있어야 한다
     const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 30);
     const { result } = await run(api, { callLimit: 30 });
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
-    expect(extraCalls).toBe(21);
+    expect(extraCalls).toBe(26);
     expect(result.apiCallCount).toBe(30);
     expect(api.urls.length).toBe(30);
   });
 
-  it("기본 상한 60회(설정값): 추가 오퍼레이션 21개 + 목록 1 + 상세 38 = 60회를 쓰고 넘지 않는다", async () => {
+  it("기본 상한 60회(설정값): 추가 오퍼레이션 26개 + 목록 1 + 상세 33 = 60회를 쓰고 넘지 않는다", async () => {
     const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 80);
     const { result } = await run(api); // callLimit을 주지 않으면 설정값(기본 60)을 쓴다
     const details = api.urls.filter((u) => u.pathname.endsWith("getRlstDtlInf2")).length;
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
-    expect(extraCalls).toBe(21);
-    expect(details).toBe(38);
+    expect(extraCalls).toBe(26);
+    expect(details).toBe(33);
     expect(result.apiCallCount).toBe(60);
     expect(api.urls.length).toBe(60);
   });

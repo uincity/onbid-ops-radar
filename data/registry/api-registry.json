@@ -6015,16 +6015,21 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrTypeCd": "0001",
+              "prptDivCd": "0007",
+              "opbdDtStart": "{DAYS_AGO_7}",
+              "opbdDtEnd": "{TODAY}"
+            },
+            "inputSource": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력 4항목이 공고 목록(015)·입찰결과 목록(013)과 같아 두 오퍼레이션에서 확인된 값(물건유형 0001, 재산유형 0007, 최근 7일 개찰일)을 쓴다. 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7110,16 +7115,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "sdnm": "서울특별시"
+            },
+            "inputSource": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력의 명세 샘플을 그대로 쓴다. 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7295,16 +7302,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "sdnm": "강원도"
+            },
+            "inputSource": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력의 명세 샘플을 그대로 쓴다. 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7480,16 +7489,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "sdnm": "서울특별시"
+            },
+            "inputSource": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력의 명세 샘플을 그대로 쓴다. 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7567,16 +7578,16 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {},
+            "inputSource": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력의 명세 샘플을 그대로 쓴다. 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },

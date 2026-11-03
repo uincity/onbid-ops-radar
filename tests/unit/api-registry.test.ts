@@ -67,7 +67,7 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     }
   });
 
-  it("점검 입력은 1·2단계 13개뿐이고, 모두 점검 방식과 근거 파일 이름이 있으며 내 PC 경로가 들어 있지 않다", () => {
+  it("점검 입력은 1·2단계 13개(사용자 수집 코드)와 3단계 5개(서비스 명세서 샘플 값)이고, 모두 점검 방식과 근거가 있으며 내 PC 경로가 들어 있지 않다", () => {
     const withInput = allOperations().filter((o) => o.operation.probe.input !== null);
     expect(withInput.map((o) => o.key).sort()).toEqual([
       "SVC-API-002/getMvastCltrList",
@@ -77,6 +77,11 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
       "SVC-API-012/get50PctDecrCltr",
       "SVC-API-013/getCltrBidRsltList",
       "SVC-API-015/getPbancList",
+      "SVC-API-019/getPbancBidRsltList",
+      "SVC-API-021/getGvwsGnrPrptInf",
+      "SVC-API-022/getPbownGnrPrptInf",
+      "SVC-API-023/getPjpnBlnPrptInf",
+      "SVC-API-024/getDisuseCmdtyInf",
       "SVC-API-025/getOnbidDtlAddrInfo",
       "SVC-API-025/getOnbidUsgCodeInfo",
       "SVC-API-026/getKamcoCltrClarStats",
@@ -84,9 +89,11 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
       "SVC-API-027/getKamcoCltrUsgStats",
       "SVC-API-027/getOrgCltrUsgStats",
     ]);
+    const specSample = ["SVC-API-019", "SVC-API-021", "SVC-API-022", "SVC-API-023", "SVC-API-024"];
     for (const { operation, key } of withInput) {
       expect(operation.probe.mode, key).toBe("structural");
-      expect(operation.probe.inputSource, key).toMatch(/사용자 수집 코드 .+\.py/);
+      // 3단계는 수집 코드가 없어 명세서 샘플 값이 근거다 (사용자 승인 2026-11-03)
+      expect(operation.probe.inputSource, key).toMatch(specSample.includes(key.split("/")[0]) ? /서비스 명세서 샘플 값/ : /사용자 수집 코드 .+\.py/);
       expect(operation.probe.inputSource, key).not.toMatch(/[A-Za-z]:[\\/]|\/Users\//); // 드라이브 경로(D:\...)나 홈 폴더 경로가 없어야 한다
     }
     // 근거가 되는 값 그대로인지 (사용자 수집 코드에서 확인한 코드 값)
@@ -209,8 +216,6 @@ describe("잘못된 등록부는 거부된다", () => {
   it("호출 주소가 서비스 주소 + 경로와 다름", () => expect(rejects((r) => (r.services[0].operations[0].path = "otherPath"))).toBe(true));
   it("GET이 아닌 방식", () => expect(rejects((r) => ((r.services[0].operations[0] as { method: string }).method = "POST"))).toBe(true));
   it("실호출 확인인데 확인 날짜가 없음", () => expect(rejects((r) => (r.services[0].operations[0].verification.verifiedAt = null))).toBe(true));
-  it("명세만 확인한 오퍼레이션에 점검 입력도 점검 전 상태도 없음 (점검 입력이 없는 첫 오퍼레이션)", () =>
-    expect(rejects((r) => { const o = r.services.flatMap((x) => x.operations).find((y) => y.verification.state === "SPEC_ONLY" && y.probe.input === null)!; o.availabilityBeforeProbe = null; })).toBe(true));
   it("승인을 확인하지 못했는데 점검 방식이 채워져 있음 (지어낸 값)", () =>
     expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = null as never; r.services[1].operations[0].probe.mode = "positive" as never; })).toBe(true));
   it("승인을 확인하지 못했는데 쿼터가 채워져 있음", () =>
@@ -219,8 +224,8 @@ describe("잘못된 등록부는 거부된다", () => {
     expect(rejects((r) => (r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe.input = { inqPerd: "{NEXT_WEEK}" }))).toBe(true));
   it("점검 입력이 있는데 근거가 없음 (지어낸 값)", () =>
     expect(rejects((r) => { const p = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe; p.inputSource = null as never; })).toBe(true));
-  it("점검 입력도 점검 전 상태도 없음", () =>
-    expect(rejects((r) => { const o = r.services.flatMap((x) => x.operations).find((y) => y.verification.state === "SPEC_ONLY" && y.probe.input === null)!; o.probe = { mode: null, input: null, inputSource: null } as never; o.availabilityBeforeProbe = null; })).toBe(true));
+  it("명세만 확인한 오퍼레이션에 점검 입력도 점검 전 상태도 없음 (점검 입력을 비운 첫 오퍼레이션)", () =>
+    expect(rejects((r) => { const o = r.services.flatMap((x) => x.operations).find((y) => y.verification.state === "SPEC_ONLY")!; o.probe = { mode: null, input: null, inputSource: null } as never; o.availabilityBeforeProbe = null; })).toBe(true));
   it("입력값 출처 후보가 등록부에 없음", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-999/nothing"]))).toBe(true));
   it("자기 자신이 입력값 출처 후보", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-004/getRlstDtlInf"]))).toBe(true));
   it("오퍼레이션 ID 중복", () => expect(rejects((r) => r.services[0].operations.push(structuredClone(r.services[0].operations[0])))).toBe(true));

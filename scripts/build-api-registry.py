@@ -21,9 +21,9 @@ W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 REGISTRY_DATE = "2026-10-29"
 # 사용자 확인(2026-11-03): 온비드 OpenAPI 25종 서비스 모두 공공데이터포털에서 승인되어 있고 서비스별 일일 100,000회 트래픽이 가능하다.
 APPROVAL_CONFIRMED_DATE = "2026-11-03"
-# 점검 입력(1단계 9개 + 2단계 4개): 사용자의 수집 코드(2026-04 사용, 사용자 PC의 수집 스크립트 폴더)에서 확인된 값만 쓴다. 근거 없는 오퍼레이션은 비워 둔다.
+# 점검 입력(1단계 9개 + 2단계 4개 + 3단계 5개): 1·2단계는 사용자의 수집 코드(2026-04 사용, 사용자 PC의 수집 스크립트 폴더)에서 확인된 값, 3단계(019·021~024)는 수집 코드가 없어 서비스 명세서의 샘플 값(2026-11-03 사용자 승인)을 쓴다. 근거 없는 오퍼레이션은 비워 둔다.
 # {PREV_YEAR} 같은 {…} 값은 점검할 때 lib/checks/generic-probe.ts가 KST 기준으로 풀어 쓴다.
-PROBE_INPUTS = {"SVC-API-010/getItrsCltrRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-011/getInqRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-012/get50PctDecrCltr": {"cltrDivNm": "부동산"}, "SVC-API-025/getOnbidUsgCodeInfo": {}, "SVC-API-025/getOnbidDtlAddrInfo": {}, "SVC-API-026/getKamcoCltrClarStats": {"statsTypeCd": "0021", "inqPerd": "{PREV_YEAR}"}, "SVC-API-026/getOrgCltrClarStats": {"inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getKamcoCltrUsgStats": {"statsTypeCd": "0041", "inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getOrgCltrUsgStats": {"inqPerd": "{PREV_YEAR}"}, "SVC-API-002/getMvastCltrList": {"prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", "pvctTrgtYn": "N"}, "SVC-API-003/getCarCltrList": {"prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", "pvctTrgtYn": "N"}, "SVC-API-013/getCltrBidRsltList": {"cltrTypeCd": "0001", "prptDivCd": "0007", "opbdDtStart": "{DAYS_AGO_7}", "opbdDtEnd": "{TODAY}"}, "SVC-API-015/getPbancList": {"cltrTypeCd": "0001", "prptDivCd": "0007", "opbdDtStart": "{DAYS_AGO_7}", "opbdDtEnd": "{TODAY}"}}
+PROBE_INPUTS = {"SVC-API-010/getItrsCltrRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-011/getInqRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-012/get50PctDecrCltr": {"cltrDivNm": "부동산"}, "SVC-API-025/getOnbidUsgCodeInfo": {}, "SVC-API-025/getOnbidDtlAddrInfo": {}, "SVC-API-026/getKamcoCltrClarStats": {"statsTypeCd": "0021", "inqPerd": "{PREV_YEAR}"}, "SVC-API-026/getOrgCltrClarStats": {"inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getKamcoCltrUsgStats": {"statsTypeCd": "0041", "inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getOrgCltrUsgStats": {"inqPerd": "{PREV_YEAR}"}, "SVC-API-002/getMvastCltrList": {"prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", "pvctTrgtYn": "N"}, "SVC-API-003/getCarCltrList": {"prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013", "pvctTrgtYn": "N"}, "SVC-API-013/getCltrBidRsltList": {"cltrTypeCd": "0001", "prptDivCd": "0007", "opbdDtStart": "{DAYS_AGO_7}", "opbdDtEnd": "{TODAY}"}, "SVC-API-015/getPbancList": {"cltrTypeCd": "0001", "prptDivCd": "0007", "opbdDtStart": "{DAYS_AGO_7}", "opbdDtEnd": "{TODAY}"}, "SVC-API-019/getPbancBidRsltList": {"cltrTypeCd": "0001", "prptDivCd": "0007", "opbdDtStart": "{DAYS_AGO_7}", "opbdDtEnd": "{TODAY}"}, "SVC-API-021/getGvwsGnrPrptInf": {"sdnm": "서울특별시"}, "SVC-API-022/getPbownGnrPrptInf": {"sdnm": "강원도"}, "SVC-API-023/getPjpnBlnPrptInf": {"sdnm": "서울특별시"}, "SVC-API-024/getDisuseCmdtyInf": {}}
 # 근거 문구에는 사용자 PC의 폴더 경로를 넣지 않는다(공개 저장소). 파일 이름만 적는다.
 PROBE_INPUT_SOURCES = {
     "ranking": "사용자 수집 코드 onbid_ranking_list.py (2026-04 사용). 이번 점검에서 실호출 확인 전",
@@ -31,6 +31,8 @@ PROBE_INPUT_SOURCES = {
     "stats": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전",
     "list": "사용자 수집 코드 onbid_movable_property_list.py, onbid_vehicle_list.py (2026-04 사용, 재산유형 전체·수의계약 N). 이번 점검에서 실호출 확인 전",
     "bid": "사용자 수집 코드 onbid_bid_result_list.py (2026-04 사용, 부동산/압류재산·개찰일 기간). 이번 점검에서 실호출 확인 전",
+    "spec_bid": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력 4항목이 공고 목록(015)·입찰결과 목록(013)과 같아 두 오퍼레이션에서 확인된 값(물건유형 0001, 재산유형 0007, 최근 7일 개찰일)을 쓴다. 이번 점검에서 실호출 확인 전",
+    "spec": "서비스 명세서 샘플 값(사용자 수집 코드 없음, 2026-11-03 사용자 승인). 필수 입력의 명세 샘플을 그대로 쓴다. 이번 점검에서 실호출 확인 전",
     "notice": "사용자 수집 코드 onbid_notice_list.py (2026-04 사용, 기본값: 오늘 기준 1주 전~오늘, 부동산). 이번 점검에서 실호출 확인 전",
 }
 
@@ -38,7 +40,11 @@ PROBE_INPUT_SOURCES = {
 def probe_of(key):
     if key not in PROBE_INPUTS:
         return {"mode": None, "input": None, "inputSource": None}
-    if "Mvast" in key or "Car" in key:
+    if key == "SVC-API-019/getPbancBidRsltList":
+        source = PROBE_INPUT_SOURCES["spec_bid"]
+    elif key.split("/")[0] in ("SVC-API-021", "SVC-API-022", "SVC-API-023", "SVC-API-024"):
+        source = PROBE_INPUT_SOURCES["spec"]
+    elif "Mvast" in key or "Car" in key:
         source = PROBE_INPUT_SOURCES["list"]
     elif "BidRslt" in key:
         source = PROBE_INPUT_SOURCES["bid"]

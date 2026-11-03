@@ -1,6 +1,6 @@
-// 일반 조회기로 점검하는 추가 오퍼레이션 21개(1단계 9개 + 2단계 4개 + 교차 참조 자식 8개)를 "진짜 온비드 OpenAPI"에 한 번씩 불러 보는 시험 (R04 확장)
+// 일반 조회기로 점검하는 추가 오퍼레이션 26개(1단계 9개 + 2단계 4개 + 명세 샘플 5개 + 교차 참조 자식 8개)를 "진짜 온비드 OpenAPI"에 한 번씩 불러 보는 시험 (R04 확장)
 // 보통의 `npm run test:unit`에서는 건너뛴다. `npm run test:public-probes`로만 실행한다 (.env의 DATA_GO_KR_SERVICE_KEY 필요).
-// 호출은 최대 21번이다(오퍼레이션마다 1번, 1건만 요청). 교차 참조 자식은 부모 목록 응답의 식별키(pbancMngNo 또는 cltrMngNo·pbctCdtnNo)로 부르고, 부모에서 얻지 못하면 부르지 않는다. 읽기 전용 GET이고 DB에는 아무것도 쓰지 않는다.
+// 호출은 최대 26번이다(오퍼레이션마다 1번, 1건만 요청). 교차 참조 자식은 부모 목록 응답의 식별키(pbancMngNo 또는 cltrMngNo·pbctCdtnNo)로 부르고, 부모에서 얻지 못하면 부르지 않는다. 읽기 전용 GET이고 DB에는 아무것도 쓰지 않는다.
 // 서비스키·주소는 출력하지 않는다. 판정과 응답 구조 요약(건수·필수 항목 누락 수)만 보여 준다. 응답 값은 출력하지 않는다.
 import { describe, expect, it } from "vitest";
 import { CROSS_API_RELATIONS, inputsFromParent } from "@/lib/checks/cross-api";
@@ -14,10 +14,10 @@ import { DEFAULT_SETTING_VALUES } from "@/lib/settings/schema";
 
 const live = process.env.LIVE_PUBLIC === "1" && !!process.env.DATA_GO_KR_SERVICE_KEY;
 
-describe.skipIf(!live)("추가 오퍼레이션 21개 + 실제 온비드 OpenAPI (호출 최대 21번)", () => {
+describe.skipIf(!live)("추가 오퍼레이션 26개 + 실제 온비드 OpenAPI (호출 최대 26번)", () => {
   it("오퍼레이션마다 1번씩 불러 판정을 확인한다", async () => {
     const targets = genericProbeTargets(new Date());
-    expect(targets).toHaveLength(21);
+    expect(targets).toHaveLength(26);
     const fetcher = createPublicFetcher({ serviceKey: process.env.DATA_GO_KR_SERVICE_KEY!, timeoutSeconds: DEFAULT_SETTING_VALUES.api_timeout_seconds, extraOperations: targets });
 
     const rows: string[] = [];
