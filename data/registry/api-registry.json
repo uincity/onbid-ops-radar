@@ -6009,9 +6009,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 명세서 샘플 값 입력): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7109,9 +7109,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 명세서 샘플 값 입력): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7297,7 +7297,7 @@
           "dependencyNote": null,
           "verification": {
             "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 입력 sdnm=강원도): HTTP 200·결과코드 03(데이터 없음)이라 응답 구조는 확인하지 못했다. 입력 값에 해당하는 자료가 없는 것으로 보이며 점검 판정은 UNVERIFIED(NO_DATA_UNCONFIRMED)",
             "verifiedAt": null
           },
           "approval": "APPROVED",
@@ -7483,9 +7483,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 명세서 샘플 값 입력): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7572,9 +7572,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 명세서 샘플 값 입력): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {

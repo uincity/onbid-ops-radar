@@ -62,8 +62,10 @@ TARGET_SERVICES = 26  # 사용자가 정한 관리 목표 수 (PRD 용어 주의
 
 # 2026-10-29에 실제 호출로 응답 형식을 확인한 오퍼레이션 (PRD 부록 A-1, tests/unit/public-live.test.ts)
 LIVE_VERIFIED = {"getRlstCltrList", "getRlstDtlInf"}
-# 2026-11-03 사용자가 npm run test:public-probes로 실호출 1회씩 확인한 21개 (PASS_DATA, 필수 항목 누락 0). getPbancDtlInf는 공고·동산·자동차·입찰결과 목록의 식별키(pbancMngNo 또는 cltrMngNo·pbctCdtnNo)로 부르는 자식 8개 포함
-LIVE_VERIFIED_2026_11_03 = ["getItrsCltrRnkClg", "getInqRnkClg", "get50PctDecrCltr", "getOnbidUsgCodeInfo", "getOnbidDtlAddrInfo", "getKamcoCltrClarStats", "getOrgCltrClarStats", "getKamcoCltrUsgStats", "getOrgCltrUsgStats", "getMvastCltrList", "getCarCltrList", "getCltrBidRsltList", "getPbancList", "getPbancDtlInf", "getPbancBidInf", "getPbancCltrInf", "getPbancBidRsltDtl", "getMvastDtlInf", "getCarDtlInf", "getCltrBidInf", "getCltrBidRsltDtl"]
+# 2026-11-03 사용자가 npm run test:public-probes로 실호출 1회씩 확인한 25개 (PASS_DATA, 필수 항목 누락 0). getPbancDtlInf는 공고·동산·자동차·입찰결과 목록의 식별키(pbancMngNo 또는 cltrMngNo·pbctCdtnNo)로 부르는 자식 8개 포함
+LIVE_VERIFIED_2026_11_03 = ["getItrsCltrRnkClg", "getInqRnkClg", "get50PctDecrCltr", "getOnbidUsgCodeInfo", "getOnbidDtlAddrInfo", "getKamcoCltrClarStats", "getOrgCltrClarStats", "getKamcoCltrUsgStats", "getOrgCltrUsgStats", "getMvastCltrList", "getCarCltrList", "getCltrBidRsltList", "getPbancList", "getPbancDtlInf", "getPbancBidInf", "getPbancCltrInf", "getPbancBidRsltDtl", "getMvastDtlInf", "getCarDtlInf", "getCltrBidInf", "getCltrBidRsltDtl", "getPbancBidRsltList", "getGvwsGnrPrptInf", "getPjpnBlnPrptInf", "getDisuseCmdtyInf"]
+# 실호출했지만 0건이라 응답 구조를 확인하지 못한 오퍼레이션(명세만 확인 상태로 둔다)
+NODATA_EVIDENCE_2026_11_03 = {"getPbownGnrPrptInf": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes, 입력 sdnm=강원도): HTTP 200·결과코드 03(데이터 없음)이라 응답 구조는 확인하지 못했다. 입력 값에 해당하는 자료가 없는 것으로 보이며 점검 판정은 UNVERIFIED(NO_DATA_UNCONFIRMED)"}
 LIVE_VERIFIED_EVIDENCE_2026_11_03 = "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0"
 COMMON_REQUEST = ("serviceKey", "pageNo", "numOfRows", "resultType")
 # 다른 서비스의 결과를 받아야 입력값을 얻을 수 있는 식별 파라미터
@@ -233,7 +235,7 @@ for d in docs:
                 "dependencyNote": "필수 식별 파라미터 " + ", ".join(needs_ids) + "는 선행 오퍼레이션 응답에서 얻는 값으로 보이며, 후보는 같은 이름의 필드를 응답에 가진 목록형 오퍼레이션이다(이름 기준 추정, R04에서 확인)" if needs_ids else None,
                 "verification": {
                     "state": "LIVE_VERIFIED" if (live or o["name"] in LIVE_VERIFIED_2026_11_03) else "SPEC_ONLY",
-                    "evidence": ("2026-10-29 실호출 확인(응답 형식이 명세와 일치, tests/unit/public-live.test.ts)" if live else (LIVE_VERIFIED_EVIDENCE_2026_11_03 if o["name"] in LIVE_VERIFIED_2026_11_03 else "명세서 확인만 함. 실호출 없음")),
+                    "evidence": ("2026-10-29 실호출 확인(응답 형식이 명세와 일치, tests/unit/public-live.test.ts)" if live else (LIVE_VERIFIED_EVIDENCE_2026_11_03 if o["name"] in LIVE_VERIFIED_2026_11_03 else NODATA_EVIDENCE_2026_11_03.get(o["name"], "명세서 확인만 함. 실호출 없음"))),
                     "verifiedAt": REGISTRY_DATE if live else ("2026-11-03" if o["name"] in LIVE_VERIFIED_2026_11_03 else None),
                 },
                 # 명세서로는 알 수 없는 항목: 확인 전까지 '미정'이며 점검 결과를 정상으로 세지 않는다 (PRD 3-3, 5-2-3)

@@ -17,13 +17,13 @@ const rejects = (mutate: (r: ReturnType<typeof clone>) => void) => {
 
 describe("등록부 내용 (2026-10-29 확정)", () => {
   it("관리 목표 26종 중 25종을 등록했고 1종은 미확정이다", () => {
-    expect(registryCoverage()).toEqual({ target: 26, registered: 25, unconfirmed: 1, operations: 28, liveVerifiedOperations: 23 });
+    expect(registryCoverage()).toEqual({ target: 26, registered: 25, unconfirmed: 1, operations: 28, liveVerifiedOperations: 27 });
     expect(API_REGISTRY.unresolved).toHaveLength(1);
     expect(API_REGISTRY.unresolved[0].note).toContain("16번");
     expect(API_REGISTRY.unresolved[0].note).toContain("008");
   });
 
-  it("실호출로 확인한 오퍼레이션은 23개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 21개(2026-11-03)", () => {
+  it("실호출로 확인한 오퍼레이션은 27개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 25개(2026-11-03)", () => {
     expect(liveVerifiedOperations().map((o) => o.key).sort()).toEqual([
       "SVC-API-001/getRlstCltrList",
       "SVC-API-002/getMvastCltrList",
@@ -41,7 +41,11 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
       "SVC-API-016/getPbancDtlInf",
       "SVC-API-017/getPbancBidInf",
       "SVC-API-018/getPbancCltrInf",
+      "SVC-API-019/getPbancBidRsltList",
       "SVC-API-020/getPbancBidRsltDtl",
+      "SVC-API-021/getGvwsGnrPrptInf",
+      "SVC-API-023/getPjpnBlnPrptInf",
+      "SVC-API-024/getDisuseCmdtyInf",
       "SVC-API-025/getOnbidDtlAddrInfo",
       "SVC-API-025/getOnbidUsgCodeInfo",
       "SVC-API-026/getKamcoCltrClarStats",
@@ -51,9 +55,9 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     ]);
   });
 
-  it("나머지 5개 오퍼레이션은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
+  it("나머지 1개 오퍼레이션(공유일반재산, 실호출 결과 0건)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
-    expect(others).toHaveLength(5); // 모두 점검 입력의 근거가 없어 검증 불가(NO_VALID_INPUT)
+    expect(others).toHaveLength(1); // 모두 점검 입력의 근거가 없어 검증 불가(NO_VALID_INPUT)
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
       expect(operation.noDataPolicy, key).toBe("UNDEFINED");
