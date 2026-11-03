@@ -91,7 +91,7 @@ function renderQuality(q: NonNullable<ReportModel["quality"]>): string[] {
 // 실행 품질 절 (DEMO·PUBLIC 공통)
 function renderExecution(e: NonNullable<ReportModel["execution"]>, no: number): string[] {
   const out: string[] = [`## ${no}. 실행 품질`, ""];
-  out.push(`- 예약 점검(KST 09:00): ${escapeMarkdownCell(e.scheduleTitle)} (${e.scheduleState}) · 그날 시작한 예약 점검 ${num(e.scheduledRunCount)}회`);
+  out.push(`- 예약 점검(KST 08:00): ${escapeMarkdownCell(e.scheduleTitle)} (${e.scheduleState}) · 그날 시작한 예약 점검 ${num(e.scheduledRunCount)}회`);
   out.push(`- 마지막으로 끝난 점검 실행: ${e.lastFinishedAt ? kst(e.lastFinishedAt) : "없음"} (서비스 전체 점검 완료 시각이며 API별 마지막 성공 시각과 다릅니다)`);
   out.push(`- 마지막으로 정상 완료된 점검 실행: ${e.lastSucceededAt ? kst(e.lastSucceededAt) : "없음"}`);
   out.push("- 차단·일부 완료·미점검의 횟수와 사유는 위 2절(점검 실행 요약)과 6절(점검 메모)을 보세요.", "");

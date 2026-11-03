@@ -4,6 +4,16 @@ import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
 
+// 배지가 보여 줘야 하는 출처 = 설정값 scheduled_source (운영 DB에서 PUBLIC으로 바뀔 수 있으므로 DEMO로 가정하지 않고 읽어 온다)
+async function configuredSource(): Promise<"DEMO" | "PUBLIC"> {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const secret = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !secret) return "DEMO";
+  const admin = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
+  const { data } = await admin.from("settings").select("value").eq("key", "scheduled_source").single();
+  return data?.value === "PUBLIC" ? "PUBLIC" : "DEMO";
+}
+
 test.beforeAll(requireDemoAccounts);
 
 const MENUS = [
@@ -21,7 +31,7 @@ test.describe("공통 화면 틀 (넓은 화면)", () => {
     const nav = page.getByRole("navigation", { name: "주 메뉴", exact: true });
     for (const menu of MENUS) await expect(nav.getByRole("link", { name: menu.label, exact: true })).toBeVisible();
 
-    await expect(page.getByTestId("source-badge")).toHaveText("DEMO");
+    await expect(page.getByTestId("source-badge")).toHaveText(await configuredSource());
     await expect(page.getByTestId("user-name")).toHaveText(OPERATOR.name);
     await expect(page.getByTestId("user-role")).toHaveText(OPERATOR.roleLabel);
     await expect(page.getByRole("button", { name: "로그아웃" })).toBeVisible();
@@ -105,7 +115,7 @@ test.describe("공통 화면 틀 (좁은 화면, 모바일)", () => {
     await expect(page.getByRole("navigation", { name: "주 메뉴", exact: true })).toBeHidden();
     await expect(page.getByTestId("user-name")).toBeHidden();
     // 출처 배지는 좁은 화면에서도 보인다
-    await expect(page.getByTestId("source-badge")).toHaveText("DEMO");
+    await expect(page.getByTestId("source-badge")).toHaveText(await configuredSource());
 
     const menuButton = page.locator("summary", { hasText: "메뉴" });
     await expect(menuButton).toBeVisible();
@@ -126,7 +136,7 @@ test.describe("공통 화면 틀 (좁은 화면, 모바일)", () => {
     await mobileNav.getByRole("link", { name: "이상징후", exact: true }).click();
     await expect(page).toHaveURL(/\/anomalies$/);
     await expect(page.getByRole("heading", { level: 1, name: "이상징후" })).toBeVisible();
-    await expect(page.locator("details")).not.toHaveAttribute("open", "");
+    await expect(page.locator("details.group")).not.toHaveAttribute("open", "");
 
     // 메뉴 안의 [로그아웃]
     await page.locator("summary", { hasText: "메뉴" }).click();
@@ -146,7 +156,7 @@ test.describe("공통 화면 틀 (좁은 화면, 모바일)", () => {
 });
 
 test.describe("데이터 출처 배지", () => {
-  test("배지는 설정값(scheduled_source)을 따른다: PUBLIC으로 바꾸면 PUBLIC, 되돌리면 DEMO", async ({ page }) => {
+  test("배지는 설정값(scheduled_source)을 따른다: 지금과 다른 값으로 바꾸면 따라 바뀌고, 되돌리면 원래대로", async ({ page }) => {
     const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
     const secret = process.env.SUPABASE_SECRET_KEY;
     test.skip(!url || !secret, "서버 관리용 키가 없어 설정값을 바꿔 볼 수 없습니다.");
@@ -154,23 +164,24 @@ test.describe("데이터 출처 배지", () => {
     const admin = createClient(url!, secret!, { auth: { autoRefreshToken: false, persistSession: false } });
     const { data: before, error } = await admin.from("settings").select("value").eq("key", "scheduled_source").single();
     expect(error).toBeNull();
-    expect(before?.value).toBe("DEMO");
+    const original: "DEMO" | "PUBLIC" = before?.value === "PUBLIC" ? "PUBLIC" : "DEMO";
+    const other = original === "DEMO" ? "PUBLIC" : "DEMO";
 
     try {
       await signInThroughForm(page, OPERATOR);
-      await expect(page.getByTestId("source-badge")).toHaveText("DEMO");
+      await expect(page.getByTestId("source-badge")).toHaveText(original);
 
-      const { error: updateError } = await admin.from("settings").update({ value: "PUBLIC" }).eq("key", "scheduled_source");
+      const { error: updateError } = await admin.from("settings").update({ value: other }).eq("key", "scheduled_source");
       expect(updateError).toBeNull();
       await page.reload();
-      await expect(page.getByTestId("source-badge")).toHaveText("PUBLIC");
+      await expect(page.getByTestId("source-badge")).toHaveText(other);
     } finally {
       // 어떤 경우에도 원래 값으로 되돌린다
-      await admin.from("settings").update({ value: before?.value ?? "DEMO" }).eq("key", "scheduled_source");
+      await admin.from("settings").update({ value: original }).eq("key", "scheduled_source");
     }
 
     await page.reload();
-    await expect(page.getByTestId("source-badge")).toHaveText("DEMO");
+    await expect(page.getByTestId("source-badge")).toHaveText(original);
     await signOutThroughButton(page);
   });
 });

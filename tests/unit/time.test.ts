@@ -86,27 +86,28 @@ describe("formatKst", () => {
   });
 });
 
-describe("예약 점검 시각 (PRD 5-5: 매일 KST 09:00, 누락 판단은 30분 뒤)", () => {
-  it("KST 09:00은 UTC 00:00이다 — Supabase Cron은 UTC로 설정한다", () => {
-    expect(SCHEDULED_RUN_KST).toEqual({ hour: 9, minute: 0 });
-    expect(SCHEDULED_RUN_UTC).toEqual({ hour: 0, minute: 0 });
+describe("예약 점검 시각 (매일 KST 08:00, 2026-11-03 PRD 5-5의 09:00에서 변경. 누락 판단은 30분 뒤)", () => {
+  it("KST 08:00은 전날 UTC 23:00이다 — Supabase Cron은 UTC로 설정한다", () => {
+    expect(SCHEDULED_RUN_KST).toEqual({ hour: 8, minute: 0 });
+    expect(SCHEDULED_RUN_UTC).toEqual({ hour: 23, minute: 0 });
   });
 
   it("utcClockOf: 시·분만 바꾸고 날짜가 넘어가는 경우도 맞게 계산한다", () => {
-    expect(utcClockOf({ hour: 9, minute: 30 })).toEqual({ hour: 0, minute: 30 }); // 누락 확인 작업: UTC 00:30
+    expect(utcClockOf({ hour: 8, minute: 30 })).toEqual({ hour: 23, minute: 30 }); // 누락 확인 작업: 전날 UTC 23:30
+    expect(utcClockOf({ hour: 9, minute: 30 })).toEqual({ hour: 0, minute: 30 });
     expect(utcClockOf({ hour: 0, minute: 0 })).toEqual({ hour: 15, minute: 0 });
     expect(utcClockOf({ hour: 8, minute: 59 })).toEqual({ hour: 23, minute: 59 });
     expect(utcClockOf({ hour: 23, minute: 45 })).toEqual({ hour: 14, minute: 45 });
   });
 
-  it("scheduledRunAt: 그날 KST 09:00 순간", () => {
-    expect(scheduledRunAt("2026-10-29").toISOString()).toBe("2026-10-29T00:00:00.000Z");
-    expect(formatKst(scheduledRunAt("2026-10-29"))).toBe("2026-10-29 09:00:00");
+  it("scheduledRunAt: 그날 KST 08:00 순간", () => {
+    expect(scheduledRunAt("2026-10-29").toISOString()).toBe("2026-10-28T23:00:00.000Z");
+    expect(formatKst(scheduledRunAt("2026-10-29"))).toBe("2026-10-29 08:00:00");
   });
 
-  it("scheduleMissedDeadline: 예정 시각 + 대기 시간(기본 30분 → KST 09:30)", () => {
-    expect(formatKst(scheduleMissedDeadline("2026-10-29", 30))).toBe("2026-10-29 09:30:00");
-    expect(scheduleMissedDeadline("2026-10-29", 30).toISOString()).toBe("2026-10-29T00:30:00.000Z"); // 누락 확인 Cron의 UTC 시각과 같다
-    expect(formatKst(scheduleMissedDeadline("2026-10-29", 120))).toBe("2026-10-29 11:00:00");
+  it("scheduleMissedDeadline: 예정 시각 + 대기 시간(기본 30분 → KST 08:30)", () => {
+    expect(formatKst(scheduleMissedDeadline("2026-10-29", 30))).toBe("2026-10-29 08:30:00");
+    expect(scheduleMissedDeadline("2026-10-29", 30).toISOString()).toBe("2026-10-28T23:30:00.000Z"); // 누락 확인 Cron의 UTC 시각과 같다
+    expect(formatKst(scheduleMissedDeadline("2026-10-29", 120))).toBe("2026-10-29 10:00:00");
   });
 });

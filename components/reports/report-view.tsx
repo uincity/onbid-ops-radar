@@ -257,7 +257,7 @@ function ExecutionSection({ e, no }: { e: NonNullable<ReportModel["execution"]>;
     <Section title={`${no}. 실행 품질`}>
       <div data-testid="report-execution">
         <p className="text-sm text-zinc-700 dark:text-zinc-300">
-          예약 점검(KST 09:00): {e.scheduleTitle} ({e.scheduleState}) · 그날 시작한 예약 점검 {num(e.scheduledRunCount)}회
+          예약 점검(KST 08:00): {e.scheduleTitle} ({e.scheduleState}) · 그날 시작한 예약 점검 {num(e.scheduledRunCount)}회
         </p>
         <p className="text-sm text-zinc-700 dark:text-zinc-300">
           마지막으로 끝난 점검 실행: {e.lastFinishedAt ? kst(e.lastFinishedAt) : "없음"} (서비스 전체 점검 완료 시각이며 API별 마지막 성공 시각과 다릅니다)

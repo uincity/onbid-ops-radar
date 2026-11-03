@@ -18,7 +18,7 @@ describe("ReportView (미리보기)", () => {
     expect(html).toContain("8. 데이터 품질 규칙 적용 현황 (PUBLIC)");
     expect(html).toContain("의심");
     expect(html).toContain("9. 실행 품질");
-    expect(html).toContain("예약 점검(KST 09:00)");
+    expect(html).toContain("예약 점검(KST 08:00)");
     expect(html).toContain('data-testid="report-availability"');
   });
   it("실행 품질만 있는 보고서(DEMO)는 7절로 번호가 앞당겨진다", () => {

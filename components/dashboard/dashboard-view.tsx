@@ -28,7 +28,7 @@ export function DashboardView({ summary, availability, schedule, isOperator }: {
 
       {summary.isEmpty ? (
         <div className="rounded-xl border border-dashed border-zinc-300 p-4 text-sm text-zinc-700 dark:border-zinc-700 dark:text-zinc-300" data-testid="dashboard-empty">
-          아직 점검 기록과 이상징후가 없습니다. 매일 09:00(KST) 예약 점검이 실행되거나 팀장이 수동 점검을 실행하면 이곳에 결과가 나타납니다.
+          아직 점검 기록과 이상징후가 없습니다. 매일 08:00(KST) 예약 점검이 실행되거나 팀장이 수동 점검을 실행하면 이곳에 결과가 나타납니다.
         </div>
       ) : null}
 

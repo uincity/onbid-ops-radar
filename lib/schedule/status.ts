@@ -1,6 +1,6 @@
 // Design Ref: PRD 5-2-5 — 오늘의 예약 점검이 "예정 → 시작 → 완료"까지 갔는지 판단한다 (순수 함수, 읽기 전용)
 // '실행됨'과 '실제로 완료됨'을 분리한다: 차단(blocked)·일부 완료(partial)·진행 중은 정상 완료로 세지 않고 경고를 남긴다.
-// 09:30은 "시작 기록이 있는지" 확인하는 시각이지, 모든 점검이 30분 안에 끝나야 한다는 기한이 아니다.
+// 08:30은 "시작 기록이 있는지" 확인하는 시각이지, 모든 점검이 30분 안에 끝나야 한다는 기한이 아니다.
 import { scheduleMissedDeadline, scheduledRunAt, toKstDateString, formatKst, kstDayRange } from "@/lib/time";
 
 export type ScheduleRun = { id: number; trigger: string; status: string; started_at: string };

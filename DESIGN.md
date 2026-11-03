@@ -265,7 +265,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - 목표: 버튼을 누르고 60초 이내에 미리보기가 뜬다.
 
 ### 5.4 흐름 ④ 예약 누락 감지
-- Supabase Cron에 UTC 00:30(KST 09:30) 작업을 하나 더 둔다. 이 작업이 DB 함수 `mark_schedule_missed()`를 불러, 오늘 날짜의 예약 실행 기록(`blocked` 포함)이 없으면 `run_logs`에 누락 기록 1줄을 추가한다. 날짜당 1건만 남도록 DB 제약을 건다.
+- Supabase Cron에 전날 UTC 23:30(KST 08:30; 2026-11-03에 09:30에서 변경) 작업을 하나 더 둔다. 이 작업이 DB 함수 `mark_schedule_missed()`를 불러, 오늘 날짜의 예약 실행 기록(`blocked` 포함)이 없으면 `run_logs`에 누락 기록 1줄을 추가한다. 날짜당 1건만 남도록 DB 제약을 건다.
 - 대시보드와 공통 경고 띠는 이 기록을 **읽기만** 한다. 화면을 그리는 동안에는 아무것도 기록하지 않는다.
 
 ---
@@ -295,7 +295,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - **사용법:** 코드는 설정값을 직접 읽지 않고 `loadSettings(await createClient())`(화면·서버 액션, 로그인한 사용자 권한) 또는 `loadSettings(createAdminClient())`(점검 엔진·예약 점검)를 거쳐 `Settings` 객체(camelCase)로 받는다. 숫자를 코드에 직접 쓰지 않는다. 도우미: `resolveCallLimit`(요청이 없으면 기본 20회, 최대 100회로 줄임), `isEmptyAllowed`(설정에 없는 API는 허용 안 함), `fieldsFor`, `apiTimeoutMs`, `runTimeLimitMs`, `compareWindowMs`.
 - **몰래 기본값으로 대신하지 않는다:** DB에서 읽지 못하거나(오류·권한 문제로 줄이 없음) 값이 규칙에 어긋나면 `SettingsError`로 멈추고, 어떤 항목이 왜 문제인지 모아서 알려 준다. 오류 문구에는 잘못된 값이 아니라 규칙을 적고, DB가 돌려준 오류 문구는 옮기지 않는다(SEC-11). 점검 엔진은 설정을 모르면 점검하지 않는 것이 안전하기 때문이다. `DEFAULT_SETTING_VALUES`(PRD 5-5 기본값)는 시험과 기준 확인용이다.
 - **위쪽 막대의 출처 배지:** 이제 이 모듈로 `scheduled_source`를 읽는다. `SettingsError`일 때만 "출처 확인 불가"로 보이고, 그 밖의 예상하지 못한 오류는 그대로 올려 보낸다.
-- **고정 값 (DB 설정이 아님):** 예약 점검 시각 KST 09:00(`SCHEDULED_RUN_KST`)과 이를 UTC로 바꾼 값(`SCHEDULED_RUN_UTC` = 00:00)은 `lib/time.ts`에 있다. 예약 누락 확인 작업은 `scheduleMissedDeadline`(예정 + 대기 30분 = KST 09:30 = UTC 00:30)과 같아야 한다(PLAN 31·32번에서 Cron을 이 값으로 설정).
+- **고정 값 (DB 설정이 아님):** 예약 점검 시각 KST 08:00(`SCHEDULED_RUN_KST`, 2026-11-03에 09:00에서 변경)과 이를 UTC로 바꾼 값(`SCHEDULED_RUN_UTC` = 00:00)은 `lib/time.ts`에 있다. 예약 누락 확인 작업은 `scheduleMissedDeadline`(예정 + 대기 30분 = KST 09:30 = UTC 00:30)과 같아야 한다(PLAN 31·32번에서 Cron을 이 값으로 설정).
 - **KST 계산 (`lib/time.ts`):** `toKstDateString`, `kstDayRange`(하루 = [00:00, 다음 날 00:00) — 끝은 포함하지 않음), `addDaysKst`, `formatKst`, `scheduledRunAt`, `scheduleMissedDeadline`. 한국은 일광절약시간이 없어 항상 UTC+9로 계산하고, 없는 날짜(2026-02-30)는 거부한다.
 - **코드와 DB가 어긋나지 않게 지킨다:** 설정값 규칙은 DB(CHECK 제약·기본값)와 코드 두 곳에 있어서, `tests/unit/settings-drift.test.ts`가 마이그레이션 SQL을 직접 읽어 항목 이름 14개, 숫자 범위, 기본값 14개가 코드와 같은지 비교한다. 한쪽만 고치면 이 시험이 실패한다.
 - **사유 최소 글자 수:** `reason_min_length`는 10 이상으로만 올릴 수 있다. `anomaly_events`의 DB 제약이 공백 제외 10자 미만을 항상 거부하므로 10 아래로는 내릴 수 없다.

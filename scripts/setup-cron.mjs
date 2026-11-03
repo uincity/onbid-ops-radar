@@ -5,11 +5,11 @@
 //   npm run setup:cron -- --remove --apply                       (등록한 Cron 작업 2개 해제)
 //
 // 등록하는 것
-//   1) 매일 KST 09:00(UTC 00:00): pg_net으로 POST {주소}/api/cron/daily-check  (Authorization: Bearer CRON_SECRET)
-//   2) 매일 KST 09:30(UTC 00:30): public.mark_schedule_missed()  — 예약 누락 감지
+//   1) 매일 KST 08:00(UTC 23:00, 전날): pg_net으로 POST {주소}/api/cron/daily-check  (Authorization: Bearer CRON_SECRET)
+//   2) 매일 KST 08:30(UTC 23:30, 전날): public.mark_schedule_missed()  — 예약 누락 감지
 // CRON_SECRET과 앱 주소는 Supabase Vault에 보관하고, Cron SQL은 Vault에서 읽는다. 마이그레이션·저장소·화면·로그에는 값을 남기지 않는다.
 //
-// ⚠ 이 스크립트는 운영 DB에 매일 점검 일정을 만든다. 매일 09:00에 앱이 점검(설정값 scheduled_source: 기본 DEMO)을 실행하고 기록이 쌓인다.
+// ⚠ 이 스크립트는 운영 DB에 매일 점검 일정을 만든다. 매일 08:00(KST)에 앱이 점검(설정값 scheduled_source: 기본 DEMO)을 실행하고 기록이 쌓인다.
 //   Vercel에도 같은 CRON_SECRET이 등록되어 있어야 인증을 통과한다. (그래서 기본은 미리 보기이고, --apply를 붙여야만 바뀐다)
 import { SCHEDULED_RUN_UTC } from "./lib/schedule-clock.mjs";
 
@@ -70,8 +70,8 @@ const statements = remove
 const mask = (text) => (cronSecret ? text.replaceAll(cronSecret, "****") : text).replaceAll(appUrl ?? "\u0000", "(앱 주소)");
 
 console.log(remove ? "예약 점검 Cron 해제 계획" : "예약 점검 Cron 등록 계획");
-console.log(`- 점검 호출: 매일 UTC ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} (KST 09:00) → ${checkSchedule}`);
-console.log(`- 누락 감지: 매일 UTC 00:30 (KST 09:30) → ${missedSchedule}`);
+console.log(`- 점검 호출: 매일 UTC ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")} (KST 08:00) → ${checkSchedule}`);
+console.log(`- 누락 감지: 매일 UTC ${missedSchedule.split(" ")[1].padStart(2, "0")}:${missedSchedule.split(" ")[0].padStart(2, "0")} (KST 08:30) → ${missedSchedule}`);
 for (const s of statements) console.log(`  SQL> ${mask(s).split("\n")[0].slice(0, 150)}`);
 
 if (!apply) {
@@ -88,4 +88,4 @@ for (const statement of statements) {
   });
   if (!res.ok) fail(`SQL 실행 실패 (응답 ${res.status}) — 비밀값 보호를 위해 내용은 출력하지 않습니다. Supabase 대시보드의 Database → Extensions에서 pg_cron·pg_net·Vault를 확인하세요.`);
 }
-console.log(remove ? "\nCron 작업을 해제했습니다." : "\nCron 작업을 등록했습니다. 내일 KST 09:00부터 실행됩니다. Vercel에도 같은 CRON_SECRET이 등록되어 있어야 합니다.");
+console.log(remove ? "\nCron 작업을 해제했습니다." : "\nCron 작업을 등록했습니다. 내일 KST 08:00부터 실행됩니다. Vercel에도 같은 CRON_SECRET이 등록되어 있어야 합니다.");

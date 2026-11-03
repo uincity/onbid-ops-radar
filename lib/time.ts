@@ -8,10 +8,10 @@ const MINUTE_MS = 60 * 1000;
 const DAY_MS = 24 * HOUR_MS;
 const KST_OFFSET_MS = 9 * HOUR_MS;
 
-// 예약 점검 시각(PRD 5-5: 매일 KST 09:00). Supabase Cron은 UTC로 동작하므로 아래 SCHEDULED_RUN_UTC로 설정한다. (PLAN 31번)
-export const SCHEDULED_RUN_KST = { hour: 9, minute: 0 } as const;
+// 예약 점검 시각(매일 KST 08:00, 2026-11-03 사용자 요청으로 PRD 5-5의 09:00에서 변경). Supabase Cron은 UTC로 동작하므로 아래 SCHEDULED_RUN_UTC로 설정한다. (PLAN 31번)
+export const SCHEDULED_RUN_KST = { hour: 8, minute: 0 } as const;
 
-// KST 시각(시·분)을 UTC 시각(시·분)으로 바꾼다. 날짜는 넘어가도 시·분만 돌려준다. 예: KST 09:00 → UTC 00:00
+// KST 시각(시·분)을 UTC 시각(시·분)으로 바꾼다. 날짜는 넘어가도 시·분만 돌려준다. 예: KST 08:00 → UTC 23:00 (전날)
 export function utcClockOf(kst: { hour: number; minute: number }): { hour: number; minute: number } {
   const totalMinutes = (((kst.hour * 60 + kst.minute - 9 * 60) % (24 * 60)) + 24 * 60) % (24 * 60);
   return { hour: Math.floor(totalMinutes / 60), minute: totalMinutes % 60 };
@@ -67,13 +67,13 @@ export function formatKst(instant: Date): string {
   return new Date(instant.getTime() + KST_OFFSET_MS).toISOString().slice(0, 19).replace("T", " ");
 }
 
-// 그날 예약 점검이 시작되어야 하는 순간 (KST 09:00)
+// 그날 예약 점검이 시작되어야 하는 순간 (KST 08:00)
 export function scheduledRunAt(date: string): Date {
   const { start } = kstDayRange(date);
   return new Date(start.getTime() + SCHEDULED_RUN_KST.hour * HOUR_MS + SCHEDULED_RUN_KST.minute * MINUTE_MS);
 }
 
-// 예약 점검 누락을 판단하는 기한: 예정 시각 + 대기 시간(분). 기본은 KST 09:30. (PRD 5-5)
+// 예약 점검 누락을 판단하는 기한: 예정 시각 + 대기 시간(분). 기본은 KST 08:30. (PRD 5-5의 09:30에서 변경)
 export function scheduleMissedDeadline(date: string, graceMinutes: number): Date {
   return new Date(scheduledRunAt(date).getTime() + graceMinutes * MINUTE_MS);
 }

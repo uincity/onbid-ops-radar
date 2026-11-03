@@ -90,17 +90,18 @@ describe("예약 점검 입구 (SEC-09)", () => {
 });
 
 describe("evaluateSchedule (오늘의 예약 점검 상태)", () => {
-  // KST 2026-10-29: 09:00 = 2026-10-29T00:00Z, 확인 기한 09:30 = 00:30Z
+  // KST 2026-10-29: 08:00 = 2026-10-28T23:00Z, 확인 기한 08:30 = 2026-10-28T23:30Z
   const at = (utc: string) => new Date(`2026-10-29T${utc}Z`);
-  const run = (status: string, over: Partial<ScheduleRun> = {}): ScheduleRun => ({ id: 5, trigger: "scheduled", status, started_at: "2026-10-29T00:00:05Z", ...over });
+  const run = (status: string, over: Partial<ScheduleRun> = {}): ScheduleRun => ({ id: 5, trigger: "scheduled", status, started_at: "2026-10-28T23:00:05Z", ...over });
   const ev = (now: Date, runs: ScheduleRun[] = [], missedRecorded = false) => evaluateSchedule({ now, runs, missedRecorded, graceMinutes: 30 });
 
-  it("경계 시각: 08:59:59 KST는 예정, 정확히 09:00은 시작 대기, 09:29:59는 아직 대기, 09:30:00부터 누락", () => {
-    expect(ev(new Date("2026-10-28T23:59:59Z")).state).toBe("NOT_DUE");
-    expect(ev(at("00:00:00")).state).toBe("WAITING");
-    expect(ev(at("00:29:59")).state).toBe("WAITING");
-    expect(ev(at("00:30:00")).state).toBe("MISSED");
-    expect(ev(at("00:30:00")).level).toBe("warning");
+  it("경계 시각: 07:59:59 KST는 예정, 정확히 08:00은 시작 대기, 08:29:59는 아직 대기, 08:30:00부터 누락", () => {
+    const prev = (utc: string) => new Date(`2026-10-28T${utc}Z`);
+    expect(ev(prev("22:59:59")).state).toBe("NOT_DUE");
+    expect(ev(prev("23:00:00")).state).toBe("WAITING");
+    expect(ev(prev("23:29:59")).state).toBe("WAITING");
+    expect(ev(prev("23:30:00")).state).toBe("MISSED");
+    expect(ev(prev("23:30:00")).level).toBe("warning");
   });
   it("누락 문구는 DB에 기록되었는지에 따라 다르다", () => {
     expect(ev(at("01:00:00"), [], true).detail).toContain("누락이 기록되었습니다");
@@ -119,7 +120,7 @@ describe("evaluateSchedule (오늘의 예약 점검 상태)", () => {
   });
   it("수동 점검과 어제 예약 점검은 오늘 예약 점검을 대신하지 않는다", () => {
     expect(ev(at("01:00:00"), [run("succeeded", { trigger: "manual" })]).state).toBe("MISSED");
-    expect(ev(at("01:00:00"), [run("succeeded", { started_at: "2026-10-28T00:00:05Z" })]).state).toBe("MISSED");
+    expect(ev(at("01:00:00"), [run("succeeded", { started_at: "2026-10-27T23:00:05Z" })]).state).toBe("MISSED");
   });
   it("KST 하루 경계: 오늘 00:00:00 KST에 시작한 예약 점검은 오늘 것, 전날 23:59:59 KST는 어제 것", () => {
     expect(ev(at("01:00:00"), [run("succeeded", { started_at: "2026-10-28T15:00:00Z" })]).state).toBe("COMPLETED");

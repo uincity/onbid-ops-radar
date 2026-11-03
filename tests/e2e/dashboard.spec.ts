@@ -11,7 +11,7 @@ test.describe("통합 대시보드", () => {
     const banner = page.getByTestId("schedule-banner");
     await expect(banner).toBeVisible();
     await expect(banner).toHaveAttribute("data-state", /^(NOT_DUE|WAITING|RUNNING|COMPLETED|PARTIAL|BLOCKED|FAILED|MISSED)$/);
-    await expect(banner).toContainText("09:00");
+    await expect(banner).toContainText("08:00");
     await expect(banner).toContainText("점검 완료 기한이 아닙니다");
   });
 

@@ -61,7 +61,7 @@ export const PAST_DAYS = 6;
 
 // 날짜 순서(6일 전 → 어제)에 따른 하루치 모양. 사람이 보기에 자연스럽게 섞여 있다.
 const DAY_KINDS = ["succeeded", "succeeded", "partial", "succeeded", "failed", "succeeded"] as const;
-const START_JITTER_SECONDS = [12, 8, 21, 5, 17, 9]; // 예약 시각(09:00) 뒤 몇 초에 시작했나
+const START_JITTER_SECONDS = [12, 8, 21, 5, 17, 9]; // 예약 시각(08:00) 뒤 몇 초에 시작했나
 const RUN_SECONDS = [42, 47, 58, 44, 24, 41]; // 점검이 걸린 시간(40초~1분, 실패한 날은 타임아웃 2번이라 짧게 끝남)
 const LIST_MS = [128, 142, 312, 171, 0, 155]; // 목록 조회 응답시간(ms), 실패한 날은 쓰지 않음
 const DETAIL_MS = [210, 187, 398, 264, 0, 198]; // 상세 조회 응답시간(ms)

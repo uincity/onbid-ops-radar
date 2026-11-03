@@ -36,9 +36,9 @@ describe("과거 6일치 점검 계획 buildPastRunPlan", () => {
     expect(scheduled.map((r) => r.dateKst)).toEqual([-6, -5, -4, -3, -2, -1].map((d) => addDaysKst(TODAY, d)));
   });
 
-  it("예약 점검 시작은 모두 KST 09:00 직후(1분 안)이고 오늘은 포함하지 않는다", () => {
+  it("예약 점검 시작은 모두 KST 08:00 직후(1분 안)이고 오늘은 포함하지 않는다", () => {
     for (const run of scheduled) {
-      expect(formatKst(run.startedAt).slice(11, 16)).toBe("09:00");
+      expect(formatKst(run.startedAt).slice(11, 16)).toBe("08:00");
       expect(toKstDateString(run.startedAt)).toBe(run.dateKst);
     }
     expect(Math.max(...plan.map((r) => r.finishedAt.getTime()))).toBeLessThan(kstDayRange(TODAY).start.getTime());
