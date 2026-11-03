@@ -87,10 +87,10 @@ describe("미처리 목록", () => {
     expect(md).toContain("| #5 | 필수정보 | DEMO-0005 | 미확인 | 시연 담당자 | 2026-10-29 09:30:00 KST |");
   });
 
-  it("50건이면 '외 N건'이 없고 51건이면 '외 1건'이 있다", () => {
+  it("10건이면 '외 N건'이 없고 11건이면 '외 1건'이 있다", () => {
     const make = (n: number) => Array.from({ length: n }, (_, i) => pending(i + 1));
-    expect(renderReportMarkdown(aggregateReport(input({ unresolved: make(50) })))).not.toMatch(/외 \d+건/);
-    expect(renderReportMarkdown(aggregateReport(input({ unresolved: make(51) })))).toContain("외 1건");
+    expect(renderReportMarkdown(aggregateReport(input({ unresolved: make(10) })))).not.toMatch(/외 \d+건/);
+    expect(renderReportMarkdown(aggregateReport(input({ unresolved: make(11) })))).toContain("외 1건");
   });
 });
 

@@ -195,22 +195,22 @@ describe("이상징후 발생·처리", () => {
 describe("미처리 이상징후 목록 (최대 50건)", () => {
   const make = (n: number) => Array.from({ length: n }, (_, i) => pending(i + 1, new Date(Date.parse(START) + i * 1000).toISOString()));
 
-  it("기본 상한은 50이다", () => {
-    expect(UNRESOLVED_LIMIT).toBe(50);
+  it("기본 상한은 10이다 (PRD 5-4: 오래된 미처리 최대 10건)", () => {
+    expect(UNRESOLVED_LIMIT).toBe(10);
   });
 
-  it("49건·50건이면 모두 보여 주고 외 0건", () => {
-    for (const n of [49, 50]) {
+  it("9건·10건이면 모두 보여 주고 외 0건", () => {
+    for (const n of [9, 10]) {
       const m = aggregateReport(base({ unresolved: make(n) }));
       expect(m.unresolved).toMatchObject({ total: n, omitted: 0 });
       expect(m.unresolved.rows).toHaveLength(n);
     }
   });
 
-  it("51건이면 50건만 보여 주고 외 1건", () => {
-    const m = aggregateReport(base({ unresolved: make(51) }));
-    expect(m.unresolved).toMatchObject({ total: 51, omitted: 1 });
-    expect(m.unresolved.rows).toHaveLength(50);
+  it("11건이면 10건만 보여 주고 외 1건", () => {
+    const m = aggregateReport(base({ unresolved: make(11) }));
+    expect(m.unresolved).toMatchObject({ total: 11, omitted: 1 });
+    expect(m.unresolved.rows).toHaveLength(10);
   });
 
   it("처음 탐지된 시각이 오래된 순서로 정렬한다 (같으면 번호 순)", () => {

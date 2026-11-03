@@ -5,7 +5,7 @@ import { z } from "zod";
 import { reportAvailabilitySchema } from "@/lib/availability/report";
 
 // 미처리 이상징후를 보고서에 최대 몇 건까지 보여 줄지 (넘으면 "외 N건")
-export const UNRESOLVED_LIMIT = 50;
+export const UNRESOLVED_LIMIT = 10; // PRD 5-4: 최초 탐지가 오래된 미처리 최대 10건
 
 // reports.summary는 DB가 20000바이트까지만 허용한다(JSON 글자 사이 공백이 늘어나는 것까지 고려해 여유를 둔다)
 export const SUMMARY_MAX_BYTES = 15000;
