@@ -52,3 +52,6 @@ next-env.d.ts
 
 # 삭제 대기 파일 (사용자가 확인 후 직접 삭제)
 /trash-can/
+
+# 사용자 개인 자료(내 PC 경로 포함): 커밋하지 않는다
+docs/온비드 OPEN API.md
