@@ -57,9 +57,11 @@ const statements = remove
   : [
       `create extension if not exists pg_cron with schema pg_catalog`,
       `create extension if not exists pg_net with schema extensions`,
-      // Vault 비밀값: 있으면 값을 바꾸고 없으면 만든다
-      `select case when exists (select 1 from vault.secrets where name = ${lit(SECRET_NAME)}) then (select vault.update_secret(id, ${lit(cronSecret)}) from vault.secrets where name = ${lit(SECRET_NAME)} limit 1) else vault.create_secret(${lit(cronSecret)}, ${lit(SECRET_NAME)}) end`,
-      `select case when exists (select 1 from vault.secrets where name = ${lit(URL_NAME)}) then (select vault.update_secret(id, ${lit(appUrl)}) from vault.secrets where name = ${lit(URL_NAME)} limit 1) else vault.create_secret(${lit(appUrl)}, ${lit(URL_NAME)}) end`,
+      // Vault 비밀값: 없으면 만들고, 있으면(방금 만든 것 포함) 값을 맞춘다. create_secret은 uuid, update_secret은 void를 돌려줘 한 case 문으로 합치면 타입 오류가 나므로 두 문장으로 나눈다
+      `select vault.create_secret(${lit(cronSecret)}, ${lit(SECRET_NAME)}) where not exists (select 1 from vault.secrets where name = ${lit(SECRET_NAME)})`,
+      `select vault.update_secret(id, ${lit(cronSecret)}) from vault.secrets where name = ${lit(SECRET_NAME)}`,
+      `select vault.create_secret(${lit(appUrl)}, ${lit(URL_NAME)}) where not exists (select 1 from vault.secrets where name = ${lit(URL_NAME)})`,
+      `select vault.update_secret(id, ${lit(appUrl)}) from vault.secrets where name = ${lit(URL_NAME)}`,
       `select cron.schedule(${lit(JOB_CHECK)}, ${lit(checkSchedule)}, $job$${postSql}$job$)`,
       `select cron.schedule(${lit(JOB_MISSED)}, ${lit(missedSchedule)}, 'select public.mark_schedule_missed()')`,
     ];
