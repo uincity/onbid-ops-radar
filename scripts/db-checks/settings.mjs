@@ -5,7 +5,7 @@ export const title = "설정값 (settings)";
 const EXPECTED = {
   compare_window_minutes: 10,
   api_timeout_seconds: 10,
-  api_call_limit_default: 20,
+  api_call_limit_default: 60, // 20261103100000_raise_api_call_limit_default.sql
   api_call_limit_max: 100,
   public_daily_budget: 900, // PUBLIC 일일 호출 예산 (부록 A: 서비스별 개발계정 1,000회/일에서 여유 100회)
   run_time_limit_seconds: 60,

@@ -106,7 +106,7 @@ export type Settings = {
 export const DEFAULT_SETTING_VALUES: SettingValues = {
   compare_window_minutes: 10,
   api_timeout_seconds: 10,
-  api_call_limit_default: 20,
+  api_call_limit_default: 60, // 추가 점검 오퍼레이션 13개 몫을 떼고도 상세를 충분히 보도록 (20 → 60, 20261103100000)
   api_call_limit_max: 100,
   public_daily_budget: 900, // 승인 트래픽(서비스별 개발계정 1,000회/일)에서 여유 100회를 남긴 값
   run_time_limit_seconds: 60,

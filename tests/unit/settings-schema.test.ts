@@ -39,7 +39,7 @@ describe("기본값 (PRD 5-5)", () => {
     expect(s).toEqual(DEFAULT_SETTINGS);
     expect(s.compareWindowMinutes).toBe(10);
     expect(s.apiTimeoutSeconds).toBe(10);
-    expect(s.apiCallLimitDefault).toBe(20);
+    expect(s.apiCallLimitDefault).toBe(60);
     expect(s.apiCallLimitMax).toBe(100);
     expect(s.runTimeLimitSeconds).toBe(60);
     expect(s.reasonMinLength).toBe(10);
@@ -213,8 +213,8 @@ describe("도우미", () => {
     expect(isEmptyAllowed(DEFAULT_SETTINGS, "unknown-api")).toBe(false);
   });
 
-  it("resolveCallLimit: 요청이 없으면 기본 20회, 최대 100회를 넘으면 100회로 줄인다", () => {
-    expect(resolveCallLimit(DEFAULT_SETTINGS)).toBe(20);
+  it("resolveCallLimit: 요청이 없으면 기본 60회, 최대 100회를 넘으면 100회로 줄인다", () => {
+    expect(resolveCallLimit(DEFAULT_SETTINGS)).toBe(60);
     expect(resolveCallLimit(DEFAULT_SETTINGS, 1)).toBe(1);
     expect(resolveCallLimit(DEFAULT_SETTINGS, 50)).toBe(50);
     expect(resolveCallLimit(DEFAULT_SETTINGS, 100)).toBe(100);

@@ -219,11 +219,22 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
   it("호출 상한 20회: 추가 오퍼레이션 13개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 13개는 모두 호출된다 (총 20회)", async () => {
     // 목록이 물건 30개를 돌려줘도(상세를 30번 부르려 해도) 추가 오퍼레이션 13개 몫은 남아 있어야 한다
     const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 30);
-    const { result } = await run(api);
+    const { result } = await run(api, { callLimit: 20 });
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
     expect(extraCalls).toBe(13);
     expect(result.apiCallCount).toBe(20);
     expect(api.urls.length).toBe(20);
+  });
+
+  it("기본 상한 60회(설정값): 추가 오퍼레이션 13개 + 목록 1 + 상세 46 = 60회를 쓰고 넘지 않는다", async () => {
+    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 80);
+    const { result } = await run(api); // callLimit을 주지 않으면 설정값(기본 60)을 쓴다
+    const details = api.urls.filter((u) => u.pathname.endsWith("getRlstDtlInf2")).length;
+    const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
+    expect(extraCalls).toBe(13);
+    expect(details).toBe(46);
+    expect(result.apiCallCount).toBe(60);
+    expect(api.urls.length).toBe(60);
   });
 
   it("호출 상한이 작으면(5회) 앞에서부터 채우고 나머지는 미점검(BUDGET_SKIP)으로 남긴다 — 장애로 세지 않는다", async () => {
