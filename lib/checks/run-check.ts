@@ -17,6 +17,7 @@ import { checkReadiness } from "./probe/readiness";
 import type { SchemaCheckResult } from "./probe/schema-check";
 import { describeProbe, type NotRunReason, type ProbeResult, type UnverifiedReason } from "./probe/status";
 import { PUBLIC_ENDPOINT_OPERATIONS } from "./public-fetcher";
+import { serviceCallsLeft, serviceDailyLimits } from "./service-limits";
 import type { ApiCheckRecord, CheckStore, ProbeRecord, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
 
 // 출처별로 부르는 조회 이름. 목록 → 상세 순서다.
@@ -130,7 +131,13 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const extras = source === "PUBLIC" ? (input.extraEndpoints ?? []) : [];
   const callable: Record<string, string> = { ...PUBLIC_ENDPOINT_OPERATIONS, ...Object.fromEntries(extras.map((e) => [e.endpoint, e.operationKey])) };
   const keyOf: KeyOf = (endpoint) => callable[endpoint];
-  const endpoints: { name: string; kind: "list" | "detail" | "extra" }[] = [...ENDPOINTS[source], ...extras.map((e) => ({ name: e.endpoint, kind: "extra" as const }))];
+  const serviceOf = (endpoint: string): string | undefined => keyOf(endpoint)?.split("/")[0];
+  // 추가 오퍼레이션은 서비스(배치) 단위로 묶어 등록부 순서대로 실행한다. 같은 서비스끼리 이어서 부르므로 서비스별 호출 간격·예산·결과 집계가 한 덩어리로 움직인다
+  const plannedBatches = buildBatches(callable);
+  const batchOrder = plannedBatches.map((b) => b.serviceId);
+  const operationOrder = plannedBatches.flatMap((b) => b.operations.map((o) => o.key));
+  const extrasInBatchOrder = [...extras].sort((a, b) => operationOrder.indexOf(a.operationKey) - operationOrder.indexOf(b.operationKey));
+  const endpoints: { name: string; kind: "list" | "detail" | "extra" }[] = [...ENDPOINTS[source], ...extrasInBatchOrder.map((e) => ({ name: e.endpoint, kind: "extra" as const }))];
   const started = await store.startRun(trigger, source, input.triggeredBy ?? null);
   const allEndpoints = endpoints.map((e) => e.name);
   if (started.status === "blocked") {
@@ -174,11 +181,24 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     let limitHit = false;
     let mainLimitLogged = false;
 
+    // PUBLIC: 서비스(배치)별 하루 호출 예산(등록부 승인 쿼터)과 이번 실행에서 서비스별로 쓴 호출·판정 집계
+    const serviceLimits = source === "PUBLIC" ? serviceDailyLimits() : {};
+    const serviceUsedToday = source === "PUBLIC" ? await store.countPublicCallsTodayByService() : {};
+    const serviceUsedThisRun: Record<string, number> = {};
+    const serviceBudgetLogged = new Set<string>();
+    const batchStats = new Map<string, { counts: Partial<Record<ProbeResult["status"], number>> }>();
+
     // 점검 하나의 판정을 모으고 DB(probe_results)와 실행 메모(PROBE_RESULT)로 남긴다 (PUBLIC만)
     const record = async (endpoint: string, result: ProbeResult, check?: ApiCheckRecord) => {
       const operationKey = keyOf(endpoint);
       const entry: ProbeEntry = { endpoint, operationKey, result };
       probes.push(entry);
+      const serviceId = serviceOf(endpoint);
+      if (serviceId) {
+        const stats = batchStats.get(serviceId) ?? { counts: {} };
+        stats.counts[result.status] = (stats.counts[result.status] ?? 0) + 1;
+        batchStats.set(serviceId, stats);
+      }
       await saveProbe(store, runId, source, entry, check);
       await store.log(runId, result.status === "FAIL" ? "warn" : "info", "PROBE_RESULT", `'${endpoint}' 점검 판정: ${describeProbe(result)}`);
     };
@@ -215,11 +235,23 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         }
       }
 
+      // PUBLIC: 이 서비스(배치)의 오늘 호출 예산(승인 쿼터)을 다 썼으면 이 서비스만 호출하지 않고 이유를 남긴다. 다른 서비스는 계속한다
+      const serviceId = serviceOf(name);
+      const serviceLeft = serviceId ? serviceCallsLeft(serviceLimits, serviceUsedToday, serviceUsedThisRun, serviceId) : null;
+      if (source === "PUBLIC" && serviceId && serviceLeft !== null && serviceLeft <= 0) {
+        if (!serviceBudgetLogged.has(serviceId)) {
+          serviceBudgetLogged.add(serviceId);
+          await store.log(runId, "warn", "SERVICE_BUDGET_EXCEEDED", `서비스 ${serviceId}의 하루 호출 예산 ${serviceLimits[serviceId]}회를 오늘 모두 써서 이 서비스는 호출하지 않았습니다.`);
+        }
+        await record(name, { status: "NOT_RUN", attempted: false, reason: "BUDGET_SKIP" });
+        continue;
+      }
+
       // 조회기가 예외를 던져도 그 점검 하나만 판단 불가로 남기고 다음 점검은 계속한다 (한 API의 문제가 다른 API를 막지 않는다, PRD R04)
       // 조회기가 던진 예외는 우리 쪽 문제일 수 있어 API 장애(FAIL)로 단정하지 않고 UNVERIFIED로 남긴다. 내부 오류 문구는 기록하지 않는다 (SEC-11).
       let result: Awaited<ReturnType<Fetcher>>;
       try {
-        result = await fetcher(name, { remainingCalls: limitForThis - calls, remainingMs: timeLimitMs - (clock() - t0) });
+        result = await fetcher(name, { remainingCalls: Math.min(limitForThis - calls, serviceLeft ?? Infinity), remainingMs: timeLimitMs - (clock() - t0) });
       } catch {
         failed += 1;
         await store.log(runId, "error", "FETCH_ERROR", `'${name}' 조회 중 예상하지 못한 오류가 있어 이 점검만 건너뛰고 계속합니다.`);
@@ -227,6 +259,10 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         continue;
       }
       calls += result.httpCalls ?? 1; // 조회 하나가 실제 호출을 여러 번 했으면(PUBLIC 상세) 그만큼 센다
+      if (serviceId) serviceUsedThisRun[serviceId] = (serviceUsedThisRun[serviceId] ?? 0) + (result.httpCalls ?? 1);
+      if (result.requeried && result.requeried.tried > 0) {
+        await store.log(runId, "info", "DETAIL_REQUERY", `상세가 0건이던 물건 ${result.requeried.tried}건을 한 번 더 조회해 ${result.requeried.recovered}건에서 상세를 받았습니다. 그래도 0건이면 목록·상세 비교는 판정을 보류합니다.`);
+      }
       const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
       for (const check of checks) await store.recordApiCheck(runId, check);
       schemas.set(name, result.schema ?? null);
@@ -263,6 +299,17 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     const left = allEndpoints.filter((e) => !probed.has(e));
     if (left.length > 0) {
       for (const entry of unprobed(source, left, authProblem ? { unverified: "PRECONDITION_FAILED" } : { notRun: "BUDGET_SKIP" }, keyOf)) await record(entry.endpoint, entry.result);
+    }
+
+    // 서비스(배치)별 결과 요약: 서비스마다 점검한 오퍼레이션의 판정 분포와 이번 실행의 호출 수. 한 서비스의 실패가 다른 서비스를 막지 않았는지 한눈에 본다
+    if (source === "PUBLIC") {
+      const label: Record<ProbeResult["status"], string> = { PASS_DATA: "정상(데이터)", PASS_NO_DATA: "정상(무데이터)", DEGRADED: "저하", FAIL: "실패", UNVERIFIED: "검증 불가", NOT_RUN: "미점검" };
+      for (const serviceId of batchOrder) {
+        const stats = batchStats.get(serviceId);
+        if (!stats) continue;
+        const parts = (Object.keys(label) as ProbeResult["status"][]).filter((s) => stats.counts[s]).map((s) => `${label[s]} ${stats.counts[s]}`);
+        await store.log(runId, "info", "SERVICE_BATCH", `서비스 ${serviceId}: ${parts.join(", ")} (이번 실행 호출 ${serviceUsedThisRun[serviceId] ?? 0}회)`);
+      }
     }
 
     // 탐지: 서비스키·한도 문제가 있었던 실행에서는 건너뛴다 (PRD 5-2 규칙 6)

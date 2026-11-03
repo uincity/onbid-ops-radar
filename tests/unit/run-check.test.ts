@@ -40,6 +40,9 @@ function fakeStore(over: Partial<CheckStore> & { blocked?: boolean; prior?: Reco
     async countPublicCallsToday() {
       return 0;
     },
+    async countPublicCallsTodayByService() {
+      return {};
+    },
     // 이번 실행에서 저장한 판정(가장 최근이 먼저) 뒤에 시험이 심어 둔 과거 판정(prior, 가장 최근이 먼저)을 붙여 돌려준다
     async recentProbeHistory(_source, apiId, operationId) {
       const row = (p: ProbeRecord): PriorProbe => ({ status: p.result.status, reason: "code" in p.result ? p.result.code : "reason" in p.result ? p.result.reason : null });
@@ -358,12 +361,12 @@ describe("PUBLIC 점검", () => {
   };
   const runPublic = (over: Partial<RunCheckInput> & { store: CheckStore }) => runCheck({ trigger: "manual", source: "PUBLIC", settings, ...over, fetcher: over.fetcher ?? publicFetcher().fetcher });
 
-  it("목록 1번 + 상세 5번 = 6번 호출하고, 호출마다 api_checks 한 줄이 남는다", async () => {
+  it("목록 1번 + 상세 5번(0건 물건은 재조회 1번 더) = 7번 호출하고, 호출마다 api_checks 한 줄이 남는다", async () => {
     const { store, rec } = fakeStore();
     const { fetcher, urls } = publicFetcher();
     const result = await runPublic({ store, fetcher });
-    expect(result).toMatchObject({ status: "succeeded", apiCallCount: 6 });
-    expect(urls).toHaveLength(6);
+    expect(result).toMatchObject({ status: "succeeded", apiCallCount: 7 });
+    expect(urls).toHaveLength(7);
     expect(rec.apiChecks.map((c) => [c.endpointName, c.outcome])).toEqual([
       ["public-list", "success"],
       ["public-detail", "success"],
@@ -371,6 +374,7 @@ describe("PUBLIC 점검", () => {
       ["public-detail", "success"],
       ["public-detail", "success"],
       ["public-detail", "empty_result"],
+      ["public-detail", "empty_result"], // 상세가 0건이면 한 번 더 조회한다
     ]);
   });
 
@@ -514,7 +518,7 @@ describe("PUBLIC 점검", () => {
       const unprobed = rec.probeRows.filter((p) => !["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"].includes(`${p.apiId}/${p.operationId}`));
       expect(unprobed).toHaveLength(26);
       expect(unprobed.every((p) => p.result.status === "UNVERIFIED" && p.result.attempted === false && p.requestSummary === null)).toBe(true);
-      expect(rec.apiChecks).toHaveLength(6); // 요청은 목록 1 + 상세 5뿐
+      expect(rec.apiChecks).toHaveLength(7); // 요청은 목록 1 + 상세 5 + 0건 상세 재조회 1뿐
     });
 
     describe("API 상태 이상징후 (연속 FAIL)", () => {
@@ -773,7 +777,7 @@ describe("PUBLIC 점검", () => {
       });
       const result = await runPublic({ store, settings: { ...settings, publicDailyBudget: null } });
       expect(asked).toBe(0);
-      expect(result.apiCallCount).toBe(6);
+      expect(result.apiCallCount).toBe(7);
     });
 
     it("DEMO 점검은 예산을 확인하지 않는다", async () => {

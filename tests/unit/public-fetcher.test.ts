@@ -170,12 +170,30 @@ describe("public-detail (부동산 물건상세)", () => {
 
   it("상세가 데이터없음(03)이면 그 물건은 상세 줄이 없다. 일부만 없으면 성공, 전부 없으면 빈 결과", async () => {
     const nodata = json({ result: { resultCode: "03", resultMsg: "NODATA_ERROR" } });
-    const some = await listThenDetail((id, call) => (call === 2 ? nodata.clone() : detailBody(id)));
+    // 두 번째 물건의 상세가 두 번 다 0건: 한 번 더 조회해도 같으면 그대로 빈 결과로 남는다
+    const some = await listThenDetail((id, call) => (call === 2 || call === 3 ? nodata.clone() : detailBody(id)));
     expect(some.detail).toMatchObject({ outcome: "success", recordCount: 2 });
-    expect(some.detail.subChecks?.map((c) => c.outcome)).toEqual(["success", "empty_result", "success"]);
+    expect(some.detail.subChecks?.map((c) => c.outcome)).toEqual(["success", "empty_result", "empty_result", "success"]);
+    expect(some.detail.requeried).toEqual({ tried: 1, recovered: 0 });
 
+    // 전부 0건: 물건 3개를 각각 2번씩(처음 + 재조회) 조회한다
     const all = await listThenDetail(() => json({ result: { resultCode: "03", resultMsg: "NODATA_ERROR" } }));
-    expect(all.detail).toMatchObject({ outcome: "empty_result", recordCount: 0, httpCalls: 3 });
+    expect(all.detail).toMatchObject({ outcome: "empty_result", recordCount: 0, httpCalls: 6, requeried: { tried: 3, recovered: 0 } });
+  });
+
+  it("상세가 0건이어도 재조회에서 받으면 그 물건은 상세 줄이 생기고 복구로 센다", async () => {
+    const nodata = json({ result: { resultCode: "03", resultMsg: "NODATA_ERROR" } });
+    const { detail } = await listThenDetail((id, call) => (call === 2 ? nodata.clone() : detailBody(id)));
+    expect(detail).toMatchObject({ outcome: "success", recordCount: 3, httpCalls: 4, requeried: { tried: 1, recovered: 1 } });
+    expect(detail.subChecks?.map((c) => c.outcome)).toEqual(["success", "empty_result", "success", "success"]);
+  });
+
+  it("재조회도 남은 호출 수를 넘지 않는다 (경계: 1회만 남으면 재조회 없이 멈추고, 2회 남으면 재조회까지)", async () => {
+    const nodataBody = () => json({ result: { resultCode: "03", resultMsg: "NODATA_ERROR" } });
+    const one = await listThenDetail(nodataBody, undefined, { remainingCalls: 1, remainingMs: 60_000 });
+    expect(one.detail).toMatchObject({ httpCalls: 1, requeried: { tried: 0, recovered: 0 } });
+    const two = await listThenDetail(nodataBody, undefined, { remainingCalls: 2, remainingMs: 60_000 });
+    expect(two.detail).toMatchObject({ httpCalls: 2, requeried: { tried: 1, recovered: 0 } });
   });
 
   it("서비스키·한도 문제가 나면 그 자리에서 멈춘다 (더 부르지 않는다)", async () => {

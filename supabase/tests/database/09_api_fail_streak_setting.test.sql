@@ -7,7 +7,7 @@ create extension if not exists pgtap with schema extensions;
 select plan(8);
 
 select is((select value from public.settings where key = 'api_fail_streak_threshold'), '3'::jsonb, '기본값은 3');
-select is((select count(*)::int from public.settings), 15, '설정 항목은 15개');
+select is((select count(*)::int from public.settings), 16, '설정 항목은 16개');
 
 select lives_ok($$update public.settings set value = '2'::jsonb where key = 'api_fail_streak_threshold'$$, '2는 허용 (한 칸 안)');
 select lives_ok($$update public.settings set value = '10'::jsonb where key = 'api_fail_streak_threshold'$$, '10은 허용 (한 칸 안)');

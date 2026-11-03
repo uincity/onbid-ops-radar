@@ -142,6 +142,9 @@ function memoryStore(prior: Record<string, { status: never; reason: string | nul
     async countPublicCallsToday() {
       return 0;
     },
+    async countPublicCallsTodayByService() {
+      return {};
+    },
     async saveCollected() {
       rec.collected += 1;
     },

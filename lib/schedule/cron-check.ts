@@ -55,7 +55,7 @@ export async function runScheduledCheck(authorization: string | null, deps: Cron
       const key = deps.serviceKey();
       // 서비스키가 없으면 요청을 보내지 않는다. 점검 기록이 생기지 않으므로 09:30 누락 감지가 이를 알린다
       if (!key) return reply(503, "예약 점검 출처가 PUBLIC인데 서비스키가 서버에 설정되어 있지 않아 실행하지 않았습니다.");
-      const publicCheck = buildPublicCheck({ serviceKey: key, timeoutSeconds: settings.apiTimeoutSeconds, now: new Date(deps.now()) });
+      const publicCheck = buildPublicCheck({ serviceKey: key, timeoutSeconds: settings.apiTimeoutSeconds, now: new Date(deps.now()), callIntervalMs: settings.publicCallIntervalMs });
       fetcher = publicCheck.fetcher;
       extraEndpoints = publicCheck.extraEndpoints;
     } else {

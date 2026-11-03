@@ -11,6 +11,7 @@
 import { findOperation } from "@/lib/registry";
 import { checkResponseSchema, mergeSchemaChecks, type SchemaCheckResult } from "./probe/schema-check";
 import { parseOnbidBody } from "./public-response";
+import { createPacer } from "./service-limits";
 import type { ApiCheckRecord, ApiFetchResult, ApiOutcome, FetchContext, FetchedRecord, Fetcher } from "./types";
 
 export const PUBLIC_ALLOWED_HOSTS: readonly string[] = ["apis.data.go.kr"];
@@ -39,6 +40,8 @@ export type PublicFetcherOptions = {
   fetchImpl?: typeof fetch; // 시험에서 가짜 응답으로 바꿔 끼운다
   now?: () => number;
   extraOperations?: readonly ExtraOperation[]; // 목록·상세 외에 점검할 오퍼레이션 (generic-probe.ts가 만든다)
+  callIntervalMs?: number | null; // 같은 서비스에 연달아 보내는 요청 사이의 최소 간격 (설정값 public_call_interval_ms). 비우면 기다리지 않는다
+  sleep?: (ms: number) => Promise<void>; // 시험에서 바꿔 끼운다
 };
 
 // 발급받은 키가 이미 URL 인코딩된 형태(% 포함)면 그대로, 아니면 인코딩해서 쓴다. (한 번 더 인코딩하면 인증에 실패한다)
@@ -70,10 +73,11 @@ function pickStoredFields(item: Record<string, unknown>): Record<string, string>
 type CallResult = { check: ApiCheckRecord; items: Record<string, unknown>[] };
 
 export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
-  const { serviceKey, timeoutSeconds, fetchImpl = fetch, now = Date.now, extraOperations = [] } = options;
+  const { serviceKey, timeoutSeconds, fetchImpl = fetch, now = Date.now, extraOperations = [], callIntervalMs = null, sleep = (ms: number) => new Promise<void>((resolve) => setTimeout(resolve, ms)) } = options;
   if (!serviceKey) throw new Error("DATA_GO_KR_SERVICE_KEY가 없습니다. .env을 확인해 주세요.");
   if (!(timeoutSeconds > 0)) throw new Error("타임아웃(초)은 0보다 커야 합니다.");
   const encodedKey = encodeServiceKey(serviceKey);
+  const pacer = createPacer(callIntervalMs, now, sleep);
 
   const extraByName = new Map(extraOperations.map((e) => [e.endpoint, e]));
   // 점검 이름이 가리키는 등록부 오퍼레이션 키 ("서비스ID/오퍼레이션ID")
@@ -86,10 +90,11 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
   async function call(endpointName: string, baseUrl: string, params: Record<string, string>): Promise<CallResult> {
     const url = `${baseUrl}?serviceKey=${encodedKey}&${new URLSearchParams(params).toString()}`;
     assertAllowedUrl(url);
+    const [apiId, operationId] = (operationKeyOf(endpointName) ?? "/").split("/");
+    await pacer.wait(apiId); // 같은 서비스로 가는 직전 요청과 최소 간격을 둔다 (응답 시간 측정에는 넣지 않는다)
     const started = now();
     // 기록용 요청 요약: 서비스키를 뺀 조회 조건만 (PRD 5-2-2 7단계, SEC-10)
     const requestSummary = new URLSearchParams(params).toString();
-    const [apiId, operationId] = (operationKeyOf(endpointName) ?? "/").split("/");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
     const done = (
@@ -155,17 +160,20 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
     const startedAll = now();
     const subChecks: ApiCheckRecord[] = [];
     const records: FetchedRecord[] = [];
+    const requeried = { tried: 0, recovered: 0 };
     for (const target of listed) {
       if (subChecks.length >= context.remainingCalls) break; // 호출 상한
       if (now() - startedAll >= context.remainingMs) break; // 실행시간 제한
-      const { check, items } = await call("public-detail", PUBLIC_DETAIL_URL, {
-        pageNo: "1",
-        numOfRows: "1",
-        resultType: "json",
-        cltrMngNo: target.cltrMngNo,
-        pbctCdtnNo: target.pbctCdtnNo,
-      });
+      const detailParams = { pageNo: "1", numOfRows: "1", resultType: "json", cltrMngNo: target.cltrMngNo, pbctCdtnNo: target.pbctCdtnNo };
+      let { check, items } = await call("public-detail", PUBLIC_DETAIL_URL, detailParams);
       subChecks.push(check);
+      // 상세가 0건이면 일시적인 응답 누락인지 구분하려고 호출 여유가 있을 때 한 번 더 조회한다. 그래도 0건이면 판정을 보류(UNVERIFIED)로 남긴다 (DQ_LIST_DETAIL_REF)
+      if (check.outcome === "empty_result" && subChecks.length < context.remainingCalls && now() - startedAll < context.remainingMs) {
+        requeried.tried += 1;
+        ({ check, items } = await call("public-detail", PUBLIC_DETAIL_URL, detailParams));
+        subChecks.push(check);
+        if (check.outcome === "success" && items[0]) requeried.recovered += 1;
+      }
       if (check.outcome === "success" && items[0]) {
         const fields = pickStoredFields(items[0]);
         records.push({ itemKey: target.cltrMngNo, fields, collectedAtMs: now() });
@@ -199,6 +207,7 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       records,
       httpCalls: subChecks.length,
       subChecks,
+      requeried,
     };
   }
 

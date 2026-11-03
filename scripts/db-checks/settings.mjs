@@ -13,6 +13,7 @@ const EXPECTED = {
   schedule_missed_grace_minutes: 30,
   stale_running_seconds: 120,
   api_fail_streak_threshold: 3, // 같은 오퍼레이션 연속 FAIL 횟수 (R04)
+  public_call_interval_ms: 200, // 같은 서비스에 연달아 보내는 PUBLIC 요청 사이의 최소 간격(밀리초) (20261103110000)
   scheduled_source: "DEMO",
   required_fields: {
     DEMO: ["demo_item_id", "item_name", "org_name", "bid_start_at", "bid_end_at"],
@@ -93,6 +94,9 @@ export async function run(ctx) {
       ${t("run_limit_301", upd("run_time_limit_seconds", j("301")))}
       ${t("grace_0", upd("schedule_missed_grace_minutes", j("0")))}
       ${t("stale_59", upd("stale_running_seconds", j("59")))}
+      ${t("interval_neg", upd("public_call_interval_ms", j("-1")))}
+      ${t("interval_5001", upd("public_call_interval_ms", j("5001")))}
+      ${t("interval_0_ok", upd("public_call_interval_ms", j("0")))}
       ${t("reason_9", upd("reason_min_length", j("9")))}
       ${t("reason_15_ok", upd("reason_min_length", j("15")))}
 
@@ -158,6 +162,9 @@ export async function run(ctx) {
   expect("run_limit_301", "23514", "실행시간 제한이 300초를 넘으면 거부");
   expect("grace_0", "23514", "예약 누락 판단 대기시간이 0분이면 거부");
   expect("stale_59", "23514", "멈춘 실행 정리 기준이 60초 미만이면 거부");
+  expect("interval_neg", "23514", "호출 간격이 음수면 거부");
+  expect("interval_5001", "23514", "호출 간격이 5000밀리초를 넘으면 거부");
+  expect("interval_0_ok", "OK", "호출 간격 0(기다리지 않음)은 허용");
   expect("reason_9", "23514", "사유 최소 글자 수를 9 이하로 내리는 것은 거부 (이력 테이블이 10자 미만을 항상 거부하므로)");
   expect("reason_15_ok", "OK", "사유 최소 글자 수를 15로 올리는 것은 허용");
 
@@ -184,13 +191,13 @@ export async function run(ctx) {
   expect("empty_not_boolean", "23514", "빈 결과 허용 여부가 true/false가 아니면 거부");
   expect("empty_bad_name", "23514", "API 이름에 공백이 있으면 거부");
 
-  expect("unknown_key", "23514", "정해진 15개 밖의 새 항목은 만들 수 없음");
+  expect("unknown_key", "23514", "정해진 16개 밖의 새 항목은 만들 수 없음");
   expect("duplicate_key", "23505", "같은 항목을 두 번 만들 수 없음");
   expect("rename_key", "23000", "항목 이름은 바꿀 수 없음");
   expect("delete_key", "23000", "항목은 삭제할 수 없음");
   expect("truncate_table", "23000", "설정값 표를 비울 수 없음");
 
-  report(probe.auth_read_count === 15, "로그인 사용자는 설정값 15개를 모두 읽을 수 있음", `결과 ${probe.auth_read_count}`);
+  report(probe.auth_read_count === 16, "로그인 사용자는 설정값 16개를 모두 읽을 수 있음", `결과 ${probe.auth_read_count}`);
   expect("auth_update", "42501", "로그인 사용자는 설정값을 바꿀 수 없음");
   expect("auth_insert", "42501", "로그인 사용자는 설정 항목을 만들 수 없음");
   expect("anon_read", "42501", "비로그인 사용자는 설정값을 읽을 수 없음");
@@ -202,5 +209,5 @@ export async function run(ctx) {
   const after = await query("select key, value from public.settings");
   const afterMap = Object.fromEntries(after.map((r) => [r.key, r.value]));
   const changed = Object.entries(EXPECTED).filter(([key, value]) => JSON.stringify(afterMap[key]) !== JSON.stringify(value));
-  report(changed.length === 0 && after.length === 15, "시험 후에도 기본값 15개가 그대로임 (모두 되돌려짐)");
+  report(changed.length === 0 && after.length === 16, "시험 후에도 기본값 16개가 그대로임 (모두 되돌려짐)");
 }

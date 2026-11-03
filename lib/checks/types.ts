@@ -35,6 +35,8 @@ export type ApiFetchResult = ApiCheckRecord & {
   // 조회 하나가 실제 호출을 여러 번 하는 경우(PUBLIC 상세: 물건마다 1번): 실제 호출 수와 호출별 결과. 없으면 호출 1번으로 본다.
   httpCalls?: number;
   subChecks?: ApiCheckRecord[];
+  // PUBLIC 상세: 상세가 0건으로 와서 한 번 더 조회한 물건 수와, 그중 두 번째 조회에서 상세를 받은 수 (DQ_LIST_DETAIL_REF 판정 보류를 줄이려는 재조회)
+  requeried?: { tried: number; recovered: number };
 };
 
 // 엔진이 조회기에 알려 주는 "지금 남은 한도". 조회기는 이를 넘겨 호출하지 않는다 (호출 상한 20/100회, 실행시간 60초).
@@ -84,6 +86,8 @@ export interface CheckStore {
   recentProbeHistory(source: RunSource, apiId: string, operationId: string, limit: number): Promise<{ status: ProbeStatus; reason: string | null }[]>;
   // 오늘(KST) 이미 쓴 PUBLIC API 호출 수 (일일 호출 예산 확인용, DESIGN 5.1 2단계)
   countPublicCallsToday(): Promise<number>;
+  // 오늘(KST) 이미 쓴 PUBLIC API 호출 수를 서비스ID(SVC-API-NNN)별로 센 것 (서비스별 일일 예산 확인용, R04)
+  countPublicCallsTodayByService(): Promise<Record<string, number>>;
   saveCollected(runId: number, source: RunSource, kind: "list" | "detail", records: FetchedRecord[]): Promise<void>;
   // DB 함수 record_detection을 부른다 (중복·재발·정상 판정 억제는 DB 함수가 지킨다)
   recordDetection(detection: DetectionRecord): Promise<{ anomalyId: number; action: RecordAction }>;

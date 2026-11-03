@@ -105,6 +105,37 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
       return count ?? 0;
     },
 
+    // 오늘(KST) 쓴 PUBLIC API 호출 수를 서비스(api_id)별로 센다. 서비스ID가 없는 호출(DEMO 이전 방식 등)은 넣지 않는다
+    async countPublicCallsTodayByService() {
+      const { start, end } = kstDayRange(toKstDateString(new Date()));
+      const { data: runs, error: runError } = await supabase
+        .from("check_runs")
+        .select("id")
+        .eq("source", "PUBLIC")
+        .gte("started_at", new Date(start.getTime() - 24 * 3_600_000).toISOString())
+        .lt("started_at", end.toISOString());
+      if (runError) return fail("오늘 서비스별 호출 수를 확인하지 못했습니다");
+      const ids = (runs ?? []).map((r) => r.id);
+      const counts: Record<string, number> = {};
+      if (ids.length === 0) return counts;
+      // 한 번에 읽을 수 있는 줄 수에 한도가 있어 나눠서 읽는다
+      const PAGE = 1000;
+      for (let from = 0; ; from += PAGE) {
+        const { data, error } = await supabase
+          .from("api_checks")
+          .select("api_id")
+          .in("run_id", ids)
+          .gte("checked_at", start.toISOString())
+          .lt("checked_at", end.toISOString())
+          .not("api_id", "is", null)
+          .order("id", { ascending: true })
+          .range(from, from + PAGE - 1);
+        if (error) return fail("오늘 서비스별 호출 수를 확인하지 못했습니다");
+        for (const row of data ?? []) counts[row.api_id as string] = (counts[row.api_id as string] ?? 0) + 1;
+        if ((data ?? []).length < PAGE) return counts;
+      }
+    },
+
     async recordDetection(d: DetectionRecord) {
       const { data, error } = await supabase.rpc("record_detection", {
         p_source: d.source,

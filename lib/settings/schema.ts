@@ -27,6 +27,7 @@ export const INT_RANGES = {
   schedule_missed_grace_minutes: { min: 1, max: 120 }, // 예약 점검 누락 판단 대기(분)
   stale_running_seconds: { min: 60, max: 600 }, // 멈춘 실행 정리 기준(초)
   api_fail_streak_threshold: { min: 2, max: 10 }, // 같은 오퍼레이션이 연속 몇 번 FAIL이면 API 상태 이상징후를 만들지 (R04)
+  public_call_interval_ms: { min: 0, max: 5000 }, // 같은 서비스에 연달아 보내는 PUBLIC 요청 사이의 최소 간격(밀리초). 0이면 기다리지 않는다
 } as const;
 export const PUBLIC_DAILY_BUDGET_RANGE = { min: 1, max: 1_000_000 } as const;
 
@@ -47,6 +48,7 @@ export const SETTING_SCHEMAS = {
   schedule_missed_grace_minutes: intIn(INT_RANGES.schedule_missed_grace_minutes),
   stale_running_seconds: intIn(INT_RANGES.stale_running_seconds),
   api_fail_streak_threshold: intIn(INT_RANGES.api_fail_streak_threshold),
+  public_call_interval_ms: intIn(INT_RANGES.public_call_interval_ms),
   scheduled_source: z.enum(SOURCES),
   required_fields: fieldsBySource,
   compare_fields: fieldsBySource,
@@ -57,8 +59,8 @@ export const SETTING_SCHEMAS = {
 export type SettingKey = keyof typeof SETTING_SCHEMAS;
 
 // 배포 순서(코드 먼저 → DB 나중) 때문에 DB에 아직 없어도 오류로 보지 않는 항목. 없으면 그 기능을 끄고(null) 기본값으로 대신하지 않는다.
-// DB에 항목이 들어간 뒤에는 다른 항목처럼 규칙을 검사한다. (R04: 연속 FAIL 횟수)
-export const OPTIONAL_SETTING_KEYS: readonly SettingKey[] = ["api_fail_streak_threshold"];
+// DB에 항목이 들어간 뒤에는 다른 항목처럼 규칙을 검사한다. (R04: 연속 FAIL 횟수, 호출 간격)
+export const OPTIONAL_SETTING_KEYS: readonly SettingKey[] = ["api_fail_streak_threshold", "public_call_interval_ms"];
 export const SETTING_KEYS = Object.keys(SETTING_SCHEMAS) as SettingKey[];
 export type SettingValues = { [K in SettingKey]: z.infer<(typeof SETTING_SCHEMAS)[K]> };
 
@@ -74,6 +76,7 @@ const RULE_TEXT: Record<SettingKey, string> = {
   schedule_missed_grace_minutes: `정수 ${INT_RANGES.schedule_missed_grace_minutes.min}~${INT_RANGES.schedule_missed_grace_minutes.max}`,
   stale_running_seconds: `정수 ${INT_RANGES.stale_running_seconds.min}~${INT_RANGES.stale_running_seconds.max}`,
   api_fail_streak_threshold: `정수 ${INT_RANGES.api_fail_streak_threshold.min}~${INT_RANGES.api_fail_streak_threshold.max}`,
+  public_call_interval_ms: `정수 ${INT_RANGES.public_call_interval_ms.min}~${INT_RANGES.public_call_interval_ms.max}`,
   scheduled_source: "DEMO 또는 PUBLIC",
   required_fields: "출처(DEMO/PUBLIC)별 필드 이름 목록",
   compare_fields: "출처(DEMO/PUBLIC)별 필드 이름 목록",
@@ -94,6 +97,7 @@ export type Settings = {
   scheduleMissedGraceMinutes: number;
   staleRunningSeconds: number;
   apiFailStreakThreshold: number | null; // null이면 API 상태 이상징후를 만들지 않는다 (DB에 항목이 아직 없을 때)
+  publicCallIntervalMs: number | null; // null이면 호출 간격을 두지 않는다 (DB에 항목이 아직 없을 때)
   scheduledSource: Source;
   requiredFields: FieldsBySource;
   compareFields: FieldsBySource;
@@ -114,6 +118,7 @@ export const DEFAULT_SETTING_VALUES: SettingValues = {
   schedule_missed_grace_minutes: 30,
   stale_running_seconds: 120,
   api_fail_streak_threshold: 3,
+  public_call_interval_ms: 200, // 같은 서비스에 초당 5건 이하로 (승인 트래픽 안에서 서비스에 부담을 주지 않도록)
   scheduled_source: "DEMO",
   // DEMO 필드는 PRD 부록 B, PUBLIC 필드는 부록 A(온비드 부동산 물건목록·상세)
   required_fields: {
@@ -197,6 +202,7 @@ export function parseSettings(rows: readonly SettingRow[]): Settings {
     scheduleMissedGraceMinutes: p.schedule_missed_grace_minutes,
     staleRunningSeconds: p.stale_running_seconds,
     apiFailStreakThreshold: p.api_fail_streak_threshold ?? null,
+    publicCallIntervalMs: p.public_call_interval_ms ?? null,
     scheduledSource: p.scheduled_source,
     requiredFields: p.required_fields,
     compareFields: p.compare_fields,

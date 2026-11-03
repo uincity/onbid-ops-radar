@@ -3,10 +3,10 @@ import { genericProbeTargets } from "./generic-probe";
 import { createPublicFetcher } from "./public-fetcher";
 import type { Fetcher } from "./types";
 
-export function buildPublicCheck(options: { serviceKey: string; timeoutSeconds: number; now: Date }): { fetcher: Fetcher; extraEndpoints: { endpoint: string; operationKey: string }[] } {
+export function buildPublicCheck(options: { serviceKey: string; timeoutSeconds: number; now: Date; callIntervalMs?: number | null }): { fetcher: Fetcher; extraEndpoints: { endpoint: string; operationKey: string }[] } {
   const targets = genericProbeTargets(options.now);
   return {
-    fetcher: createPublicFetcher({ serviceKey: options.serviceKey, timeoutSeconds: options.timeoutSeconds, extraOperations: targets }),
+    fetcher: createPublicFetcher({ serviceKey: options.serviceKey, timeoutSeconds: options.timeoutSeconds, extraOperations: targets, callIntervalMs: options.callIntervalMs }),
     extraEndpoints: targets.map((t) => ({ endpoint: t.endpoint, operationKey: t.operationKey })),
   };
 }
