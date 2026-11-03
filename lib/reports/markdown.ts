@@ -68,6 +68,36 @@ function renderAvailability(a: NonNullable<ReportModel["availability"]>): string
   return out;
 }
 
+// 규칙 이름 옆 표기: 품질 이상징후는 담당자가 확인하기 전까지 의심이다
+const QUALITY_TARGET_UNIT: Record<string, string> = { DQ_SCHEMA: "개 오퍼레이션", DQ_REQUIRED: "건", DQ_LIST_DETAIL_REF: "건", DQ_CROSS_API_REF: "" };
+
+// PUBLIC 보고서의 데이터 품질 규칙 적용 현황 절
+function renderQuality(q: NonNullable<ReportModel["quality"]>): string[] {
+  const out: string[] = ["## 8. 데이터 품질 규칙 적용 현황 (PUBLIC)", ""];
+  out.push("> 데이터 품질 이상징후는 담당자가 확인하기 전까지 **의심**이며 확정된 오류가 아닙니다. 우리 점검 요청에 관측된 결과이며 온비드 전체의 데이터 품질을 뜻하지 않습니다.", "");
+  out.push(`- 적용 대상: 요청을 보낸 오퍼레이션 ${num(q.applicableApis)}개 · 수집·검사한 데이터 ${num(q.collectedItems)}건`, "");
+  out.push(
+    ...table(
+      ["규칙", "적용 대상", "신규 의심 건수"],
+      q.rules.map((r) => [escapeMarkdownCell(labelOf(RULE_LABEL, r.ruleId)), r.targets === null ? "적용 제외 (연결해서 비교할 API 점검 없음)" : `${num(r.targets)}${QUALITY_TARGET_UNIT[r.ruleId] ?? ""}`, num(r.suspected)]),
+    ),
+    "",
+  );
+  out.push(`- 판정 보류: ${num(q.deferred)}건 (상세 조회 결과가 없어 정상 종료·철회 등과 구분할 수 없는 물건. 이상징후로 만들지 않음)`);
+  out.push(`- 적용 제외된 점검 실행: ${num(q.notApplicableRuns)}회 (교차 참조 규칙)`, "");
+  return out;
+}
+
+// 실행 품질 절 (DEMO·PUBLIC 공통)
+function renderExecution(e: NonNullable<ReportModel["execution"]>, no: number): string[] {
+  const out: string[] = [`## ${no}. 실행 품질`, ""];
+  out.push(`- 예약 점검(KST 09:00): ${escapeMarkdownCell(e.scheduleTitle)} (${e.scheduleState}) · 그날 시작한 예약 점검 ${num(e.scheduledRunCount)}회`);
+  out.push(`- 마지막으로 끝난 점검 실행: ${e.lastFinishedAt ? kst(e.lastFinishedAt) : "없음"} (서비스 전체 점검 완료 시각이며 API별 마지막 성공 시각과 다릅니다)`);
+  out.push(`- 마지막으로 정상 완료된 점검 실행: ${e.lastSucceededAt ? kst(e.lastSucceededAt) : "없음"}`);
+  out.push("- 차단·일부 완료·미점검의 횟수와 사유는 위 2절(점검 실행 요약)과 6절(점검 메모)을 보세요.", "");
+  return out;
+}
+
 export const NO_RECORD_MESSAGE = "해당 날짜 점검 기록이 없습니다";
 
 export function renderReportMarkdown(m: ReportModel): string {
@@ -168,6 +198,8 @@ export function renderReportMarkdown(m: ReportModel): string {
   }
 
   if (m.availability) out.push(...renderAvailability(m.availability));
+  if (m.quality) out.push(...renderQuality(m.quality));
+  if (m.execution) out.push(...renderExecution(m.execution, m.availability ? 9 : 7));
 
   return `${out.join("\n").trimEnd()}\n`;
 }

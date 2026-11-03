@@ -57,6 +57,26 @@ export const reportModelSchema = z.object({
     ),
   }),
   skipReasons: z.array(z.object({ code: z.string(), count, sample: z.string() })),
+  // PUBLIC 보고서만: 데이터 품질 규칙 적용 현황 (R05 보강). 이전에 저장된 보고서에는 없다
+  quality: z
+    .object({
+      applicableApis: count,
+      collectedItems: count,
+      rules: z.array(z.object({ ruleId: z.string(), targets: count.nullable(), suspected: count })),
+      deferred: count,
+      notApplicableRuns: count,
+    })
+    .optional(),
+  // 실행 품질: 예약 점검 시작·완료 여부와 마지막 점검 완료 시각 (R05 보강). 이전에 저장된 보고서에는 없다
+  execution: z
+    .object({
+      scheduleState: z.string(),
+      scheduleTitle: z.string(),
+      scheduledRunCount: count,
+      lastFinishedAt: z.string().nullable(),
+      lastSucceededAt: z.string().nullable(),
+    })
+    .optional(),
   // PUBLIC 보고서만: 온비드 OpenAPI 26종 가용성 (R05). 이전에 저장된 보고서에는 없으므로 비어 있어도 된다
   availability: reportAvailabilitySchema.optional(),
   generationMs: z.number().int().min(0).optional(), // 보고서를 만드는 데 걸린 시간(밀리초)

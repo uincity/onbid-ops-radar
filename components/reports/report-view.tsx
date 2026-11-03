@@ -1,6 +1,8 @@
 // 저장된 보고서 스냅샷(모델)을 읽기 좋게 보여 주는 화면 조각 (서버 컴포넌트, 값을 그리기만 한다)
 import { RULE_LABEL, RUN_STATUS_LABEL, STATUS_LABEL, labelOf } from "@/lib/anomalies/labels";
 import { StatusBadge, RuleBadge } from "@/components/ui/badges";
+import { REASON_LABEL } from "@/lib/availability/summary";
+import { FAIL_CODE_LABEL, PROBE_STATUS_LABEL, PROBE_STATUSES } from "@/lib/checks/probe/status";
 import { NO_RECORD_MESSAGE } from "@/lib/reports/markdown";
 import type { ReportModel } from "@/lib/reports/model";
 import { formatKst } from "@/lib/time";
@@ -177,6 +179,92 @@ export function ReportView({ model }: { model: ReportModel }) {
           <SimpleTable head={["코드", "건수", "예시"]} rows={m.skipReasons.map((s) => [s.code, num(s.count), s.sample])} />
         )}
       </Section>
+
+      {m.availability ? <AvailabilitySections a={m.availability} /> : null}
+      {m.quality ? <QualitySection q={m.quality} no={8} /> : null}
+      {m.execution ? <ExecutionSection e={m.execution} no={m.availability ? 9 : 7} /> : null}
     </div>
+  );
+}
+
+// ---- R05 보강: 26종 가용성(7절) · 데이터 품질 규칙(8절) · 실행 품질(9절). Markdown 다운로드와 같은 내용을 화면으로 보여 준다 ----
+const pct = (r: { num: number; den: number }) => (r.den > 0 ? `${((r.num / r.den) * 100).toFixed(1)}% (${num(r.num)} / ${num(r.den)})` : `비율 없음 (${num(r.num)} / ${num(r.den)})`);
+const reasonText = (code: string | null) => (code === null ? "-" : (REASON_LABEL[code] ?? FAIL_CODE_LABEL[code as keyof typeof FAIL_CODE_LABEL] ?? code));
+const reasonList = (map: Record<string, number>) =>
+  Object.entries(map)
+    .filter(([, n]) => n > 0)
+    .map(([c, n]) => `${reasonText(c)} ${num(n)}`)
+    .join(", ") || "없음";
+
+function AvailabilitySections({ a }: { a: NonNullable<ReportModel["availability"]> }) {
+  const total = PROBE_STATUSES.reduce((sum, s) => sum + (a.counts[s] ?? 0), 0);
+  return (
+    <Section title="7. 온비드 OpenAPI 가용성 (PUBLIC)">
+      <div data-testid="report-availability">
+        <p className="mb-3 text-sm text-zinc-700 dark:text-zinc-300">
+          우리 점검 요청에 관측된 결과이며, 온비드 서버 전체의 가용성·호출량·원천 데이터 건수를 뜻하지 않습니다. 검증 불가·미점검은 정상으로도 실패로도 세지 않습니다. DEMO 결과는 포함하지 않습니다.
+        </p>
+        <p className="mb-3 text-sm text-zinc-700 dark:text-zinc-300">
+          관리 대상: 목표 {num(a.registry.target)}종 · 등록 확인 {num(a.registry.registered)}종 · 미확정 {num(a.registry.unconfirmed)}종 · 오퍼레이션 {num(a.registry.operations)}개 · 가장 최근 판정 시각 {a.lastCheckedAt ? `${a.lastCheckedAt} KST` : "점검 기록 없음"}
+        </p>
+        <SimpleTable
+          head={["판정", "오퍼레이션 수"]}
+          rows={[...PROBE_STATUSES.map((s) => [PROBE_STATUS_LABEL[s], num(a.counts[s] ?? 0)]), ["합계", `${num(total)} ${total === a.registry.operations ? "(일치)" : "(불일치: 집계 오류 확인 필요)"}`]]}
+        />
+        <div className="mt-3" />
+        <SimpleTable
+          head={["지표", "값"]}
+          rows={[
+            ["점검 시도율 (요청을 보낸 수 / 준비된 수)", pct(a.attemptRate)],
+            ["기본 정상 비율 (정상 / 실제 시도한 수)", pct(a.basicOk)],
+            ["실데이터 검증률 (실데이터 확인 / Positive 점검 등록)", pct({ num: a.realData.passData, den: a.realData.positiveRegistered })],
+            ["전체 목표 대비 검증률 (모든 오퍼레이션이 실데이터 확인된 서비스 / 목표)", pct(a.serviceCoverage)],
+          ]}
+        />
+        <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">검증 불가 사유: {reasonList(a.reasons.unverified)}</p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          미점검 사유: {reasonList(a.reasons.notRun)} (점검 기록 없음 {num(a.noRecord)}개 포함)
+        </p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">실패 구분: {reasonList(a.failByCode)}</p>
+      </div>
+    </Section>
+  );
+}
+
+function QualitySection({ q, no }: { q: NonNullable<ReportModel["quality"]>; no: number }) {
+  return (
+    <Section title={`${no}. 데이터 품질 규칙 적용 현황 (PUBLIC)`}>
+      <div data-testid="report-quality">
+        <p className="mb-3 text-sm text-zinc-700 dark:text-zinc-300">
+          데이터 품질 이상징후는 담당자가 확인하기 전까지 <strong>의심</strong>이며 확정된 오류가 아닙니다. 우리 점검 요청에 관측된 결과이며 온비드 전체의 데이터 품질을 뜻하지 않습니다.
+        </p>
+        <p className="mb-3 text-sm text-zinc-700 dark:text-zinc-300">
+          적용 대상: 요청을 보낸 오퍼레이션 {num(q.applicableApis)}개 · 수집·검사한 데이터 {num(q.collectedItems)}건
+        </p>
+        <SimpleTable
+          head={["규칙", "적용 대상", "신규 의심 건수"]}
+          rows={q.rules.map((r) => [labelOf(RULE_LABEL, r.ruleId), r.targets === null ? "적용 제외 (연결해서 비교할 API 점검 없음)" : num(r.targets), num(r.suspected)])}
+        />
+        <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">판정 보류: {num(q.deferred)}건 (상세 조회 결과가 없어 정상 종료·철회 등과 구분할 수 없는 물건. 이상징후로 만들지 않음)</p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">적용 제외된 점검 실행: {num(q.notApplicableRuns)}회 (교차 참조 규칙)</p>
+      </div>
+    </Section>
+  );
+}
+
+function ExecutionSection({ e, no }: { e: NonNullable<ReportModel["execution"]>; no: number }) {
+  return (
+    <Section title={`${no}. 실행 품질`}>
+      <div data-testid="report-execution">
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          예약 점검(KST 09:00): {e.scheduleTitle} ({e.scheduleState}) · 그날 시작한 예약 점검 {num(e.scheduledRunCount)}회
+        </p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">
+          마지막으로 끝난 점검 실행: {e.lastFinishedAt ? kst(e.lastFinishedAt) : "없음"} (서비스 전체 점검 완료 시각이며 API별 마지막 성공 시각과 다릅니다)
+        </p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">마지막으로 정상 완료된 점검 실행: {e.lastSucceededAt ? kst(e.lastSucceededAt) : "없음"}</p>
+        <p className="text-sm text-zinc-700 dark:text-zinc-300">차단·일부 완료·미점검의 횟수와 사유는 위 2절(점검 실행 요약)과 6절(점검 메모)을 보세요.</p>
+      </div>
+    </Section>
   );
 }

@@ -6,6 +6,9 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { loadAvailabilityRows } from "@/lib/availability/queries";
 import { toReportAvailability } from "@/lib/availability/report";
 import { summarizeAvailability } from "@/lib/availability/summary";
+import { loadScheduleMissedRecorded } from "@/lib/schedule/queries";
+import { loadSettings } from "@/lib/settings/load";
+import { buildExecutionSection, buildQualitySection } from "./quality";
 import { kstDayRange } from "@/lib/time";
 import {
   aggregateReport,
@@ -63,11 +66,11 @@ export async function generateReportModel(
   const endIso = end.toISOString();
 
   // 1) 그날 시작한 점검 실행
-  const runs = await fetchAll<RunRow & { finished_at: string | null }>(
+  const runs = await fetchAll<RunRow & { trigger: string; finished_at: string | null }>(
     (from, to) =>
       supabase
         .from("check_runs")
-        .select("id, status, started_at, finished_at")
+        .select("id, trigger, status, started_at, finished_at")
         .eq("source", source)
         .gte("started_at", startIso)
         .lt("started_at", endIso)
@@ -193,10 +196,21 @@ export async function generateReportModel(
   }
 
   // PUBLIC 보고서: 그날 [00:00, 끝) 안의 마지막 판정으로 26종 가용성을 집계한다 (DEMO 보고서에는 넣지 않는다)
-  const availability = source === "PUBLIC" ? toReportAvailability(summarizeAvailability(await loadAvailabilityRows(supabase, { from: day.start, to: end }))) : undefined;
+  const availabilityRows = source === "PUBLIC" ? await loadAvailabilityRows(supabase, { from: day.start, to: end }) : null;
+  const availability = availabilityRows ? toReportAvailability(summarizeAvailability(availabilityRows)) : undefined;
 
-  const build = (limit: number) => ({
-    ...aggregateReport({
+  // 실행 품질: 그날 예약 점검이 시작·완료되었는지, 마지막 점검 완료 시각 (두 출처 모두)
+  const settings = await loadSettings(supabase);
+  const execution = buildExecutionSection({
+    reportDate: date,
+    coversUntil: end,
+    runs,
+    missedRecorded: await loadScheduleMissedRecorded(supabase, date),
+    graceMinutes: settings.scheduleMissedGraceMinutes,
+  });
+
+  const build = (limit: number) => {
+    const base = aggregateReport({
       reportDate: date,
       source,
       generatedAt: now,
@@ -211,9 +225,11 @@ export async function generateReportModel(
       statusCounts,
       unresolved,
       unresolvedLimit: limit,
-    }),
-    ...(availability ? { availability } : {}),
-  });
+    });
+    // 데이터 품질 규칙 적용 현황 (PUBLIC 보고서만)
+    const quality = availabilityRows ? buildQualitySection({ probes: availabilityRows.rows, logs, runIds: new Set(runIds), collectedItems: collectedCount, newByRule: base.validation.newByRule }) : undefined;
+    return { ...base, ...(availability ? { availability } : {}), ...(quality ? { quality } : {}), execution };
+  };
 
   // reports.summary에는 크기 제한이 있으므로, 너무 크면 미처리 목록을 줄여 "외 N건"으로 보여 준다
   let limit = UNRESOLVED_LIMIT;

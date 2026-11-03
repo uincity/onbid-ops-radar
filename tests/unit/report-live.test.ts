@@ -5,6 +5,8 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { beforeAll, describe, expect, it, vi } from "vitest";
 
 vi.mock("server-only", () => ({}));
+// 설정값 읽기(loadSettings)가 Next.js의 요청 범위를 요구하므로 요청 바깥(시험)에서는 대체한다. 화면·서버 액션에서는 실제 요청 안에서 실행된다.
+vi.mock("next/server", () => ({ connection: vi.fn(async () => undefined) }));
 
 const live = process.env.LIVE_DB === "1" && !!process.env.SUPABASE_SECRET_KEY && !!process.env.NEXT_PUBLIC_SUPABASE_URL;
 const RUNS = 10;
