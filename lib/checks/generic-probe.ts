@@ -3,6 +3,7 @@
 import { allOperations, API_REGISTRY, type ApiRegistry } from "@/lib/registry";
 import { PROBE_INPUT_TOKENS } from "@/lib/registry/schema";
 import { addDaysKst, toKstDateString } from "@/lib/time";
+import { validCrossApiRelations } from "./cross-api";
 
 // 전용 조회기가 이미 있는 오퍼레이션(부동산 목록·상세)은 일반 조회기로 다시 점검하지 않는다
 const LEGACY_PUBLIC_KEYS: readonly string[] = ["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"];
@@ -15,6 +16,8 @@ export type GenericProbeTarget = {
   operationKey: string; // "서비스ID/오퍼레이션ID"
   url: string; // 호출 주소 (서비스키 없음)
   params: Record<string, string>; // 풀어 쓴 업무 파라미터 (공통 항목 제외)
+  linkFields?: string[]; // 교차 참조: 응답에서 식별키 값을 뽑아 둘 항목
+  inputNames?: string[]; // 교차 참조의 자식: 부모 응답에서 얻어 넘겨받는 필수 입력 이름 (params에는 없다)
 };
 
 // 점검 이름: 서비스ID와 오퍼레이션ID로 만든다 (영문·숫자·하이픈, 60자 이내)
@@ -39,14 +42,27 @@ export function resolveProbeInput(input: Readonly<Record<string, string>>, now: 
   return out;
 }
 
-// 일반 조회기로 점검할 오퍼레이션 목록 (등록부 순서). 점검 입력이 있고 승인된 것만
+// 일반 조회기로 점검할 오퍼레이션 목록 (등록부 순서). 점검 입력이 있고 승인된 것 + 교차 참조 관계의 자식(부모 응답에서 입력을 얻는 승인된 오퍼레이션)
 export function genericProbeTargets(now: Date, registry: ApiRegistry = API_REGISTRY): GenericProbeTarget[] {
+  const relations = validCrossApiRelations(registry);
+  const parentFields = new Map(relations.map((r) => [r.parentKey, r.field]));
+  const childFields = new Map(relations.map((r) => [r.childKey, r.field]));
   return allOperations(registry)
-    .filter(({ key, operation }) => !LEGACY_PUBLIC_KEYS.includes(key) && operation.probe.input !== null && APPROVED_STATES.includes(operation.approval))
-    .map(({ service, operation, key }) => ({
-      endpoint: genericEndpointName(service.serviceId, operation.operationId),
-      operationKey: key,
-      url: operation.url,
-      params: resolveProbeInput(operation.probe.input!, now),
-    }));
+    .filter(({ key, operation }) => !LEGACY_PUBLIC_KEYS.includes(key) && APPROVED_STATES.includes(operation.approval) && (operation.probe.input !== null || childFields.has(key)))
+    .map(({ service, operation, key }): GenericProbeTarget => {
+      const target: GenericProbeTarget = {
+        endpoint: genericEndpointName(service.serviceId, operation.operationId),
+        operationKey: key,
+        url: operation.url,
+        params: operation.probe.input ? resolveProbeInput(operation.probe.input, now) : {},
+      };
+      const parentField = parentFields.get(key);
+      const childField = childFields.get(key);
+      if (parentField) target.linkFields = [parentField];
+      if (childField) {
+        target.linkFields = [childField];
+        target.inputNames = [childField];
+      }
+      return target;
+    });
 }

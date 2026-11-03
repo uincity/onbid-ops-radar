@@ -1,8 +1,9 @@
-// 일반 조회기로 점검하는 추가 오퍼레이션 13개(1단계 9개 + 2단계 4개)를 "진짜 온비드 OpenAPI"에 한 번씩 불러 보는 시험 (R04 확장)
+// 일반 조회기로 점검하는 추가 오퍼레이션 14개(1단계 9개 + 2단계 4개 + 교차 참조 자식인 공고 상세 1개)를 "진짜 온비드 OpenAPI"에 한 번씩 불러 보는 시험 (R04 확장)
 // 보통의 `npm run test:unit`에서는 건너뛴다. `npm run test:public-probes`로만 실행한다 (.env의 DATA_GO_KR_SERVICE_KEY 필요).
-// 호출은 딱 13번이다(오퍼레이션마다 1번, 1건만 요청). 읽기 전용 GET이고 DB에는 아무것도 쓰지 않는다.
+// 호출은 최대 14번이다(오퍼레이션마다 1번, 1건만 요청). 공고 상세는 공고 목록 응답의 pbancMngNo로 부르고, 목록에서 얻지 못하면 부르지 않는다. 읽기 전용 GET이고 DB에는 아무것도 쓰지 않는다.
 // 서비스키·주소는 출력하지 않는다. 판정과 응답 구조 요약(건수·필수 항목 누락 수)만 보여 준다. 응답 값은 출력하지 않는다.
 import { describe, expect, it } from "vitest";
+import { CROSS_API_RELATIONS, LINK_VALUE_PATTERN } from "@/lib/checks/cross-api";
 import { genericProbeTargets } from "@/lib/checks/generic-probe";
 import { classifyProbe } from "@/lib/checks/probe/classify";
 import { observationFromCheck, policyFromOperation } from "@/lib/checks/probe/from-check";
@@ -13,20 +14,33 @@ import { DEFAULT_SETTING_VALUES } from "@/lib/settings/schema";
 
 const live = process.env.LIVE_PUBLIC === "1" && !!process.env.DATA_GO_KR_SERVICE_KEY;
 
-describe.skipIf(!live)("추가 오퍼레이션 13개 + 실제 온비드 OpenAPI (호출 13번)", () => {
+describe.skipIf(!live)("추가 오퍼레이션 14개 + 실제 온비드 OpenAPI (호출 최대 14번)", () => {
   it("오퍼레이션마다 1번씩 불러 판정을 확인한다", async () => {
     const targets = genericProbeTargets(new Date());
-    expect(targets).toHaveLength(13);
+    expect(targets).toHaveLength(14);
     const fetcher = createPublicFetcher({ serviceKey: process.env.DATA_GO_KR_SERVICE_KEY!, timeoutSeconds: DEFAULT_SETTING_VALUES.api_timeout_seconds, extraOperations: targets });
 
     const rows: string[] = [];
     let authProblem = false;
+    const linked: Record<string, string[]> = {}; // 오퍼레이션 키 → 응답에서 뽑은 식별키 (교차 참조 자식의 입력)
     for (const target of targets) {
       if (authProblem) {
         rows.push(`${target.operationKey} | 호출 안 함 (앞에서 서비스키·한도 문제)`);
         continue;
       }
-      const result = await fetcher(target.endpoint, { remainingCalls: 1, remainingMs: 60_000 });
+      // 교차 참조 자식: 부모 응답에서 얻은 식별키가 있어야 부른다 (없으면 점검 엔진도 부르지 않고 검증 불가로 남긴다)
+      const relation = CROSS_API_RELATIONS.find((r) => r.childKey === target.operationKey);
+      const given = relation ? linked[relation.parentKey]?.find((v) => LINK_VALUE_PATTERN.test(v)) : undefined;
+      if (relation && given === undefined) {
+        rows.push(`${target.operationKey} | 호출 안 함 (부모 ${relation.parentKey} 응답에서 ${relation.field}를 얻지 못함)`);
+        continue;
+      }
+      const result = await fetcher(target.endpoint, { remainingCalls: 1, remainingMs: 60_000, inputs: relation && given ? { [relation.field]: given } : undefined });
+      if (result.linkValues) linked[target.operationKey] = result.linkValues[Object.keys(result.linkValues)[0]] ?? [];
+      if (relation && result.linkValues) {
+        const returned = result.linkValues[relation.field] ?? [];
+        rows.push(`교차 참조 ${relation.parentKey} → ${target.operationKey} | 요청한 ${relation.field}와 응답의 ${relation.field}가 ${returned.includes(given!) ? "같음" : returned.length === 0 ? "응답에 없음" : "다름(의심)"}`);
+      }
       const op = findOperation(target.operationKey)!;
       const probe = classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) });
       const schema = result.schema;

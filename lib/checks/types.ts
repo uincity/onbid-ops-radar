@@ -37,10 +37,13 @@ export type ApiFetchResult = ApiCheckRecord & {
   subChecks?: ApiCheckRecord[];
   // PUBLIC 상세: 상세가 0건으로 와서 한 번 더 조회한 물건 수와, 그중 두 번째 조회에서 상세를 받은 수 (DQ_LIST_DETAIL_REF 판정 보류를 줄이려는 재조회)
   requeried?: { tried: number; recovered: number };
+  // 교차 참조에 쓰려고 응답 항목에서 뽑아 둔 식별키 값 (항목 이름 → 값 목록, 최대 5개). 관계가 있는 오퍼레이션만 채운다
+  linkValues?: Record<string, string[]>;
 };
 
 // 엔진이 조회기에 알려 주는 "지금 남은 한도". 조회기는 이를 넘겨 호출하지 않는다 (호출 상한 20/100회, 실행시간 60초).
-export type FetchContext = { remainingCalls: number; remainingMs: number };
+// inputs: 다른 오퍼레이션의 응답에서 얻은 식별 입력값 (항목 이름 → 값). 교차 참조 관계의 자식 오퍼레이션만 받는다
+export type FetchContext = { remainingCalls: number; remainingMs: number; inputs?: Record<string, string> };
 
 // 조회기: 조회 이름을 받아 결과를 돌려준다. 호출 상한·시간 제한의 최종 확인은 엔진이 한다.
 export type Fetcher = (endpoint: string, context: FetchContext) => Promise<ApiFetchResult> | ApiFetchResult;

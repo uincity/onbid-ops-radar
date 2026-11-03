@@ -69,7 +69,7 @@ function renderAvailability(a: NonNullable<ReportModel["availability"]>): string
 }
 
 // 규칙 이름 옆 표기: 품질 이상징후는 담당자가 확인하기 전까지 의심이다
-const QUALITY_TARGET_UNIT: Record<string, string> = { DQ_SCHEMA: "개 오퍼레이션", DQ_REQUIRED: "건", DQ_LIST_DETAIL_REF: "건", DQ_CROSS_API_REF: "" };
+const QUALITY_TARGET_UNIT: Record<string, string> = { DQ_SCHEMA: "개 오퍼레이션", DQ_REQUIRED: "건", DQ_LIST_DETAIL_REF: "건", DQ_CROSS_API_REF: "건" };
 
 // PUBLIC 보고서의 데이터 품질 규칙 적용 현황 절
 function renderQuality(q: NonNullable<ReportModel["quality"]>): string[] {

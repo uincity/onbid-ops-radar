@@ -11,6 +11,7 @@
 import { findOperation } from "@/lib/registry";
 import { checkResponseSchema, mergeSchemaChecks, type SchemaCheckResult } from "./probe/schema-check";
 import { parseOnbidBody } from "./public-response";
+import { LINK_VALUE_PATTERN } from "./cross-api";
 import { createPacer } from "./service-limits";
 import type { ApiCheckRecord, ApiFetchResult, ApiOutcome, FetchContext, FetchedRecord, Fetcher } from "./types";
 
@@ -32,7 +33,14 @@ const ALL_PROPERTY_TYPES = "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013";
 const MAX_LIST_ROWS = 100;
 
 // 등록부의 점검 입력으로 부르는 추가 오퍼레이션 (일반 조회기). 요청은 1건(numOfRows=1)만 받아 호출 비용을 최소화하고, 응답은 저장하지 않고 판정에만 쓴다
-export type ExtraOperation = { endpoint: string; operationKey: string; url: string; params: Record<string, string> };
+export type ExtraOperation = {
+  endpoint: string;
+  operationKey: string;
+  url: string;
+  params: Record<string, string>;
+  linkFields?: readonly string[]; // 응답에서 식별키 값을 뽑아 둘 항목 (교차 참조의 부모·자식)
+  inputNames?: readonly string[]; // 엔진이 다른 오퍼레이션의 응답에서 얻어 넘겨주는 필수 입력 이름 (교차 참조의 자식)
+};
 
 export type PublicFetcherOptions = {
   serviceKey: string; // .env의 DATA_GO_KR_SERVICE_KEY (서버 전용)
@@ -212,14 +220,27 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
   }
 
   // 추가 오퍼레이션 1개: 호출 1번. 조회 결과는 저장하지 않는다(records 비움)
-  async function fetchExtra(extra: ExtraOperation): Promise<ApiFetchResult> {
-    const { check, items } = await call(extra.endpoint, extra.url, { pageNo: "1", numOfRows: "1", resultType: "json", ...extra.params });
-    return { ...check, recordCount: check.outcome === "success" ? items.length : check.recordCount, records: [], httpCalls: 1 };
+  async function fetchExtra(extra: ExtraOperation, context: FetchContext): Promise<ApiFetchResult> {
+    // 다른 오퍼레이션의 응답에서 얻은 입력값은 선언된 이름만 받고, 요청 주소에 넣어도 안전한 모양일 때만 쓴다
+    const given: Record<string, string> = {};
+    for (const name of extra.inputNames ?? []) {
+      const value = context.inputs?.[name];
+      if (value === undefined || !LINK_VALUE_PATTERN.test(value)) throw new Error(`'${extra.endpoint}'에 필요한 입력값(${name})이 없습니다.`);
+      given[name] = value;
+    }
+    const { check, items } = await call(extra.endpoint, extra.url, { pageNo: "1", numOfRows: "1", resultType: "json", ...extra.params, ...given });
+    const result: ApiFetchResult = { ...check, recordCount: check.outcome === "success" ? items.length : check.recordCount, records: [], httpCalls: 1 };
+    if (extra.linkFields && check.outcome === "success") {
+      result.linkValues = Object.fromEntries(
+        extra.linkFields.map((field) => [field, items.slice(0, 5).map((item) => item[field]).filter((v): v is string | number => typeof v === "string" || typeof v === "number").map(String)]),
+      );
+    }
+    return result;
   }
 
   return (endpoint, context) => {
     const extra = extraByName.get(endpoint);
-    if (extra) return fetchExtra(extra);
+    if (extra) return fetchExtra(extra, context);
     if (endpoint === "public-list") return fetchList(context);
     if (endpoint === "public-detail") return fetchDetails(context);
     throw new Error(`알 수 없는 PUBLIC 조회 이름입니다: ${endpoint}`);

@@ -32,6 +32,14 @@ describe("buildQualitySection", () => {
     const without = buildQualitySection({ ...base, probes: [], logs: [] });
     expect(without.rules.find((r) => r.ruleId === "DQ_CROSS_API_REF")?.targets).toBe(0);
   });
+  it("교차 참조를 검사한 실행이 있으면 검사 건수를 합치고(적용 제외 메모가 섞여도 대상 있음), 그날 실행 밖의 메모는 세지 않는다", () => {
+    const q = buildQualitySection({
+      ...base,
+      probes: [],
+      logs: [log(1, "DQ_CROSS_API_CHECKED", "DQ_CROSS_API_REF 검사 1건 (공식 관계 1개 중)"), log(2, "DQ_CROSS_API_CHECKED", "DQ_CROSS_API_REF 검사 2건 (공식 관계 1개 중)"), log(2, "DQ_CROSS_API_NOT_APPLICABLE"), log(99, "DQ_CROSS_API_CHECKED", "DQ_CROSS_API_REF 검사 50건")],
+    });
+    expect(q.rules.find((r) => r.ruleId === "DQ_CROSS_API_REF")?.targets).toBe(3);
+  });
   it("기록이 하나도 없으면 모든 숫자가 0이다", () => {
     const q = buildQualitySection({ probes: [], logs: [], runIds: new Set(), collectedItems: 0, newByRule: {} });
     expect(q).toMatchObject({ applicableApis: 0, collectedItems: 0, deferred: 0, notApplicableRuns: 0 });

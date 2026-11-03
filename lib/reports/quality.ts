@@ -16,18 +16,20 @@ export type QualitySection = {
 };
 
 const DEFERRED_PATTERN = /판정 보류\(UNVERIFIED\)\s+(\d+)건/;
+const CROSS_CHECKED_PATTERN = /검사\s+(\d+)건/;
 
 export function buildQualitySection(input: { probes: readonly QualityProbeRow[]; logs: readonly QualityLogRow[]; runIds: ReadonlySet<number>; collectedItems: number; newByRule: Readonly<Record<string, number>> }): QualitySection {
   const applicable = new Set(input.probes.filter((p) => p.attempted).map((p) => `${p.api_id}/${p.operation_id}`));
   const logs = input.logs.filter((l) => l.run_id !== null && input.runIds.has(l.run_id));
   const deferred = logs.filter((l) => l.code === "DQ_REF_UNVERIFIED").reduce((sum, l) => sum + Number(DEFERRED_PATTERN.exec(l.message)?.[1] ?? 0), 0);
   const notApplicableRuns = logs.filter((l) => l.code === "DQ_CROSS_API_NOT_APPLICABLE").length;
+  const crossChecked = logs.filter((l) => l.code === "DQ_CROSS_API_CHECKED").reduce((sum, l) => sum + Number(CROSS_CHECKED_PATTERN.exec(l.message)?.[1] ?? 0), 0);
   const targetsOf: Record<string, number | null> = {
     DQ_SCHEMA: applicable.size,
     DQ_REQUIRED: input.collectedItems,
     DQ_LIST_DETAIL_REF: input.collectedItems,
-    // 연결해서 비교할 API 점검이 있었던 날에는 대상이 생기겠지만, 지금은 적용 제외 기록만 있다
-    DQ_CROSS_API_REF: notApplicableRuns > 0 ? null : 0,
+    // 공식 관계(공고 목록 → 공고 상세)를 실제로 검사한 날에는 그 건수, 적용 제외 기록만 있는 날은 null(적용 제외), 기록이 없으면 0
+    DQ_CROSS_API_REF: crossChecked > 0 ? crossChecked : notApplicableRuns > 0 ? null : 0,
   };
   return {
     applicableApis: applicable.size,

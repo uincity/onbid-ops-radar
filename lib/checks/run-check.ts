@@ -9,8 +9,9 @@ import type { Settings } from "@/lib/settings/schema";
 import { findOperation } from "@/lib/registry";
 import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
 import { buildApiDetection, countFailStreak } from "./api-streak";
-import { buildListDetailRefEvidence, buildSchemaEvidence } from "./dq-evidence";
+import { buildCrossApiEvidence, buildListDetailRefEvidence, buildSchemaEvidence } from "./dq-evidence";
 import { buildBatches, unprobeableOperations } from "./batch-plan";
+import { LINK_VALUE_PATTERN, validCrossApiRelations } from "./cross-api";
 import { classifyProbe } from "./probe/classify";
 import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
@@ -131,6 +132,10 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   const extras = source === "PUBLIC" ? (input.extraEndpoints ?? []) : [];
   const callable: Record<string, string> = { ...PUBLIC_ENDPOINT_OPERATIONS, ...Object.fromEntries(extras.map((e) => [e.endpoint, e.operationKey])) };
   const keyOf: KeyOf = (endpoint) => callable[endpoint];
+  // 교차 참조(DQ_CROSS_API_REF): 점검 대상에 부모와 자식이 모두 있는 공식 관계만 쓴다
+  const callableKeys = new Set(Object.values(callable));
+  const relations = source === "PUBLIC" ? validCrossApiRelations().filter((r) => callableKeys.has(r.parentKey) && callableKeys.has(r.childKey)) : [];
+  const relationByChild = new Map(relations.map((r) => [r.childKey, r]));
   const serviceOf = (endpoint: string): string | undefined => keyOf(endpoint)?.split("/")[0];
   // 추가 오퍼레이션은 서비스(배치) 단위로 묶어 등록부 순서대로 실행한다. 같은 서비스끼리 이어서 부르므로 서비스별 호출 간격·예산·결과 집계가 한 덩어리로 움직인다
   const plannedBatches = buildBatches(callable);
@@ -186,6 +191,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     const serviceUsedToday = source === "PUBLIC" ? await store.countPublicCallsTodayByService() : {};
     const serviceUsedThisRun: Record<string, number> = {};
     const serviceBudgetLogged = new Set<string>();
+    const linkValues = new Map<string, Record<string, string[]>>(); // 점검한 오퍼레이션 키 → 응답에서 뽑아 둔 식별키 값 (교차 참조용)
     const batchStats = new Map<string, { counts: Partial<Record<ProbeResult["status"], number>> }>();
 
     // 점검 하나의 판정을 모으고 DB(probe_results)와 실행 메모(PROBE_RESULT)로 남긴다 (PUBLIC만)
@@ -222,13 +228,22 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         continue;
       }
 
+      let linkedInput: Record<string, string> | undefined; // 교차 참조의 자식에게 넘길 입력값
       // PUBLIC: 보내기 전에 "점검할 수 있는 상태인가"를 확인한다. 입력값이 없거나 선행 점검이 실패했으면 요청하지 않고 검증 불가로 남긴다 (장애로 세지 않음)
       const op = source === "PUBLIC" ? findOperation(keyOf(name) ?? "") : undefined;
       if (source === "PUBLIC") {
         if (!op) throw new Error(`'${name}'에 해당하는 서비스 등록부 오퍼레이션이 없습니다.`);
         const preceding = kind === "detail" ? probes.find((p) => p.endpoint === ENDPOINTS[source].find((e) => e.kind === "list")?.name) : undefined;
+        // 교차 참조의 자식: 부모 오퍼레이션 응답에서 얻은 식별키가 있어야 점검한다. 부모가 실패해 얻지 못했으면 선행 실패로 남긴다
+        const relation = relationByChild.get(keyOf(name));
+        const linked = relation ? linkValues.get(relation.parentKey)?.[relation.field]?.find((v) => LINK_VALUE_PATTERN.test(v)) : undefined;
+        const parentFailed = relation ? probes.find((p) => p.operationKey === relation.parentKey)?.result.status === "FAIL" : false;
         // 선행 목록이 실패했어도 쓸 수 있는 식별 입력값을 이미 얻었다면(예: 응답 구조 경고뿐) 상세 점검은 계속한다
-        const reason = checkReadiness(op.operation, { hasValidInput: kind !== "detail" || collected.list.length > 0, precedingFailed: preceding?.result.status === "FAIL" && collected.list.length === 0 });
+        const reason = checkReadiness(op.operation, {
+          hasValidInput: relation ? linked !== undefined : kind !== "detail" || collected.list.length > 0,
+          precedingFailed: relation ? parentFailed && linked === undefined : preceding?.result.status === "FAIL" && collected.list.length === 0,
+        });
+        if (!reason && relation && linked !== undefined) linkedInput = { [relation.field]: linked };
         if (reason) {
           await record(name, { status: "UNVERIFIED", attempted: false, reason });
           continue;
@@ -251,7 +266,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       // 조회기가 던진 예외는 우리 쪽 문제일 수 있어 API 장애(FAIL)로 단정하지 않고 UNVERIFIED로 남긴다. 내부 오류 문구는 기록하지 않는다 (SEC-11).
       let result: Awaited<ReturnType<Fetcher>>;
       try {
-        result = await fetcher(name, { remainingCalls: Math.min(limitForThis - calls, serviceLeft ?? Infinity), remainingMs: timeLimitMs - (clock() - t0) });
+        result = await fetcher(name, { remainingCalls: Math.min(limitForThis - calls, serviceLeft ?? Infinity), remainingMs: timeLimitMs - (clock() - t0), inputs: linkedInput });
       } catch {
         failed += 1;
         await store.log(runId, "error", "FETCH_ERROR", `'${name}' 조회 중 예상하지 못한 오류가 있어 이 점검만 건너뛰고 계속합니다.`);
@@ -266,6 +281,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       const checks: ApiCheckRecord[] = result.subChecks ?? [result]; // 호출 1번마다 api_checks 한 줄
       for (const check of checks) await store.recordApiCheck(runId, check);
       schemas.set(name, result.schema ?? null);
+      if (result.linkValues) linkValues.set(keyOf(name), result.linkValues);
       if (op) await record(name, classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) }), result);
 
       if (result.outcome === "success") {
@@ -362,9 +378,21 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
           const [apiId, operationId] = entry.operationKey.split("/");
           detections.push({ source, itemKey: entry.operationKey, ruleId: "DQ_SCHEMA", detection: null, ...buildSchemaEvidence(apiId, operationId, issue) });
         }
-        // DQ_CROSS_API_REF: 공식적으로 연결되는 다른 API(공고·입찰결과 등)를 아직 점검하지 않으므로 적용하지 않는다. 연결된 점검이 생기면 같은 판정 함수를 쓴다
-        const cross = detectCrossApiRef(new Set(), []);
-        if (cross.outcome === "NOT_APPLICABLE") await store.log(runId, "info", "DQ_CROSS_API_NOT_APPLICABLE", "DQ_CROSS_API_REF 적용 제외(NOT_APPLICABLE): 연결해서 비교할 API 점검이 아직 없습니다.");
+        // DQ_CROSS_API_REF: 명세가 연결해 둔 관계(공고 목록 → 공고 상세)에서, 부모 목록이 내준 식별키로 자식을 불렀을 때 자식이 가리키는 부모가 그 목록에 있는지 본다.
+        // 자식을 부르지 못했거나(관계 없음·선행 실패) 자식 응답이 없으면 적용 제외로 남기고 이상징후를 만들지 않는다 (모든 부모에 자식을 요구하지 않는다, PRD 5-2A)
+        let crossChecked = 0;
+        for (const relation of relations) {
+          const parentKeys = new Set(linkValues.get(relation.parentKey)?.[relation.field] ?? []);
+          const requested = [...parentKeys].find((v) => LINK_VALUE_PATTERN.test(v));
+          const childValues = linkValues.get(relation.childKey)?.[relation.field] ?? [];
+          const cross = detectCrossApiRef(parentKeys, requested === undefined ? [] : childValues.map((returned) => ({ childKey: requested, parentKey: returned })));
+          if (cross.outcome === "checked") {
+            crossChecked += 1;
+            for (const orphan of cross.orphans) detections.push({ source, itemKey: `${relation.childKey}:${orphan.childKey}`.slice(0, 100), ruleId: "DQ_CROSS_API_REF", detection: null, ...buildCrossApiEvidence(orphan.childKey, orphan.parentKey) });
+          }
+        }
+        if (crossChecked > 0) await store.log(runId, "info", "DQ_CROSS_API_CHECKED", `DQ_CROSS_API_REF 검사 ${crossChecked}건 (공식 관계 ${relations.length}개 중)`);
+        else await store.log(runId, "info", "DQ_CROSS_API_NOT_APPLICABLE", "DQ_CROSS_API_REF 적용 제외(NOT_APPLICABLE): 연결해서 비교할 API 점검 결과가 없습니다.");
       }
       // API 상태 이상징후 (PUBLIC): 이번에 FAIL인 오퍼레이션이 연속 N번(설정값) 실패했으면 만든다. 설정이 없으면(null) 만들지 않는다
       if (source === "PUBLIC" && settings.apiFailStreakThreshold !== null) {

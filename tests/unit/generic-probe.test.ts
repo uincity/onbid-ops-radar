@@ -40,13 +40,14 @@ describe("resolveProbeInput (자리표시자 해석)", () => {
 
 describe("genericProbeTargets", () => {
   const targets = genericProbeTargets(NOW);
-  it("1·2단계 13개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
-    expect(targets).toHaveLength(13);
+  it("1·2단계 13개 + 교차 참조 자식(공고 상세) 1개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
+    expect(targets).toHaveLength(14);
+    expect(targets.map((t) => t.operationKey)).toContain("SVC-API-016/getPbancDtlInf");
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-001/getRlstCltrList");
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-004/getRlstDtlInf");
   });
   it("점검 이름은 api_checks 허용 형식이고 서로 다르며, 호출 주소는 https 허용 호스트다", () => {
-    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(13);
+    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(14);
     for (const t of targets) {
       expect(t.endpoint).toMatch(/^[A-Za-z0-9_.-]{1,60}$/);
       expect(t.url).toMatch(/^https:\/\/apis\.data\.go\.kr\//);
@@ -181,20 +182,20 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     return runCheck({ trigger: "manual", source: "PUBLIC", settings, store: mem.store, fetcher, extraEndpoints: built.extraEndpoints, callLimit: over.callLimit }).then((result) => ({ result, rec: mem.rec }));
   };
 
-  it("목록·상세 2개 + 추가 13개 = 점검 15개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
-    const api = mixedApi(() => okBody({ ctgrId: "1", ctgrNm: "x", upCtgrId: "0", pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1" }));
+  it("목록·상세 2개 + 추가 14개(교차 참조 자식 포함) = 점검 16개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
+    const api = mixedApi(() => okBody({ ctgrId: "1", ctgrNm: "x", upCtgrId: "0", pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1" }));
     const { result, rec } = await run(api);
-    expect(result.probes).toHaveLength(15);
-    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(15);
+    expect(result.probes).toHaveLength(16);
+    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(16);
     expect(rec.collected).toBe(2); // 목록·상세만 저장
-    // 등록부 28개 중 점검한 15개 + 요청 없이 검증 불가로 남긴 13개 = 28개가 중복 없이 기록됨
-    expect(result.unprobeable).toHaveLength(13);
+    // 등록부 28개 중 점검한 16개 + 요청 없이 검증 불가로 남긴 12개 = 28개가 중복 없이 기록됨
+    expect(result.unprobeable).toHaveLength(12);
     const keys = rec.probes.map((p) => `${p.apiId}/${p.operationId}`);
     expect(new Set(keys).size).toBe(28);
   });
 
   it("한 추가 오퍼레이션이 실패(HTTP 500)·타임아웃성 오류여도 다른 오퍼레이션은 계속 점검된다 (격리)", async () => {
-    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response("x", { status: 500 }) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" })));
+    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response("x", { status: 500 }) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" })));
     const { result } = await run(api);
     const byOp = Object.fromEntries(result.probes.map((p) => [p.operationKey, p.result]));
     expect(byOp["SVC-API-011/getInqRnkClg"]).toMatchObject({ status: "FAIL", code: "HTTP_ERROR" });
@@ -211,7 +212,7 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
   });
 
   it("서비스키 문제(30)가 나면 그 뒤 점검은 하지 않고 검증 불가(선행 실패)로 남기며 이상징후를 만들지 않는다", async () => {
-    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response(JSON.stringify({ result: { resultCode: "30", resultMsg: "x" } })) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1" })));
+    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response(JSON.stringify({ result: { resultCode: "30", resultMsg: "x" } })) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1" })));
     const { result } = await run(api);
     expect(result.status).toBe("failed");
     const after = result.probes.find((p) => p.operationKey === "SVC-API-012/get50PctDecrCltr")!;
@@ -219,29 +220,29 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     expect(result.detections).toEqual([]);
   });
 
-  it("호출 상한 20회: 추가 오퍼레이션 13개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 13개는 모두 호출된다 (총 20회)", async () => {
+  it("호출 상한 20회: 추가 오퍼레이션 14개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 14개는 모두 호출된다 (총 20회)", async () => {
     // 목록이 물건 30개를 돌려줘도(상세를 30번 부르려 해도) 추가 오퍼레이션 13개 몫은 남아 있어야 한다
-    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 30);
+    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 30);
     const { result } = await run(api, { callLimit: 20 });
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
-    expect(extraCalls).toBe(13);
+    expect(extraCalls).toBe(14);
     expect(result.apiCallCount).toBe(20);
     expect(api.urls.length).toBe(20);
   });
 
-  it("기본 상한 60회(설정값): 추가 오퍼레이션 13개 + 목록 1 + 상세 46 = 60회를 쓰고 넘지 않는다", async () => {
-    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 80);
+  it("기본 상한 60회(설정값): 추가 오퍼레이션 14개 + 목록 1 + 상세 45 = 60회를 쓰고 넘지 않는다", async () => {
+    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 80);
     const { result } = await run(api); // callLimit을 주지 않으면 설정값(기본 60)을 쓴다
     const details = api.urls.filter((u) => u.pathname.endsWith("getRlstDtlInf2")).length;
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
-    expect(extraCalls).toBe(13);
-    expect(details).toBe(46);
+    expect(extraCalls).toBe(14);
+    expect(details).toBe(45);
     expect(result.apiCallCount).toBe(60);
     expect(api.urls.length).toBe(60);
   });
 
   it("호출 상한이 작으면(5회) 앞에서부터 채우고 나머지는 미점검(BUDGET_SKIP)으로 남긴다 — 장애로 세지 않는다", async () => {
-    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }));
+    const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }));
     const { result } = await run(api, { callLimit: 5 });
     expect(result.apiCallCount).toBeLessThanOrEqual(5);
     const skipped = result.probes.filter((p) => p.result.status === "NOT_RUN");
@@ -252,7 +253,7 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
   it("연속 3번 실패한 추가 오퍼레이션은 API_HTTP_ERROR 이상징후가 된다 (식별값 = 서비스ID/오퍼레이션ID)", async () => {
     const fail = { status: "FAIL" as never, reason: "HTTP_ERROR" };
     const mem = memoryStore({ "SVC-API-011/getInqRnkClg": [fail, fail] });
-    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response("x", { status: 500 }) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" })));
+    const api = mixedApi((url) => (url.pathname.endsWith("getInqRnkClg") ? new Response("x", { status: 500 }) : okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" })));
     const { result } = await run(api, { store: mem });
     expect(result.detections.find((d) => d.ruleId === "API_HTTP_ERROR")?.itemKey).toBe("SVC-API-011/getInqRnkClg");
   });

@@ -59,7 +59,7 @@
 | 24 | DQ_SCHEMA | 구현됨 | `lib/rules/dq-rules.ts`, `tests/unit/dq-rules.test.ts` |
 | 25 | DQ_REQUIRED (PUBLIC 필수정보) | 구현됨 | `lib/checks/run-check.ts` (asRule) |
 | 26 | DQ_LIST_DETAIL_REF | 구현됨 | 참조 불일치 판정 + 상세가 0건이면 한 번 더 조회(호출 상한 안에서)하고, 그래도 0건이면 판정을 보류(UNVERIFIED)로 남긴다. `lib/checks/public-fetcher.ts` |
-| 27 | DQ_CROSS_API_REF | 부분 구현 | 판정 함수만 있고, 연결해서 비교할 API 점검이 없어 적용 제외로 기록 |
+| 27 | DQ_CROSS_API_REF | 부분 구현 | 공고 목록(015) → 공고 상세(016, pbancMngNo)를 공식 관계로 연결해 코드와 시험(경계값 포함)까지 구현했다(`lib/checks/cross-api.ts`, `tests/unit/cross-api.test.ts`). 016은 명세만 확인한 오퍼레이션이라 **실제 API 응답으로 확인되기 전까지는 부분 구현으로 둔다.** `npm run test:public-probes`로 확인되면 구현됨 |
 | 28 | 품질 이상징후를 확인 전까지 "의심"으로 표시 | 구현됨 | `lib/anomalies/labels.ts` (이번 개선 F1), `lib/checks/dq-evidence.ts` |
 | 29 | 중복 탐지·재발 연결·정상 판정 건 억제 | 구현됨 | `record_detection`, pgTAP 05 |
 | 30 | 허용 상태 전이·종결 조건·재개 사유 | 구현됨 | `change_anomaly_status`, pgTAP 06 |
@@ -104,7 +104,7 @@
 |---|---|---|---|
 | 1 | 높음 | 28개 오퍼레이션 중 13개는 점검 입력의 근거가 없어 점검하지 못함(#3·9) | 식별값이 필요한 9개는 선행 목록 점검의 결과를 입력으로 쓰는 방식이 필요하고, 나머지 4개는 사용자가 쓰던 호출 예시가 필요 |
 | 2 | 중간 | 보고서의 품질 절·실행 품질 절이 PRD 필수 지표에 못 미침(#36·37) | 규칙별 실행·보류·제외 건수와 예약 시작 여부를 집계해 보고서에 추가(코드만으로 가능) |
-| 3 | 중간 | DQ_CROSS_API_REF 적용 대상 없음(#27) | 공고·입찰결과 API 점검이 생겼으므로 응답에서 부모-자식 연결 키를 확인해 교차 참조를 적용 |
+| 3 | 중간 | 공고 상세(016) 실호출 미확인으로 DQ_CROSS_API_REF가 부분 구현(#27) | 사용자가 `npm run test:public-probes`를 실행해 016이 PASS_DATA이고 필수 항목 누락이 없는지 확인한 뒤, 등록부(`scripts/build-api-registry.py`)에 실호출 확인을 반영 → 일치율 약 91.1% |
 | 4 | 중간 | 예약 점검 Cron 미등록(#18) | Vercel `CRON_SECRET` 확인 후 `npm run setup:cron -- --app-url … --apply` (사용자 실행) |
 | 5 | 중간 | 공개 회원가입 설정 미확인(#43) | Supabase 대시보드에서 끄고 `npm run check:accounts` 확인 |
 | 6 | 낮음 | 서비스별 예산·간격을 실제 운영 값으로 다듬기 | 실제 사용량을 본 뒤 `public_call_interval_ms`와 쿼터 값 조정 |
