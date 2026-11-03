@@ -1,12 +1,12 @@
 // 교차 참조 DQ_CROSS_API_REF 시험 (공고 목록 → 공고 상세, PRD 5-2A) — 관계 검증 · 조회기의 식별키 전달 · 엔진 판정(정상·의심·적용 제외)
 // 실제 온비드 API는 부르지 않는다. 가짜 응답(fetchImpl)과 메모리 저장소만 쓴다.
 import { describe, expect, it } from "vitest";
-import { CROSS_API_RELATIONS, LINK_VALUE_PATTERN, relationProblems, validCrossApiRelations } from "@/lib/checks/cross-api";
+import { CROSS_API_RELATIONS, inputsFromParent, LINK_VALUE_PATTERN, relationProblems, validCrossApiRelations } from "@/lib/checks/cross-api";
 import { genericProbeTargets } from "@/lib/checks/generic-probe";
 import { createPublicFetcher } from "@/lib/checks/public-fetcher";
 import { runCheck } from "@/lib/checks/run-check";
 import type { ApiCheckRecord, CheckStore, ProbeRecord, RecordAction } from "@/lib/checks/types";
-import { API_REGISTRY } from "@/lib/registry";
+import { allOperations, API_REGISTRY } from "@/lib/registry";
 import { DEFAULT_SETTING_VALUES, parseSettings } from "@/lib/settings/schema";
 
 const settings = parseSettings(Object.entries(DEFAULT_SETTING_VALUES).map(([key, value]) => ({ key, value })));
@@ -18,18 +18,40 @@ const REL = CROSS_API_RELATIONS[0];
 
 describe("관계 목록과 등록부(명세)의 일치", () => {
   it("공고 목록(015) → 공고 상세(016)는 등록부와 맞는 공식 관계다", () => {
-    expect(REL).toEqual({ parentKey: PARENT, childKey: CHILD, field: "pbancMngNo" });
+    expect(REL).toEqual({ parentKey: PARENT, childKey: CHILD, fields: ["pbancMngNo"] });
     expect(relationProblems(REL)).toEqual([]);
-    expect(validCrossApiRelations()).toEqual([REL]);
+  });
+
+  it("선언한 관계 8개가 모두 등록부(명세)와 맞는다: 자식의 필수 입력 = 관계의 항목, 부모 응답에 항목이 있고, 부모가 자식의 입력 출처 후보다", () => {
+    expect(CROSS_API_RELATIONS).toHaveLength(8);
+    for (const relation of CROSS_API_RELATIONS) expect(relationProblems(relation), `${relation.parentKey} → ${relation.childKey}`).toEqual([]);
+    expect(validCrossApiRelations()).toEqual([...CROSS_API_RELATIONS]);
+  });
+
+  it("자식은 하나의 부모만 갖고, 등록부 순서에서 부모보다 뒤에 있다 (엔진이 등록부 순서로 부르므로 부모 값을 먼저 얻는다)", () => {
+    const order = allOperations().map((o) => o.key);
+    const children = CROSS_API_RELATIONS.map((r) => r.childKey);
+    expect(new Set(children).size).toBe(children.length);
+    for (const r of CROSS_API_RELATIONS) expect(order.indexOf(r.parentKey), `${r.parentKey} → ${r.childKey}`).toBeLessThan(order.indexOf(r.childKey));
+  });
+
+  it("부모에서 자식 입력 만들기: 필요한 항목이 모두 있어야 하고(한 칸 안), 하나라도 없거나 위험한 모양이면 만들지 않는다(한 칸 밖)", () => {
+    const two = { parentKey: "a/b", childKey: "c/d", fields: ["cltrMngNo", "pbctCdtnNo"] };
+    expect(inputsFromParent(two, { cltrMngNo: ["X-1"], pbctCdtnNo: ["100"] })).toEqual({ cltrMngNo: "X-1", pbctCdtnNo: "100" });
+    expect(inputsFromParent(two, { cltrMngNo: ["X-1"] })).toBeUndefined();
+    expect(inputsFromParent(two, { cltrMngNo: ["X-1"], pbctCdtnNo: ["a b"] })).toBeUndefined();
+    expect(inputsFromParent(two, { cltrMngNo: ["bad value", "X-2"], pbctCdtnNo: ["100"] })).toEqual({ cltrMngNo: "X-2", pbctCdtnNo: "100" }); // 쓸 수 있는 첫 값을 쓴다
+    expect(inputsFromParent(two, undefined)).toBeUndefined();
   });
 
   it("부모가 자식 입력값의 출처로 연결돼 있지 않거나, 항목이 없으면 관계로 쓰지 않는다", () => {
     const withoutSource = structuredClone(API_REGISTRY);
     for (const s of withoutSource.services) for (const o of s.operations) if (`${s.serviceId}/${o.operationId}` === CHILD) o.inputSourceCandidates = [];
     expect(relationProblems(REL, withoutSource).join()).toContain("입력값 출처");
-    expect(validCrossApiRelations(withoutSource)).toEqual([]);
+    expect(validCrossApiRelations(withoutSource)).not.toContainEqual(REL); // 연결이 끊긴 관계만 빠진다
+    expect(validCrossApiRelations(withoutSource)).toHaveLength(7);
 
-    expect(relationProblems({ ...REL, field: "noSuchField" }).join()).toContain("noSuchField");
+    expect(relationProblems({ ...REL, fields: ["noSuchField"] }).join()).toContain("noSuchField");
     expect(relationProblems({ ...REL, childKey: "SVC-API-999/none" }).join()).toContain("등록부에 없습니다");
   });
 
@@ -215,5 +237,64 @@ describe("DQ_CROSS_API_REF (엔진)", () => {
     expect(childProbe(result.probes)).toMatchObject({ status: "FAIL", code: "HTTP_ERROR" });
     expect(cross(result.detections)).toEqual([]);
     expect(result.probes.filter((p) => "attempted" in p.result && p.result.attempted).length).toBeGreaterThan(10);
+  });
+});
+
+// ---- 식별번호(cltrMngNo·pbctCdtnNo)로 부르는 자식들: 동산·자동차·입찰결과 상세, 물건 입찰 정보 ----
+describe("관계가 여러 개일 때 (엔진)", () => {
+  const mvast = (over: Record<string, unknown> = {}) => okBody({ cltrMngNo: "M-1", pbctCdtnNo: "100", onbidPbancNo: "1", pbctNo: "1", pbancMngNo: "P-1", ...over });
+  // 경로 끝 이름 → 응답. 정해지지 않은 경로는 평범한 응답을 준다
+  function byPath(map: Record<string, (url: URL) => Response>) {
+    return fakeApi((url) => {
+      if (url.pathname.endsWith("getRlstCltrList2")) return okBody([listItem(1)]);
+      if (url.pathname.endsWith("getRlstDtlInf2")) return okBody(listItem(1));
+      const name = url.pathname.split("/").pop()!;
+      return (map[name] ?? (() => mvast()))(url);
+    });
+  }
+  const callsTo = (fake: ReturnType<typeof byPath>, name: string) => fake.urls.filter((u) => u.pathname.endsWith(name));
+
+  it("부모가 모든 식별키를 내주면 자식 8개를 모두 부른다. 각 자식은 자기 필수 입력만 받는다", async () => {
+    const fake = byPath({});
+    const { result } = await run(fake);
+    const childNames = ["getPbancDtlInf2", "getPbancBidInf2", "getPbancCltrInf2", "getPbancBidRsltDtl2", "getMvastDtlInf2", "getCarDtlInf2", "getCltrBidInf2", "getCltrBidRsltDtl2"];
+    for (const name of childNames) expect(callsTo(fake, name), name).toHaveLength(1);
+    expect(callsTo(fake, "getPbancBidInf2")[0].searchParams.get("pbancMngNo")).toBe("P-1");
+    expect(callsTo(fake, "getMvastDtlInf2")[0].searchParams.get("cltrMngNo")).toBe("M-1");
+    expect(callsTo(fake, "getMvastDtlInf2")[0].searchParams.has("pbctCdtnNo")).toBe(false); // 필수 입력이 아닌 값은 보내지 않는다
+    const bid = callsTo(fake, "getCltrBidInf2")[0];
+    expect([bid.searchParams.get("cltrMngNo"), bid.searchParams.get("pbctCdtnNo")]).toEqual(["M-1", "100"]); // 두 항목이 모두 필요한 자식
+    expect(result.probes.filter((p) => CROSS_API_RELATIONS.some((r) => r.childKey === p.operationKey) && "attempted" in p.result && p.result.attempted)).toHaveLength(8);
+  });
+
+  it("두 항목이 필요한 자식은 하나라도 쓸 수 없으면 부르지 않는다 (공매조건번호가 위험한 모양)", async () => {
+    const fake = byPath({ getMvastCltrList2: () => mvast({ pbctCdtnNo: "1 2" }) });
+    const { result } = await run(fake);
+    expect(callsTo(fake, "getCltrBidInf2")).toHaveLength(0);
+    expect(result.probes.find((p) => p.operationKey === "SVC-API-007/getCltrBidInf")!.result).toMatchObject({ status: "UNVERIFIED", attempted: false }); // 이 가짜 부모는 응답 구조도 부족해 이유는 선행 실패로 남는다
+    expect(callsTo(fake, "getMvastDtlInf2")).toHaveLength(1); // 같은 부모의 다른 자식(필수 입력이 cltrMngNo뿐)은 계속 점검된다
+  });
+
+  it("한 부모가 실패해도 다른 부모의 자식은 계속 점검된다 (격리)", async () => {
+    const fake = byPath({ getMvastCltrList2: () => new Response("x", { status: 500 }) });
+    const { result } = await run(fake);
+    expect(callsTo(fake, "getMvastDtlInf2")).toHaveLength(0);
+    expect(callsTo(fake, "getCarDtlInf2")).toHaveLength(1);
+    expect(callsTo(fake, "getPbancDtlInf2")).toHaveLength(1);
+    expect(result.probes.find((p) => p.operationKey === "SVC-API-005/getMvastDtlInf")!.result).toEqual({ status: "UNVERIFIED", attempted: false, reason: "PRECONDITION_FAILED" });
+  });
+
+  it("자식이 다른 물건관리번호를 돌려주면 그 관계의 DQ_CROSS_API_REF를 등록한다 (다른 관계는 영향 없음)", async () => {
+    const fake = byPath({ getMvastDtlInf2: () => mvast({ cltrMngNo: "M-OTHER" }) });
+    const { result } = await run(fake);
+    const found = cross(result.detections);
+    expect(found).toHaveLength(1);
+    expect(found[0].itemKey).toBe("SVC-API-005/getMvastDtlInf:M-1");
+  });
+
+  it("자식이 대표 식별키를 응답에 싣지 않으면 판정을 보류한다 (이상징후 없음)", async () => {
+    const fake = byPath({ getPbancBidInf2: () => okBody({ onbidPbancNo: "1" }) });
+    const { result } = await run(fake);
+    expect(cross(result.detections)).toEqual([]);
   });
 });

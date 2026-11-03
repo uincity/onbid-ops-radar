@@ -45,8 +45,10 @@ export function resolveProbeInput(input: Readonly<Record<string, string>>, now: 
 // 일반 조회기로 점검할 오퍼레이션 목록 (등록부 순서). 점검 입력이 있고 승인된 것 + 교차 참조 관계의 자식(부모 응답에서 입력을 얻는 승인된 오퍼레이션)
 export function genericProbeTargets(now: Date, registry: ApiRegistry = API_REGISTRY): GenericProbeTarget[] {
   const relations = validCrossApiRelations(registry);
-  const parentFields = new Map(relations.map((r) => [r.parentKey, r.field]));
-  const childFields = new Map(relations.map((r) => [r.childKey, r.field]));
+  // 부모는 자식들이 필요로 하는 식별키 항목을 모두 뽑아 두고, 자식은 자기 입력 항목을 받는다
+  const parentFields = new Map<string, string[]>();
+  for (const r of relations) parentFields.set(r.parentKey, [...new Set([...(parentFields.get(r.parentKey) ?? []), ...r.fields])]);
+  const childFields = new Map(relations.map((r) => [r.childKey, [...r.fields]]));
   return allOperations(registry)
     .filter(({ key, operation }) => !LEGACY_PUBLIC_KEYS.includes(key) && APPROVED_STATES.includes(operation.approval) && (operation.probe.input !== null || childFields.has(key)))
     .map(({ service, operation, key }): GenericProbeTarget => {
@@ -58,10 +60,10 @@ export function genericProbeTargets(now: Date, registry: ApiRegistry = API_REGIS
       };
       const parentField = parentFields.get(key);
       const childField = childFields.get(key);
-      if (parentField) target.linkFields = [parentField];
+      if (parentField) target.linkFields = parentField;
       if (childField) {
-        target.linkFields = [childField];
-        target.inputNames = [childField];
+        target.linkFields = [...new Set([...(target.linkFields ?? []), childField[0]])]; // 자식은 대표 식별키(첫 항목)만 되돌려 비교한다
+        target.inputNames = childField;
       }
       return target;
     });

@@ -11,7 +11,7 @@ import { buildDetectionEvidence, buildEmptyResultEvidence } from "./evidence";
 import { buildApiDetection, countFailStreak } from "./api-streak";
 import { buildCrossApiEvidence, buildListDetailRefEvidence, buildSchemaEvidence } from "./dq-evidence";
 import { buildBatches, unprobeableOperations } from "./batch-plan";
-import { LINK_VALUE_PATTERN, validCrossApiRelations } from "./cross-api";
+import { inputsFromParent, LINK_VALUE_PATTERN, validCrossApiRelations } from "./cross-api";
 import { classifyProbe } from "./probe/classify";
 import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
@@ -236,14 +236,14 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         const preceding = kind === "detail" ? probes.find((p) => p.endpoint === ENDPOINTS[source].find((e) => e.kind === "list")?.name) : undefined;
         // 교차 참조의 자식: 부모 오퍼레이션 응답에서 얻은 식별키가 있어야 점검한다. 부모가 실패해 얻지 못했으면 선행 실패로 남긴다
         const relation = relationByChild.get(keyOf(name));
-        const linked = relation ? linkValues.get(relation.parentKey)?.[relation.field]?.find((v) => LINK_VALUE_PATTERN.test(v)) : undefined;
+        const linked = relation ? inputsFromParent(relation, linkValues.get(relation.parentKey)) : undefined;
         const parentFailed = relation ? probes.find((p) => p.operationKey === relation.parentKey)?.result.status === "FAIL" : false;
         // 선행 목록이 실패했어도 쓸 수 있는 식별 입력값을 이미 얻었다면(예: 응답 구조 경고뿐) 상세 점검은 계속한다
         const reason = checkReadiness(op.operation, {
           hasValidInput: relation ? linked !== undefined : kind !== "detail" || collected.list.length > 0,
           precedingFailed: relation ? parentFailed && linked === undefined : preceding?.result.status === "FAIL" && collected.list.length === 0,
         });
-        if (!reason && relation && linked !== undefined) linkedInput = { [relation.field]: linked };
+        if (!reason && linked !== undefined) linkedInput = linked;
         if (reason) {
           await record(name, { status: "UNVERIFIED", attempted: false, reason });
           continue;
@@ -382,9 +382,10 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         // 자식을 부르지 못했거나(관계 없음·선행 실패) 자식 응답이 없으면 적용 제외로 남기고 이상징후를 만들지 않는다 (모든 부모에 자식을 요구하지 않는다, PRD 5-2A)
         let crossChecked = 0;
         for (const relation of relations) {
-          const parentKeys = new Set(linkValues.get(relation.parentKey)?.[relation.field] ?? []);
+          const primary = relation.fields[0]; // 대표 식별키
+          const parentKeys = new Set(linkValues.get(relation.parentKey)?.[primary] ?? []);
           const requested = [...parentKeys].find((v) => LINK_VALUE_PATTERN.test(v));
-          const childValues = linkValues.get(relation.childKey)?.[relation.field] ?? [];
+          const childValues = linkValues.get(relation.childKey)?.[primary] ?? [];
           const cross = detectCrossApiRef(parentKeys, requested === undefined ? [] : childValues.map((returned) => ({ childKey: requested, parentKey: returned })));
           if (cross.outcome === "checked") {
             crossChecked += 1;

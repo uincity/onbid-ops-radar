@@ -144,7 +144,7 @@ function memoryStore(usedToday: Record<string, number> = {}) {
   return { store, rec };
 }
 
-const extraBody = () => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" });
+const extraBody = () => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" });
 function mixedApi(extra: (url: URL) => Response = extraBody) {
   return fakeApi((url) => {
     if (url.pathname.endsWith("getRlstCltrList2")) return okBody([listItem(1), listItem(2), listItem(3)]);
