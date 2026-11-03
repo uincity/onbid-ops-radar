@@ -5,7 +5,7 @@
 import { z } from "zod";
 import type { Settings } from "@/lib/settings/schema";
 import { DEMO_MODES, createDemoFetcher } from "./demo-fetcher";
-import { createPublicFetcher } from "./public-fetcher";
+import { buildPublicCheck } from "./public-setup";
 import type { RunCheckInput, RunCheckResult } from "./run-check";
 import type { CheckStore, Fetcher } from "./types";
 
@@ -61,10 +61,9 @@ export async function runManualCheck(rawInput: unknown, deps: ManualCheckDeps): 
   try {
     const { settings, store } = await deps.prepare();
     // PUBLIC은 실제 온비드 OpenAPI(읽기 전용)를 부르고, DEMO는 가상 응답을 흉내 낸다 (응답 시뮬레이션은 DEMO에서만 쓰인다)
-    const fetcher: Fetcher =
-      source === "PUBLIC"
-        ? createPublicFetcher({ serviceKey: publicKey!, timeoutSeconds: settings.apiTimeoutSeconds })
-        : createDemoFetcher({ timeoutSeconds: settings.apiTimeoutSeconds, baseMs: deps.now(), mode });
+    // PUBLIC은 목록·상세 외에 점검 입력이 정해진 오퍼레이션도 함께 점검한다 (extraEndpoints)
+    const publicCheck = source === "PUBLIC" ? buildPublicCheck({ serviceKey: publicKey!, timeoutSeconds: settings.apiTimeoutSeconds, now: new Date(deps.now()) }) : null;
+    const fetcher: Fetcher = publicCheck ? publicCheck.fetcher : createDemoFetcher({ timeoutSeconds: settings.apiTimeoutSeconds, baseMs: deps.now(), mode });
     const result = await deps.runCheck({
       trigger: "manual",
       source,
@@ -72,6 +71,7 @@ export async function runManualCheck(rawInput: unknown, deps: ManualCheckDeps): 
       settings,
       store,
       fetcher,
+      extraEndpoints: publicCheck?.extraEndpoints,
     });
 
     // ④ 결과 문구

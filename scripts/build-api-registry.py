@@ -21,6 +21,22 @@ W = "{http://schemas.openxmlformats.org/wordprocessingml/2006/main}"
 REGISTRY_DATE = "2026-10-29"
 # 사용자 확인(2026-11-03): 온비드 OpenAPI 25종 서비스 모두 공공데이터포털에서 승인되어 있고 서비스별 일일 100,000회 트래픽이 가능하다.
 APPROVAL_CONFIRMED_DATE = "2026-11-03"
+# 점검 입력(1단계 9개): 사용자의 수집 코드(2026-04 사용, 사용자 PC의 수집 스크립트 폴더)에서 확인된 값만 쓴다. 근거 없는 오퍼레이션은 비워 둔다.
+# {PREV_YEAR} 같은 {…} 값은 점검할 때 lib/checks/generic-probe.ts가 KST 기준으로 풀어 쓴다.
+PROBE_INPUTS = {"SVC-API-010/getItrsCltrRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-011/getInqRnkClg": {"cltrDivNm": "부동산"}, "SVC-API-012/get50PctDecrCltr": {"cltrDivNm": "부동산"}, "SVC-API-025/getOnbidUsgCodeInfo": {}, "SVC-API-025/getOnbidDtlAddrInfo": {}, "SVC-API-026/getKamcoCltrClarStats": {"statsTypeCd": "0021", "inqPerd": "{PREV_YEAR}"}, "SVC-API-026/getOrgCltrClarStats": {"inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getKamcoCltrUsgStats": {"statsTypeCd": "0041", "inqPerd": "{PREV_YEAR}"}, "SVC-API-027/getOrgCltrUsgStats": {"inqPerd": "{PREV_YEAR}"}}
+# 근거 문구에는 사용자 PC의 폴더 경로를 넣지 않는다(공개 저장소). 파일 이름만 적는다.
+PROBE_INPUT_SOURCES = {
+    "ranking": "사용자 수집 코드 onbid_ranking_list.py (2026-04 사용). 이번 점검에서 실호출 확인 전",
+    "code": "사용자 수집 코드 코드·주소 크롤러(onbid_usage_code_crawler.py, onbid_dtl_addr_crawler.py) (2026-04 사용, 필수 입력 없음). 이번 점검에서 실호출 확인 전",
+    "stats": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전",
+}
+
+
+def probe_of(key):
+    if key not in PROBE_INPUTS:
+        return {"mode": None, "input": None, "inputSource": None}
+    source = PROBE_INPUT_SOURCES["ranking"] if ("Rnk" in key or "Decr" in key) else (PROBE_INPUT_SOURCES["code"] if "SVC-API-025" in key else PROBE_INPUT_SOURCES["stats"])
+    return {"mode": "structural", "input": PROBE_INPUTS[key], "inputSource": source}
 USER_QUOTA = {"dailyLimit": 100000, "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"}
 TARGET_SERVICES = 26  # 사용자가 정한 관리 목표 수 (PRD 용어 주의)
 
@@ -199,11 +215,11 @@ for d in docs:
                 },
                 # 명세서로는 알 수 없는 항목: 확인 전까지 '미정'이며 점검 결과를 정상으로 세지 않는다 (PRD 3-3, 5-2-3)
                 "approval": "CONFIRMED_BY_USER_2026_10_29" if live else "APPROVED",
-                "probe": {"mode": None, "input": None, "inputSource": None},
+                "probe": probe_of(f"{d['service_id']}/{o['name']}"),
                 "noDataPolicy": "UNDEFINED",
                 "quota": USER_QUOTA,
                 # 승인은 확인됐지만 점검에 쓸 유효 입력값(probe.input)은 아직 정하지 않았다. 정하기 전에는 요청을 보내지 않고 검증 불가로 둔다
-                "availabilityBeforeProbe": None if live else "UNVERIFIED:NO_VALID_INPUT",
+                "availabilityBeforeProbe": None if live or f"{d['service_id']}/{o['name']}" in PROBE_INPUTS else "UNVERIFIED:NO_VALID_INPUT",
             }
         )
     services.append(

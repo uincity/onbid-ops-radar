@@ -7,6 +7,9 @@ import { z } from "zod";
 // 실제 호출로 응답 형식을 확인했는지. 나머지는 명세서만 확인한 상태이며 점검 결과가 나오기 전까지 UNVERIFIED로 취급한다.
 export const VERIFICATION_STATES = ["LIVE_VERIFIED", "SPEC_ONLY"] as const;
 
+// 점검 입력 값 안에 쓸 수 있는 {…} 자리표시자. 점검할 때 lib/checks/generic-probe.ts가 KST 기준으로 풀어 쓴다
+export const PROBE_INPUT_TOKENS = ["PREV_YEAR"] as const;
+
 export const APPROVAL_STATES = ["UNCONFIRMED", "CONFIRMED_BY_USER_2026_10_29", "APPROVED", "NOT_APPROVED"] as const;
 
 const requestParam = z.object({
@@ -47,7 +50,8 @@ export const operationSchema = z.object({
   // 점검 방식과 입력값: 확정 전에는 비어 있다. 임의로 만들지 않는다 (PRD 5-2-1)
   probe: z.object({
     mode: z.enum(["positive", "structural", "negative"]).nullable(),
-    input: z.record(z.string(), z.string()).nullable(),
+    // 요청에 넣을 업무 파라미터. null이면 아직 정하지 않은 것, {}이면 업무 파라미터 없이 부른다. 서비스키·pageNo 등 공통 항목은 넣지 않는다
+    input: z.record(z.string().regex(/^[A-Za-z][A-Za-z0-9]{0,39}$/), z.string().regex(/^[A-Za-z0-9가-힣,{}_-]{1,60}$/)).nullable(),
     inputSource: z.string().nullable(),
   }),
   noDataPolicy: z.enum(["UNDEFINED", "ALLOWED", "NOT_ALLOWED"]),
@@ -110,9 +114,18 @@ export const registrySchema = z
         const where = `${s.serviceId}/${o.operationId}`;
         if (o.url !== `${s.baseUrl}/${o.path}`) issue(`${where}: 호출 주소가 서비스 주소와 경로의 합과 다릅니다.`);
         if (o.verification.state === "LIVE_VERIFIED" && !o.verification.verifiedAt) issue(`${where}: 실호출 확인인데 확인 날짜가 없습니다.`);
-        if (o.verification.state === "SPEC_ONLY" && (o.verification.verifiedAt !== null || o.availabilityBeforeProbe === null)) {
-          issue(`${where}: 명세만 확인한 오퍼레이션은 확인 날짜가 없고 점검 전 상태가 UNVERIFIED여야 합니다.`);
+        // 명세만 확인한 오퍼레이션: 확인 날짜가 없고, 점검 입력이 없으면 점검 전 상태(UNVERIFIED)가 있어야 한다. 점검 입력이 있으면 점검 전 상태는 비어 있어도 된다(점검 대기)
+        if (o.verification.state === "SPEC_ONLY" && (o.verification.verifiedAt !== null || (o.availabilityBeforeProbe === null && o.probe.input === null))) {
+          issue(`${where}: 명세만 확인한 오퍼레이션은 확인 날짜가 없고, 점검 입력이 없으면 점검 전 상태가 UNVERIFIED여야 합니다.`);
         }
+        // 점검 입력에 쓴 {…} 자리표시자는 알려진 것만 허용한다
+        for (const [name, value] of Object.entries(o.probe.input ?? {})) {
+          for (const token of value.matchAll(/\{([^}]*)\}/g)) {
+            if (!(PROBE_INPUT_TOKENS as readonly string[]).includes(token[1])) issue(`${where}: 점검 입력 ${name}에 알 수 없는 자리표시자 {${token[1]}}가 있습니다.`);
+          }
+        }
+        // 점검 입력이 있으면 근거(어디서 확인된 값인가)가 있어야 한다. 지어낸 값을 막는다
+        if (o.probe.input !== null && (o.probe.inputSource === null || o.probe.mode === null)) issue(`${where}: 점검 입력에는 점검 방식과 근거(inputSource)가 있어야 합니다.`);
         if (o.verification.state === "LIVE_VERIFIED" && o.availabilityBeforeProbe !== null) issue(`${where}: 실호출 확인이 끝난 오퍼레이션에는 점검 전 상태를 두지 않습니다.`);
         // 확정되지 않은 값을 채워 두면 안 된다: 승인 확인·Probe 입력·쿼터는 근거가 있을 때만
         if (o.approval === "UNCONFIRMED" && (o.probe.mode !== null || o.quota !== null)) issue(`${where}: 승인이 확인되지 않았는데 점검 방식이나 쿼터가 채워져 있습니다.`);

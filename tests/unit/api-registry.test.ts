@@ -31,11 +31,41 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
     expect(others).toHaveLength(26);
     for (const { operation, key } of others) {
-      expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
       expect(operation.approval, key).toBe("APPROVED");
-      expect(operation.probe, key).toEqual({ mode: null, input: null, inputSource: null }); // 점검 방식·입력값은 근거가 생기기 전에 만들지 않는다
       expect(operation.noDataPolicy, key).toBe("UNDEFINED");
+      if (operation.probe.input === null) {
+        // 점검 입력의 근거가 없는 것은 비워 두고 검증 불가로 둔다 (지어내지 않는다)
+        expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
+        expect(operation.probe, key).toEqual({ mode: null, input: null, inputSource: null });
+      } else {
+        expect(operation.availabilityBeforeProbe, key).toBeNull(); // 점검 대기
+      }
     }
+  });
+
+  it("점검 입력은 1단계 9개뿐이고, 모두 점검 방식과 근거 파일 이름이 있으며 내 PC 경로가 들어 있지 않다", () => {
+    const withInput = allOperations().filter((o) => o.operation.probe.input !== null);
+    expect(withInput.map((o) => o.key).sort()).toEqual([
+      "SVC-API-010/getItrsCltrRnkClg",
+      "SVC-API-011/getInqRnkClg",
+      "SVC-API-012/get50PctDecrCltr",
+      "SVC-API-025/getOnbidDtlAddrInfo",
+      "SVC-API-025/getOnbidUsgCodeInfo",
+      "SVC-API-026/getKamcoCltrClarStats",
+      "SVC-API-026/getOrgCltrClarStats",
+      "SVC-API-027/getKamcoCltrUsgStats",
+      "SVC-API-027/getOrgCltrUsgStats",
+    ]);
+    for (const { operation, key } of withInput) {
+      expect(operation.probe.mode, key).toBe("structural");
+      expect(operation.probe.inputSource, key).toMatch(/사용자 수집 코드 .+\.py/);
+      expect(operation.probe.inputSource, key).not.toMatch(/[A-Za-z]:[\\/]|\/Users\//); // 드라이브 경로(D:\...)나 홈 폴더 경로가 없어야 한다
+    }
+    // 근거가 되는 값 그대로인지 (사용자 수집 코드에서 확인한 코드 값)
+    const input = (k: string) => allOperations().find((o) => o.key === k)!.operation.probe.input;
+    expect(input("SVC-API-026/getKamcoCltrClarStats")).toEqual({ statsTypeCd: "0021", inqPerd: "{PREV_YEAR}" });
+    expect(input("SVC-API-027/getKamcoCltrUsgStats")).toEqual({ statsTypeCd: "0041", inqPerd: "{PREV_YEAR}" });
+    expect(input("SVC-API-010/getItrsCltrRnkClg")).toEqual({ cltrDivNm: "부동산" });
   });
 
   it("사용자가 확인한 일일 쿼터(100,000회)가 25종 모든 오퍼레이션에 근거와 함께 들어 있다", () => {
@@ -156,6 +186,12 @@ describe("잘못된 등록부는 거부된다", () => {
     expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = null as never; r.services[1].operations[0].probe.mode = "positive" as never; })).toBe(true));
   it("승인을 확인하지 못했는데 쿼터가 채워져 있음", () =>
     expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = { dailyLimit: 1000, source: "추정" } as never; })).toBe(true));
+  it("점검 입력에 알 수 없는 자리표시자가 있음", () =>
+    expect(rejects((r) => (r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe.input = { inqPerd: "{TODAY}" }))).toBe(true));
+  it("점검 입력이 있는데 근거가 없음 (지어낸 값)", () =>
+    expect(rejects((r) => { const p = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe; p.inputSource = null as never; })).toBe(true));
+  it("점검 입력도 점검 전 상태도 없음", () =>
+    expect(rejects((r) => { const o = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0]; o.probe = { mode: null, input: null, inputSource: null } as never; o.availabilityBeforeProbe = null; })).toBe(true));
   it("입력값 출처 후보가 등록부에 없음", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-999/nothing"]))).toBe(true));
   it("자기 자신이 입력값 출처 후보", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-004/getRlstDtlInf"]))).toBe(true));
   it("오퍼레이션 ID 중복", () => expect(rejects((r) => r.services[0].operations.push(structuredClone(r.services[0].operations[0])))).toBe(true));

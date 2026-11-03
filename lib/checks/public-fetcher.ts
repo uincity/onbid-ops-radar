@@ -30,11 +30,15 @@ export const PUBLIC_STORED_FIELDS = ["cltrMngNo", "pbctCdtnNo", "onbidCltrNm", "
 const ALL_PROPERTY_TYPES = "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013";
 const MAX_LIST_ROWS = 100;
 
+// 등록부의 점검 입력으로 부르는 추가 오퍼레이션 (일반 조회기). 요청은 1건(numOfRows=1)만 받아 호출 비용을 최소화하고, 응답은 저장하지 않고 판정에만 쓴다
+export type ExtraOperation = { endpoint: string; operationKey: string; url: string; params: Record<string, string> };
+
 export type PublicFetcherOptions = {
   serviceKey: string; // .env의 DATA_GO_KR_SERVICE_KEY (서버 전용)
   timeoutSeconds: number; // 설정값 api_timeout_seconds
   fetchImpl?: typeof fetch; // 시험에서 가짜 응답으로 바꿔 끼운다
   now?: () => number;
+  extraOperations?: readonly ExtraOperation[]; // 목록·상세 외에 점검할 오퍼레이션 (generic-probe.ts가 만든다)
 };
 
 // 발급받은 키가 이미 URL 인코딩된 형태(% 포함)면 그대로, 아니면 인코딩해서 쓴다. (한 번 더 인코딩하면 인증에 실패한다)
@@ -66,10 +70,14 @@ function pickStoredFields(item: Record<string, unknown>): Record<string, string>
 type CallResult = { check: ApiCheckRecord; items: Record<string, unknown>[] };
 
 export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
-  const { serviceKey, timeoutSeconds, fetchImpl = fetch, now = Date.now } = options;
+  const { serviceKey, timeoutSeconds, fetchImpl = fetch, now = Date.now, extraOperations = [] } = options;
   if (!serviceKey) throw new Error("DATA_GO_KR_SERVICE_KEY가 없습니다. .env을 확인해 주세요.");
   if (!(timeoutSeconds > 0)) throw new Error("타임아웃(초)은 0보다 커야 합니다.");
   const encodedKey = encodeServiceKey(serviceKey);
+
+  const extraByName = new Map(extraOperations.map((e) => [e.endpoint, e]));
+  // 점검 이름이 가리키는 등록부 오퍼레이션 키 ("서비스ID/오퍼레이션ID")
+  const operationKeyOf = (name: string): string | undefined => PUBLIC_ENDPOINT_OPERATIONS[name as (typeof PUBLIC_ENDPOINTS)[number]] ?? extraByName.get(name)?.operationKey;
 
   // 목록에서 받은 물건들: 상세 조회의 입력
   let listed: { cltrMngNo: string; pbctCdtnNo: string }[] = [];
@@ -81,7 +89,7 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
     const started = now();
     // 기록용 요청 요약: 서비스키를 뺀 조회 조건만 (PRD 5-2-2 7단계, SEC-10)
     const requestSummary = new URLSearchParams(params).toString();
-    const [apiId, operationId] = (PUBLIC_ENDPOINT_OPERATIONS[endpointName as (typeof PUBLIC_ENDPOINTS)[number]] ?? "/").split("/");
+    const [apiId, operationId] = (operationKeyOf(endpointName) ?? "/").split("/");
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutSeconds * 1000);
     const done = (
@@ -102,7 +110,7 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       const parsed = parseOnbidBody(await response.text());
       if (parsed.kind === "ok") {
         // 필수 응답 항목 확인은 저장용으로 줄이기 전의 원본 항목에서 한다 (등록부의 응답 항목 기준)
-        const fields = findOperation(PUBLIC_ENDPOINT_OPERATIONS[endpointName as (typeof PUBLIC_ENDPOINTS)[number]])?.operation.responseFields ?? [];
+        const fields = findOperation(operationKeyOf(endpointName) ?? "")?.operation.responseFields ?? [];
         return done("success", response.status, parsed.items.length, parsed.items, "00", checkResponseSchema(parsed.items, fields));
       }
       if (parsed.kind === "nodata") return done("empty_result", response.status, 0, [], parsed.code);
@@ -194,7 +202,15 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
     };
   }
 
+  // 추가 오퍼레이션 1개: 호출 1번. 조회 결과는 저장하지 않는다(records 비움)
+  async function fetchExtra(extra: ExtraOperation): Promise<ApiFetchResult> {
+    const { check, items } = await call(extra.endpoint, extra.url, { pageNo: "1", numOfRows: "1", resultType: "json", ...extra.params });
+    return { ...check, recordCount: check.outcome === "success" ? items.length : check.recordCount, records: [], httpCalls: 1 };
+  }
+
   return (endpoint, context) => {
+    const extra = extraByName.get(endpoint);
+    if (extra) return fetchExtra(extra);
     if (endpoint === "public-list") return fetchList(context);
     if (endpoint === "public-detail") return fetchDetails(context);
     throw new Error(`알 수 없는 PUBLIC 조회 이름입니다: ${endpoint}`);

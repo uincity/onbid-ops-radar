@@ -5,7 +5,7 @@
 import { timingSafeEqual } from "node:crypto";
 import type { Settings } from "@/lib/settings/schema";
 import { createDemoFetcher } from "@/lib/checks/demo-fetcher";
-import { createPublicFetcher } from "@/lib/checks/public-fetcher";
+import { buildPublicCheck } from "@/lib/checks/public-setup";
 import type { RunCheckInput, RunCheckResult } from "@/lib/checks/run-check";
 import type { CheckStore, Fetcher } from "@/lib/checks/types";
 
@@ -50,15 +50,18 @@ export async function runScheduledCheck(authorization: string | null, deps: Cron
     const { settings, store } = await deps.prepare();
     const source = settings.scheduledSource; // 설정값: 예약 점검이 조회하는 출처 (기본 DEMO)
     let fetcher: Fetcher;
+    let extraEndpoints: { endpoint: string; operationKey: string }[] | undefined;
     if (source === "PUBLIC") {
       const key = deps.serviceKey();
       // 서비스키가 없으면 요청을 보내지 않는다. 점검 기록이 생기지 않으므로 09:30 누락 감지가 이를 알린다
       if (!key) return reply(503, "예약 점검 출처가 PUBLIC인데 서비스키가 서버에 설정되어 있지 않아 실행하지 않았습니다.");
-      fetcher = createPublicFetcher({ serviceKey: key, timeoutSeconds: settings.apiTimeoutSeconds });
+      const publicCheck = buildPublicCheck({ serviceKey: key, timeoutSeconds: settings.apiTimeoutSeconds, now: new Date(deps.now()) });
+      fetcher = publicCheck.fetcher;
+      extraEndpoints = publicCheck.extraEndpoints;
     } else {
       fetcher = createDemoFetcher({ timeoutSeconds: settings.apiTimeoutSeconds, baseMs: deps.now(), mode: "normal" });
     }
-    const result = await deps.runCheck({ trigger: "scheduled", source, triggeredBy: null, settings, store, fetcher });
+    const result = await deps.runCheck({ trigger: "scheduled", source, triggeredBy: null, settings, store, fetcher, extraEndpoints });
     // 점검이 막혔거나 실패해도 "요청은 처리됨"이다. 결과는 check_runs에 남고 대시보드가 보여 준다
     return reply(200, "예약 점검 요청을 처리했습니다.", { runId: result.runId, status: result.status });
   } catch {

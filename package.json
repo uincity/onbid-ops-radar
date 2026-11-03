@@ -19,6 +19,7 @@
     "test:engine-live": "node --env-file=.env scripts/test-engine-live.mjs",
     "seed:sample": "node --env-file=.env scripts/seed-sample-ops.mjs",
     "test:public-live": "node --env-file=.env scripts/test-public-live.mjs",
+    "test:public-probes": "node --env-file=.env scripts/test-public-probes.mjs",
     "test:db": "node --env-file=.env scripts/test-db.mjs",
     "test:success": "node --env-file=.env scripts/test-success.mjs",
     "test:deployed": "node --env-file=.env scripts/test-deployed.mjs",

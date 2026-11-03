@@ -6442,16 +6442,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrDivNm": "부동산"
+            },
+            "inputSource": "사용자 수집 코드 onbid_ranking_list.py (2026-04 사용). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -6662,16 +6664,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrDivNm": "부동산"
+            },
+            "inputSource": "사용자 수집 코드 onbid_ranking_list.py (2026-04 사용). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -6896,16 +6900,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrDivNm": "부동산"
+            },
+            "inputSource": "사용자 수집 코드 onbid_ranking_list.py (2026-04 사용). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7618,16 +7624,16 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {},
+            "inputSource": "사용자 수집 코드 코드·주소 크롤러(onbid_usage_code_crawler.py, onbid_dtl_addr_crawler.py) (2026-04 사용, 필수 입력 없음). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         },
         {
           "operationId": "getOnbidDtlAddrInfo",
@@ -7679,16 +7685,16 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {},
+            "inputSource": "사용자 수집 코드 코드·주소 크롤러(onbid_usage_code_crawler.py, onbid_dtl_addr_crawler.py) (2026-04 사용, 필수 입력 없음). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -7828,16 +7834,19 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "statsTypeCd": "0021",
+              "inqPerd": "{PREV_YEAR}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         },
         {
           "operationId": "getOrgCltrClarStats",
@@ -7952,16 +7961,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "inqPerd": "{PREV_YEAR}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -8101,16 +8112,19 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "statsTypeCd": "0041",
+              "inqPerd": "{PREV_YEAR}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         },
         {
           "operationId": "getOrgCltrUsgStats",
@@ -8225,16 +8239,18 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "inqPerd": "{PREV_YEAR}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_bid_stats.py (2026-04 사용, statsTypeCd·inqPerd 형식). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     }

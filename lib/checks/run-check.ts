@@ -16,7 +16,7 @@ import { observationFromCheck, policyFromOperation } from "./probe/from-check";
 import { checkReadiness } from "./probe/readiness";
 import type { SchemaCheckResult } from "./probe/schema-check";
 import { describeProbe, type NotRunReason, type ProbeResult, type UnverifiedReason } from "./probe/status";
-import { PUBLIC_ENDPOINT_OPERATIONS, type PUBLIC_ENDPOINTS } from "./public-fetcher";
+import { PUBLIC_ENDPOINT_OPERATIONS } from "./public-fetcher";
 import type { ApiCheckRecord, CheckStore, ProbeRecord, DetectionRecord, FetchedRecord, Fetcher, RecordAction, RunStatus, RunTrigger, RunSource } from "./types";
 
 // 출처별로 부르는 조회 이름. 목록 → 상세 순서다.
@@ -46,6 +46,8 @@ export type RunCheckInput = {
   fetcher: Fetcher;
   callLimit?: number; // 안 주면 기본 상한(20회). 최대 상한(100회)을 넘을 수 없다
   clock?: () => number; // 지금 시각(ms). 시험에서 바꿔 끼운다
+  // PUBLIC: 목록·상세 외에 일반 조회기로 점검할 오퍼레이션 (generic-probe.ts). 오퍼레이션마다 호출 1번이며, 호출 상한에서 이만큼을 미리 떼어 두어 목록·상세가 다 써 버리지 않게 한다
+  extraEndpoints?: readonly { endpoint: string; operationKey: string }[];
 };
 
 // 점검 하나(조회 이름)의 판정 결과. PUBLIC 점검에서만 만든다 (등록부에 있는 오퍼레이션만 판정한다)
@@ -63,15 +65,15 @@ export type RunCheckResult = {
 
 const noRegistered = (): Record<RecordAction, number> => ({ created: 0, recurred: 0, detected_again: 0, suppressed: 0 });
 
-// PUBLIC 점검 이름이 가리키는 등록부 오퍼레이션
-const publicOperation = (endpoint: string) => findOperation(PUBLIC_ENDPOINT_OPERATIONS[endpoint as (typeof PUBLIC_ENDPOINTS)[number]]);
+// 점검 이름 → "서비스ID/오퍼레이션ID" (전용 조회기 2개 + 일반 조회기로 점검하는 추가 오퍼레이션)
+type KeyOf = (endpoint: string) => string;
 
 // 요청을 보내지 못했거나 판단할 수 없는 점검들의 판정 목록 (PUBLIC만)
-function unprobed(source: RunSource, endpoints: readonly string[], why: { notRun?: NotRunReason; unverified?: UnverifiedReason }): ProbeEntry[] {
+function unprobed(source: RunSource, endpoints: readonly string[], why: { notRun?: NotRunReason; unverified?: UnverifiedReason }, keyOf: KeyOf): ProbeEntry[] {
   if (source !== "PUBLIC") return [];
   return endpoints.map((endpoint) => ({
     endpoint,
-    operationKey: PUBLIC_ENDPOINT_OPERATIONS[endpoint as (typeof PUBLIC_ENDPOINTS)[number]],
+    operationKey: keyOf(endpoint),
     result: why.unverified ? { status: "UNVERIFIED", attempted: false, reason: why.unverified } : { status: "NOT_RUN", attempted: false, reason: why.notRun ?? "BUDGET_SKIP" },
   }));
 }
@@ -95,10 +97,10 @@ async function saveProbe(store: CheckStore, runId: number, source: RunSource, en
 
 // 요청을 보낼 조회기가 없는 오퍼레이션을 UNVERIFIED(승인 미확인 등)로 남긴다. 분모에는 들어가지만 정상·실패로 세지 않는다 (PRD 3-3).
 // 서비스 25종을 서비스 단위 배치로 나눈 계획에서 가져온다. 한 오퍼레이션의 저장 실패가 다른 기록을 막지 않게 하나씩 처리한다.
-async function saveUnprobeable(store: CheckStore, runId: number, source: RunSource): Promise<string[]> {
+async function saveUnprobeable(store: CheckStore, runId: number, source: RunSource, callable: Readonly<Record<string, string>>): Promise<string[]> {
   if (source !== "PUBLIC") return [];
   const keys: string[] = [];
-  for (const op of unprobeableOperations(buildBatches(PUBLIC_ENDPOINT_OPERATIONS))) {
+  for (const op of unprobeableOperations(buildBatches(callable))) {
     await store.recordProbe(runId, source, {
       apiId: op.serviceId,
       operationId: op.operationId,
@@ -124,12 +126,17 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     throw new Error(`호출 상한은 1~${settings.apiCallLimitMax} 사이의 정수여야 합니다.`);
   }
 
+  // PUBLIC: 점검 이름 → 등록부 오퍼레이션. 추가 오퍼레이션은 목록·상세 뒤에 오퍼레이션마다 1번씩 점검한다
+  const extras = source === "PUBLIC" ? (input.extraEndpoints ?? []) : [];
+  const callable: Record<string, string> = { ...PUBLIC_ENDPOINT_OPERATIONS, ...Object.fromEntries(extras.map((e) => [e.endpoint, e.operationKey])) };
+  const keyOf: KeyOf = (endpoint) => callable[endpoint];
+  const endpoints: { name: string; kind: "list" | "detail" | "extra" }[] = [...ENDPOINTS[source], ...extras.map((e) => ({ name: e.endpoint, kind: "extra" as const }))];
   const started = await store.startRun(trigger, source, input.triggeredBy ?? null);
-  const allEndpoints = ENDPOINTS[source].map((e) => e.name);
+  const allEndpoints = endpoints.map((e) => e.name);
   if (started.status === "blocked") {
-    const blockedProbes = unprobed(source, allEndpoints, { notRun: "RUN_BLOCKED" });
+    const blockedProbes = unprobed(source, allEndpoints, { notRun: "RUN_BLOCKED" }, keyOf);
     for (const entry of blockedProbes) await saveProbe(store, started.runId, source, entry);
-    const unprobeable = await saveUnprobeable(store, started.runId, source);
+    const unprobeable = await saveUnprobeable(store, started.runId, source, callable);
     return { runId: started.runId, status: "blocked", apiCallCount: 0, detections: [], registered: noRegistered(), probes: blockedProbes, unprobeable };
   }
   const runId = started.runId;
@@ -148,13 +155,15 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       if (left <= 0) {
         await store.log(runId, "error", "BUDGET_EXCEEDED", `PUBLIC 일일 호출 예산 ${settings.publicDailyBudget}회를 오늘 모두 써서 호출하지 않았습니다.`);
         await store.finishRun(runId, "failed", 0);
-        const skipped = unprobed(source, allEndpoints, { notRun: "BUDGET_SKIP" });
+        const skipped = unprobed(source, allEndpoints, { notRun: "BUDGET_SKIP" }, keyOf);
         for (const entry of skipped) await saveProbe(store, runId, source, entry);
-        const unprobeable = await saveUnprobeable(store, runId, source);
+        const unprobeable = await saveUnprobeable(store, runId, source, callable);
         return { runId, status: "failed", apiCallCount: 0, detections: [], registered: noRegistered(), probes: skipped, unprobeable };
       }
       effectiveLimit = Math.min(callLimit, left);
     }
+    // 목록·상세가 쓸 수 있는 호출 수: 추가 오퍼레이션 몫(오퍼레이션당 1번)을 미리 떼어 둔다. 추가 오퍼레이션이 없으면 전체 상한과 같다
+    const mainLimit = Math.min(effectiveLimit, Math.max(2, effectiveLimit - extras.length));
     const timeLimitMs = settings.runTimeLimitSeconds * 1000;
     const collected: Record<"list" | "detail", FetchedRecord[]> = { list: [], detail: [] };
     const emptyApis: string[] = [];
@@ -163,36 +172,43 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     let failed = 0;
     let authProblem = false;
     let limitHit = false;
+    let mainLimitLogged = false;
 
     // 점검 하나의 판정을 모으고 DB(probe_results)와 실행 메모(PROBE_RESULT)로 남긴다 (PUBLIC만)
     const record = async (endpoint: string, result: ProbeResult, check?: ApiCheckRecord) => {
-      const operationKey = PUBLIC_ENDPOINT_OPERATIONS[endpoint as (typeof PUBLIC_ENDPOINTS)[number]];
+      const operationKey = keyOf(endpoint);
       const entry: ProbeEntry = { endpoint, operationKey, result };
       probes.push(entry);
       await saveProbe(store, runId, source, entry, check);
       await store.log(runId, result.status === "FAIL" ? "warn" : "info", "PROBE_RESULT", `'${endpoint}' 점검 판정: ${describeProbe(result)}`);
     };
 
-    for (const { name, kind } of ENDPOINTS[source]) {
+    for (const { name, kind } of endpoints) {
       // 제한에 걸리면 남은 작업은 하지 않고 이유를 남긴다 (PRD 5-2 규칙 5)
       if (clock() - t0 >= timeLimitMs) {
         await store.log(runId, "warn", "RUN_TIME_LIMIT", `실행시간 ${settings.runTimeLimitSeconds}초 제한에 걸려 '${name}' 이후 작업을 하지 않았습니다.`);
         limitHit = true;
         break;
       }
-      if (calls >= effectiveLimit) {
-        await store.log(runId, "warn", "CALL_LIMIT_REACHED", `호출 상한 ${effectiveLimit}회에 도달해 '${name}' 이후 작업을 하지 않았습니다.`);
+      // 목록·상세는 미리 떼어 둔 추가 오퍼레이션 몫을 쓰지 못한다. 한도에 닿아도 추가 오퍼레이션은 자기 몫으로 계속한다
+      const limitForThis = kind === "extra" ? effectiveLimit : mainLimit;
+      if (calls >= limitForThis) {
+        if (kind === "extra" || !mainLimitLogged) {
+          await store.log(runId, "warn", "CALL_LIMIT_REACHED", `호출 상한 ${limitForThis}회에 도달해 '${name}' 이후 작업을 하지 않았습니다.`);
+          if (kind !== "extra") mainLimitLogged = true;
+        }
         limitHit = true;
-        break;
+        if (kind === "extra") break; // 추가 오퍼레이션은 한도에 닿으면 남은 것도 하지 않는다(아래에서 미점검으로 남긴다)
+        continue;
       }
 
       // PUBLIC: 보내기 전에 "점검할 수 있는 상태인가"를 확인한다. 입력값이 없거나 선행 점검이 실패했으면 요청하지 않고 검증 불가로 남긴다 (장애로 세지 않음)
-      const op = source === "PUBLIC" ? publicOperation(name) : undefined;
+      const op = source === "PUBLIC" ? findOperation(keyOf(name) ?? "") : undefined;
       if (source === "PUBLIC") {
         if (!op) throw new Error(`'${name}'에 해당하는 서비스 등록부 오퍼레이션이 없습니다.`);
         const preceding = kind === "detail" ? probes.find((p) => p.endpoint === ENDPOINTS[source].find((e) => e.kind === "list")?.name) : undefined;
         // 선행 목록이 실패했어도 쓸 수 있는 식별 입력값을 이미 얻었다면(예: 응답 구조 경고뿐) 상세 점검은 계속한다
-        const reason = checkReadiness(op.operation, { hasValidInput: kind === "list" || collected.list.length > 0, precedingFailed: preceding?.result.status === "FAIL" && collected.list.length === 0 });
+        const reason = checkReadiness(op.operation, { hasValidInput: kind !== "detail" || collected.list.length > 0, precedingFailed: preceding?.result.status === "FAIL" && collected.list.length === 0 });
         if (reason) {
           await record(name, { status: "UNVERIFIED", attempted: false, reason });
           continue;
@@ -203,7 +219,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       // 조회기가 던진 예외는 우리 쪽 문제일 수 있어 API 장애(FAIL)로 단정하지 않고 UNVERIFIED로 남긴다. 내부 오류 문구는 기록하지 않는다 (SEC-11).
       let result: Awaited<ReturnType<Fetcher>>;
       try {
-        result = await fetcher(name, { remainingCalls: effectiveLimit - calls, remainingMs: timeLimitMs - (clock() - t0) });
+        result = await fetcher(name, { remainingCalls: limitForThis - calls, remainingMs: timeLimitMs - (clock() - t0) });
       } catch {
         failed += 1;
         await store.log(runId, "error", "FETCH_ERROR", `'${name}' 조회 중 예상하지 못한 오류가 있어 이 점검만 건너뛰고 계속합니다.`);
@@ -218,8 +234,11 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
 
       if (result.outcome === "success") {
         succeeded += 1;
-        collected[kind] = result.records;
-        await store.saveCollected(runId, source, kind, result.records);
+        // 추가 오퍼레이션은 점검 판정에만 쓰고 응답 데이터는 저장하지 않는다
+        if (kind !== "extra") {
+          collected[kind] = result.records;
+          await store.saveCollected(runId, source, kind, result.records);
+        }
       } else if (result.outcome === "empty_result") {
         succeeded += 1; // 응답은 정상으로 왔다. 0건이 문제인지는 API별 허용 여부로 따로 정한다 (PRD 5-2 규칙 4)
         // 기존 정책(EMPTY_RESULT)은 DEMO에서만 쓴다. PUBLIC의 0건은 이상징후를 만들지 않고 점검 판정(PASS_NO_DATA·UNVERIFIED)으로만 남긴다 (PRD 5-2-3)
@@ -243,7 +262,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     const probed = new Set(probes.map((p) => p.endpoint));
     const left = allEndpoints.filter((e) => !probed.has(e));
     if (left.length > 0) {
-      for (const entry of unprobed(source, left, authProblem ? { unverified: "PRECONDITION_FAILED" } : { notRun: "BUDGET_SKIP" })) await record(entry.endpoint, entry.result);
+      for (const entry of unprobed(source, left, authProblem ? { unverified: "PRECONDITION_FAILED" } : { notRun: "BUDGET_SKIP" }, keyOf)) await record(entry.endpoint, entry.result);
     }
 
     // 탐지: 서비스키·한도 문제가 있었던 실행에서는 건너뛴다 (PRD 5-2 규칙 6)
@@ -334,7 +353,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
     // 점검 판정(FAIL·DEGRADED)도 실행 상태에 반영한다: 응답은 왔어도 구조 오류가 있으면 "성공"으로 마감하지 않는다
     const probeProblem = probes.some((p) => p.result.status === "FAIL" || p.result.status === "DEGRADED");
     const status: RunStatus = authProblem || succeeded === 0 ? "failed" : failed > 0 || limitHit || probeProblem ? "partial" : "succeeded";
-    const unprobeable = await saveUnprobeable(store, runId, source);
+    const unprobeable = await saveUnprobeable(store, runId, source, callable);
     await store.finishRun(runId, status, calls);
     return { runId, status, apiCallCount: calls, detections, registered, probes, unprobeable };
   } catch (error) {
