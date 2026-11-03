@@ -17,19 +17,31 @@ const rejects = (mutate: (r: ReturnType<typeof clone>) => void) => {
 
 describe("등록부 내용 (2026-10-29 확정)", () => {
   it("관리 목표 26종 중 25종을 등록했고 1종은 미확정이다", () => {
-    expect(registryCoverage()).toEqual({ target: 26, registered: 25, unconfirmed: 1, operations: 28, liveVerifiedOperations: 2 });
+    expect(registryCoverage()).toEqual({ target: 26, registered: 25, unconfirmed: 1, operations: 28, liveVerifiedOperations: 11 });
     expect(API_REGISTRY.unresolved).toHaveLength(1);
     expect(API_REGISTRY.unresolved[0].note).toContain("16번");
     expect(API_REGISTRY.unresolved[0].note).toContain("008");
   });
 
-  it("실호출로 확인한 오퍼레이션은 부동산 물건목록·상세 2개뿐이다", () => {
-    expect(liveVerifiedOperations().map((o) => o.key)).toEqual(["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"]);
+  it("실호출로 확인한 오퍼레이션은 11개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 9개(2026-11-03)", () => {
+    expect(liveVerifiedOperations().map((o) => o.key).sort()).toEqual([
+      "SVC-API-001/getRlstCltrList",
+      "SVC-API-004/getRlstDtlInf",
+      "SVC-API-010/getItrsCltrRnkClg",
+      "SVC-API-011/getInqRnkClg",
+      "SVC-API-012/get50PctDecrCltr",
+      "SVC-API-025/getOnbidDtlAddrInfo",
+      "SVC-API-025/getOnbidUsgCodeInfo",
+      "SVC-API-026/getKamcoCltrClarStats",
+      "SVC-API-026/getOrgCltrClarStats",
+      "SVC-API-027/getKamcoCltrUsgStats",
+      "SVC-API-027/getOrgCltrUsgStats",
+    ]);
   });
 
-  it("나머지 26개 오퍼레이션은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
+  it("나머지 17개 오퍼레이션은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
-    expect(others).toHaveLength(26);
+    expect(others).toHaveLength(17);
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
       expect(operation.noDataPolicy, key).toBe("UNDEFINED");
@@ -191,7 +203,7 @@ describe("잘못된 등록부는 거부된다", () => {
   it("점검 입력이 있는데 근거가 없음 (지어낸 값)", () =>
     expect(rejects((r) => { const p = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe; p.inputSource = null as never; })).toBe(true));
   it("점검 입력도 점검 전 상태도 없음", () =>
-    expect(rejects((r) => { const o = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0]; o.probe = { mode: null, input: null, inputSource: null } as never; o.availabilityBeforeProbe = null; })).toBe(true));
+    expect(rejects((r) => { const o = r.services.find((s) => s.serviceId === "SVC-API-002")!.operations[0]; o.probe = { mode: null, input: null, inputSource: null } as never; o.availabilityBeforeProbe = null; })).toBe(true));
   it("입력값 출처 후보가 등록부에 없음", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-999/nothing"]))).toBe(true));
   it("자기 자신이 입력값 출처 후보", () => expect(rejects((r) => (r.services[3].operations[0].inputSourceCandidates = ["SVC-API-004/getRlstDtlInf"]))).toBe(true));
   it("오퍼레이션 ID 중복", () => expect(rejects((r) => r.services[0].operations.push(structuredClone(r.services[0].operations[0])))).toBe(true));

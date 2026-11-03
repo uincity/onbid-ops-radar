@@ -42,6 +42,9 @@ TARGET_SERVICES = 26  # 사용자가 정한 관리 목표 수 (PRD 용어 주의
 
 # 2026-10-29에 실제 호출로 응답 형식을 확인한 오퍼레이션 (PRD 부록 A-1, tests/unit/public-live.test.ts)
 LIVE_VERIFIED = {"getRlstCltrList", "getRlstDtlInf"}
+# 2026-11-03 사용자가 npm run test:public-probes로 실호출 1회씩 확인한 9개 (PASS_DATA, 필수 항목 누락 0)
+LIVE_VERIFIED_2026_11_03 = ["getItrsCltrRnkClg", "getInqRnkClg", "get50PctDecrCltr", "getOnbidUsgCodeInfo", "getOnbidDtlAddrInfo", "getKamcoCltrClarStats", "getOrgCltrClarStats", "getKamcoCltrUsgStats", "getOrgCltrUsgStats"]
+LIVE_VERIFIED_EVIDENCE_2026_11_03 = "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0"
 COMMON_REQUEST = ("serviceKey", "pageNo", "numOfRows", "resultType")
 # 다른 서비스의 결과를 받아야 입력값을 얻을 수 있는 식별 파라미터
 ID_PARAMS = ("cltrMngNo", "pbctCdtnNo", "pbancMngNo")
@@ -209,9 +212,9 @@ for d in docs:
                 "inputSourceCandidates": depends,
                 "dependencyNote": "필수 식별 파라미터 " + ", ".join(needs_ids) + "는 선행 오퍼레이션 응답에서 얻는 값으로 보이며, 후보는 같은 이름의 필드를 응답에 가진 목록형 오퍼레이션이다(이름 기준 추정, R04에서 확인)" if needs_ids else None,
                 "verification": {
-                    "state": "LIVE_VERIFIED" if live else "SPEC_ONLY",
-                    "evidence": "2026-10-29 실호출 확인(응답 형식이 명세와 일치, tests/unit/public-live.test.ts)" if live else "명세서 확인만 함. 실호출 없음",
-                    "verifiedAt": REGISTRY_DATE if live else None,
+                    "state": "LIVE_VERIFIED" if (live or o["name"] in LIVE_VERIFIED_2026_11_03) else "SPEC_ONLY",
+                    "evidence": ("2026-10-29 실호출 확인(응답 형식이 명세와 일치, tests/unit/public-live.test.ts)" if live else (LIVE_VERIFIED_EVIDENCE_2026_11_03 if o["name"] in LIVE_VERIFIED_2026_11_03 else "명세서 확인만 함. 실호출 없음")),
+                    "verifiedAt": REGISTRY_DATE if live else ("2026-11-03" if o["name"] in LIVE_VERIFIED_2026_11_03 else None),
                 },
                 # 명세서로는 알 수 없는 항목: 확인 전까지 '미정'이며 점검 결과를 정상으로 세지 않는다 (PRD 3-3, 5-2-3)
                 "approval": "CONFIRMED_BY_USER_2026_10_29" if live else "APPROVED",
@@ -284,7 +287,7 @@ w("")
 w("## 1. 확정 결과")
 w("")
 w(f"- **관리 목표 {TARGET_SERVICES}종 중 {len(services)}종의 명세를 확인해 등록했고, {TARGET_SERVICES - len(services)}종은 미확정**이다. 미확정 슬롯은 점검 대상·분모에 넣지 않는다.")
-w(f"- 등록한 오퍼레이션은 {n_ops}개이며, 이 중 실제 호출로 응답 형식을 확인한 것은 **{n_live}개**(부동산 물건목록·상세)다. 나머지 {n_ops - n_live}개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).")
+w(f"- 등록한 오퍼레이션은 {n_ops}개이며, 이 중 실제 호출로 응답 형식을 확인한 것은 **{n_live}개**(부동산 물건목록·상세, 그리고 2026-11-03 사용자가 실행한 순위 3종·코드·주소·통계 4종 9개)다. 나머지 {n_ops - n_live}개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).")
 w(f"- 미확정 1종의 단서: {registry['unresolved'][0]['note']}")
 w("- 승인 상태·유효 샘플·무데이터 정책·점검 주기·호출 예산·Probe 방식은 명세서로 알 수 없어 **미정**이다. 임의로 채우지 않는다.")
 w(f"- 결과코드표는 {'25개 문서가 모두 같다' if not differing else '문서마다 다른 곳이 있다: ' + ', '.join(differing)}.")

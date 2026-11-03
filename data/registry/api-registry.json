@@ -6436,9 +6436,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -6658,9 +6658,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -6894,9 +6894,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7618,9 +7618,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7679,9 +7679,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7828,9 +7828,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -7955,9 +7955,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -8106,9 +8106,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -8233,9 +8233,9 @@
           "inputSourceCandidates": [],
           "dependencyNote": null,
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
