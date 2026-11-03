@@ -39,7 +39,11 @@ export async function run(ctx) {
   const rows = await query("select key, value from public.settings order by key");
   const actual = Object.fromEntries(rows.map((r) => [r.key, r.value]));
   report(rows.length === Object.keys(EXPECTED).length, `설정 항목 ${Object.keys(EXPECTED).length}개가 모두 있음`, `${rows.length}개`);
+  // 예약 점검 출처(scheduled_source)는 운영하면서 DEMO↔PUBLIC으로 바꾸는 값이라 기본값과 같은지는 보지 않고, 허용된 값(DEMO·PUBLIC)인지만 본다
+  const OPERATIONAL = ["scheduled_source"];
+  report(["DEMO", "PUBLIC"].includes(actual.scheduled_source), "예약 점검 출처(scheduled_source)가 DEMO 또는 PUBLIC", `현재 ${actual.scheduled_source}`);
   const wrong = Object.entries(EXPECTED)
+    .filter(([key]) => !OPERATIONAL.includes(key))
     .filter(([key, value]) => JSON.stringify(actual[key]) !== JSON.stringify(value))
     .map(([key]) => key);
   report(wrong.length === 0, "기본값이 PRD 5-5와 모두 같음", wrong.length ? `다른 항목: ${wrong.join(",")}` : "");
@@ -208,6 +212,9 @@ export async function run(ctx) {
   // 시험 후에도 기본값이 그대로인지 (되돌림 확인)
   const after = await query("select key, value from public.settings");
   const afterMap = Object.fromEntries(after.map((r) => [r.key, r.value]));
-  const changed = Object.entries(EXPECTED).filter(([key, value]) => JSON.stringify(afterMap[key]) !== JSON.stringify(value));
+  const changed = Object.entries(EXPECTED)
+    .filter(([key]) => !OPERATIONAL.includes(key))
+    .filter(([key, value]) => JSON.stringify(afterMap[key]) !== JSON.stringify(value));
+  report(JSON.stringify(afterMap.scheduled_source) === JSON.stringify(actual.scheduled_source), "시험 후에도 예약 점검 출처가 시험 전과 같음");
   report(changed.length === 0 && after.length === 16, "시험 후에도 기본값 16개가 그대로임 (모두 되돌려짐)");
 }
