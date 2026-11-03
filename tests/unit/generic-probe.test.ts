@@ -1,4 +1,4 @@
-// 일반 조회기로 점검하는 추가 오퍼레이션(1단계 9개) 시험 (R04 확장) — 입력 해석 · 조회기 · 점검 엔진 연결 · 격리 · 호출 예약
+// 일반 조회기로 점검하는 추가 오퍼레이션(1단계 9개 + 2단계 4개) 시험 (R04 확장) — 입력 해석 · 조회기 · 점검 엔진 연결 · 격리 · 호출 예약
 // 실제 온비드 API는 부르지 않는다. 가짜 응답(fetchImpl)과 메모리 저장소만 쓴다.
 import { describe, expect, it } from "vitest";
 import { genericEndpointName, genericProbeTargets, resolveProbeInput } from "@/lib/checks/generic-probe";
@@ -22,7 +22,16 @@ describe("resolveProbeInput (자리표시자 해석)", () => {
     expect(resolveProbeInput({ inqPerd: "{PREV_YEAR}" }, new Date("2026-12-31T15:00:00Z")).inqPerd).toBe("2026"); // 한 칸 밖 (KST 01-01 00:00:00)
   });
   it("알 수 없는 자리표시자는 지어내지 않고 멈춘다", () => {
-    expect(() => resolveProbeInput({ x: "{TODAY}" }, NOW)).toThrow(/알 수 없는/);
+    expect(() => resolveProbeInput({ x: "{NEXT_WEEK}" }, NOW)).toThrow(/알 수 없는/);
+  });
+  it("{TODAY}·{DAYS_AGO_7}은 KST 기준 YYYYMMDD다 (월 경계: 11-03의 7일 전은 10-27)", () => {
+    expect(resolveProbeInput({ a: "{DAYS_AGO_7}", b: "{TODAY}" }, NOW)).toEqual({ a: "20261027", b: "20261103" });
+    // 연도 경계: KST 2027-01-03의 7일 전은 2026-12-27
+    expect(resolveProbeInput({ a: "{DAYS_AGO_7}" }, new Date("2027-01-03T03:00:00Z")).a).toBe("20261227");
+  });
+  it("날짜는 UTC가 아니라 KST로 센다 (UTC 10-31 15:00 = KST 11-01 00:00)", () => {
+    expect(resolveProbeInput({ b: "{TODAY}" }, new Date("2026-10-31T14:59:59Z")).b).toBe("20261031");
+    expect(resolveProbeInput({ b: "{TODAY}" }, new Date("2026-10-31T15:00:00Z")).b).toBe("20261101");
   });
   it("자리표시자가 없는 값은 그대로다", () => {
     expect(resolveProbeInput({ cltrDivNm: "부동산" }, NOW)).toEqual({ cltrDivNm: "부동산" });
@@ -31,13 +40,13 @@ describe("resolveProbeInput (자리표시자 해석)", () => {
 
 describe("genericProbeTargets", () => {
   const targets = genericProbeTargets(NOW);
-  it("1단계 9개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
-    expect(targets).toHaveLength(9);
+  it("1·2단계 13개이고, 전용 조회기가 있는 부동산 목록·상세는 빠져 있다", () => {
+    expect(targets).toHaveLength(13);
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-001/getRlstCltrList");
     expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-004/getRlstDtlInf");
   });
   it("점검 이름은 api_checks 허용 형식이고 서로 다르며, 호출 주소는 https 허용 호스트다", () => {
-    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(9);
+    expect(new Set(targets.map((t) => t.endpoint)).size).toBe(13);
     for (const t of targets) {
       expect(t.endpoint).toMatch(/^[A-Za-z0-9_.-]{1,60}$/);
       expect(t.url).toMatch(/^https:\/\/apis\.data\.go\.kr\//);
@@ -51,6 +60,15 @@ describe("genericProbeTargets", () => {
     const mutated = { ...one.operation, approval: "UNCONFIRMED" as const };
     const fake = { ...one.service, operations: [mutated] };
     expect(genericProbeTargets(NOW, { services: [fake] } as never)).toEqual([]);
+  });
+  it("공고 목록·입찰결과 목록은 오늘 기준 최근 7일(KST) 개찰일로 부른다", () => {
+    for (const key of ["SVC-API-015/getPbancList", "SVC-API-013/getCltrBidRsltList"]) {
+      expect(targets.find((t) => t.operationKey === key)!.params).toEqual({ cltrTypeCd: "0001", prptDivCd: "0007", opbdDtStart: "20261027", opbdDtEnd: "20261103" });
+    }
+  });
+  it("근거가 없는 공고 입찰결과(getPbancBidRsltList)와 정부재산 등은 목록에 없다", () => {
+    expect(targets.map((t) => t.operationKey)).not.toContain("SVC-API-019/getPbancBidRsltList");
+    expect(targets.some((t) => /SVC-API-02[1-4]/.test(t.operationKey))).toBe(false);
   });
   it("통계 오퍼레이션의 입력이 풀어 쓴 값으로 들어 있다", () => {
     const stats = targets.find((t) => t.operationKey === "SVC-API-026/getKamcoCltrClarStats")!;
@@ -160,14 +178,14 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     return runCheck({ trigger: "manual", source: "PUBLIC", settings, store: mem.store, fetcher, extraEndpoints: built.extraEndpoints, callLimit: over.callLimit }).then((result) => ({ result, rec: mem.rec }));
   };
 
-  it("목록·상세 2개 + 추가 9개 = 점검 11개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
+  it("목록·상세 2개 + 추가 13개 = 점검 15개가 각각 판정되고, 추가 오퍼레이션의 응답은 저장하지 않는다", async () => {
     const api = mixedApi(() => okBody({ ctgrId: "1", ctgrNm: "x", upCtgrId: "0", pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1" }));
     const { result, rec } = await run(api);
-    expect(result.probes).toHaveLength(11);
-    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(11);
+    expect(result.probes).toHaveLength(15);
+    expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(15);
     expect(rec.collected).toBe(2); // 목록·상세만 저장
-    // 등록부 28개 중 점검한 11개 + 요청 없이 검증 불가로 남긴 17개 = 28개가 중복 없이 기록됨
-    expect(result.unprobeable).toHaveLength(17);
+    // 등록부 28개 중 점검한 15개 + 요청 없이 검증 불가로 남긴 13개 = 28개가 중복 없이 기록됨
+    expect(result.unprobeable).toHaveLength(13);
     const keys = rec.probes.map((p) => `${p.apiId}/${p.operationId}`);
     expect(new Set(keys).size).toBe(28);
   });
@@ -198,12 +216,12 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     expect(result.detections).toEqual([]);
   });
 
-  it("호출 상한 20회: 추가 오퍼레이션 9개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 9개는 모두 호출된다 (총 20회)", async () => {
-    // 목록이 물건 30개를 돌려줘도(상세를 30번 부르려 해도) 추가 오퍼레이션 9개 몫은 남아 있어야 한다
+  it("호출 상한 20회: 추가 오퍼레이션 13개 몫을 먼저 떼어 두어, 목록·상세가 다 써도 13개는 모두 호출된다 (총 20회)", async () => {
+    // 목록이 물건 30개를 돌려줘도(상세를 30번 부르려 해도) 추가 오퍼레이션 13개 몫은 남아 있어야 한다
     const api = mixedApi(() => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" }), 30);
     const { result } = await run(api);
     const extraCalls = api.urls.filter((u) => !/getRlst(CltrList2|DtlInf2)/.test(u.pathname)).length;
-    expect(extraCalls).toBe(9);
+    expect(extraCalls).toBe(13);
     expect(result.apiCallCount).toBe(20);
     expect(api.urls.length).toBe(20);
   });

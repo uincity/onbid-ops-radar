@@ -8,7 +8,8 @@ import { z } from "zod";
 export const VERIFICATION_STATES = ["LIVE_VERIFIED", "SPEC_ONLY"] as const;
 
 // 점검 입력 값 안에 쓸 수 있는 {…} 자리표시자. 점검할 때 lib/checks/generic-probe.ts가 KST 기준으로 풀어 쓴다
-export const PROBE_INPUT_TOKENS = ["PREV_YEAR"] as const;
+// PREV_YEAR 직전 연도(YYYY) · TODAY 오늘(YYYYMMDD, KST) · DAYS_AGO_7 7일 전(YYYYMMDD, KST)
+export const PROBE_INPUT_TOKENS = ["PREV_YEAR", "TODAY", "DAYS_AGO_7"] as const;
 
 export const APPROVAL_STATES = ["UNCONFIRMED", "CONFIRMED_BY_USER_2026_10_29", "APPROVED", "NOT_APPROVED"] as const;
 

@@ -41,7 +41,7 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
 
   it("나머지 17개 오퍼레이션은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
-    expect(others).toHaveLength(17);
+    expect(others).toHaveLength(17); // 이 중 점검 입력이 정해진 4개는 점검 대기, 13개는 입력 근거가 없어 검증 불가
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
       expect(operation.noDataPolicy, key).toBe("UNDEFINED");
@@ -55,12 +55,16 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     }
   });
 
-  it("점검 입력은 1단계 9개뿐이고, 모두 점검 방식과 근거 파일 이름이 있으며 내 PC 경로가 들어 있지 않다", () => {
+  it("점검 입력은 1·2단계 13개뿐이고, 모두 점검 방식과 근거 파일 이름이 있으며 내 PC 경로가 들어 있지 않다", () => {
     const withInput = allOperations().filter((o) => o.operation.probe.input !== null);
     expect(withInput.map((o) => o.key).sort()).toEqual([
+      "SVC-API-002/getMvastCltrList",
+      "SVC-API-003/getCarCltrList",
       "SVC-API-010/getItrsCltrRnkClg",
       "SVC-API-011/getInqRnkClg",
       "SVC-API-012/get50PctDecrCltr",
+      "SVC-API-013/getCltrBidRsltList",
+      "SVC-API-015/getPbancList",
       "SVC-API-025/getOnbidDtlAddrInfo",
       "SVC-API-025/getOnbidUsgCodeInfo",
       "SVC-API-026/getKamcoCltrClarStats",
@@ -193,13 +197,14 @@ describe("잘못된 등록부는 거부된다", () => {
   it("호출 주소가 서비스 주소 + 경로와 다름", () => expect(rejects((r) => (r.services[0].operations[0].path = "otherPath"))).toBe(true));
   it("GET이 아닌 방식", () => expect(rejects((r) => ((r.services[0].operations[0] as { method: string }).method = "POST"))).toBe(true));
   it("실호출 확인인데 확인 날짜가 없음", () => expect(rejects((r) => (r.services[0].operations[0].verification.verifiedAt = null))).toBe(true));
-  it("명세만 확인한 오퍼레이션에 점검 전 상태가 없음", () => expect(rejects((r) => (r.services[1].operations[0].availabilityBeforeProbe = null))).toBe(true));
+  it("명세만 확인한 오퍼레이션에 점검 입력도 점검 전 상태도 없음 (점검 입력이 없는 첫 오퍼레이션)", () =>
+    expect(rejects((r) => { const o = r.services.flatMap((x) => x.operations).find((y) => y.verification.state === "SPEC_ONLY" && y.probe.input === null)!; o.availabilityBeforeProbe = null; })).toBe(true));
   it("승인을 확인하지 못했는데 점검 방식이 채워져 있음 (지어낸 값)", () =>
     expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = null as never; r.services[1].operations[0].probe.mode = "positive" as never; })).toBe(true));
   it("승인을 확인하지 못했는데 쿼터가 채워져 있음", () =>
     expect(rejects((r) => { r.services[1].operations[0].approval = "UNCONFIRMED"; r.services[1].operations[0].quota = { dailyLimit: 1000, source: "추정" } as never; })).toBe(true));
   it("점검 입력에 알 수 없는 자리표시자가 있음", () =>
-    expect(rejects((r) => (r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe.input = { inqPerd: "{TODAY}" }))).toBe(true));
+    expect(rejects((r) => (r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe.input = { inqPerd: "{NEXT_WEEK}" }))).toBe(true));
   it("점검 입력이 있는데 근거가 없음 (지어낸 값)", () =>
     expect(rejects((r) => { const p = r.services.find((s) => s.serviceId === "SVC-API-026")!.operations[0].probe; p.inputSource = null as never; })).toBe(true));
   it("점검 입력도 점검 전 상태도 없음", () =>

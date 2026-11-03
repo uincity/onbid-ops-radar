@@ -1158,16 +1158,19 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013",
+              "pvctTrgtYn": "N"
+            },
+            "inputSource": "사용자 수집 코드 onbid_movable_property_list.py, onbid_vehicle_list.py (2026-04 사용, 재산유형 전체·수의계약 N). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -1692,16 +1695,19 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "prptDivCd": "0007,0010,0005,0004,0002,0003,0006,0008,0011,0013",
+              "pvctTrgtYn": "N"
+            },
+            "inputSource": "사용자 수집 코드 onbid_movable_property_list.py, onbid_vehicle_list.py (2026-04 사용, 재산유형 전체·수의계약 N). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -4486,16 +4492,21 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrTypeCd": "0001",
+              "prptDivCd": "0007",
+              "opbdDtStart": "{DAYS_AGO_7}",
+              "opbdDtEnd": "{TODAY}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_bid_result_list.py (2026-04 사용, 부동산/압류재산·개찰일 기간). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },
@@ -5099,16 +5110,21 @@
           },
           "approval": "APPROVED",
           "probe": {
-            "mode": null,
-            "input": null,
-            "inputSource": null
+            "mode": "structural",
+            "input": {
+              "cltrTypeCd": "0001",
+              "prptDivCd": "0007",
+              "opbdDtStart": "{DAYS_AGO_7}",
+              "opbdDtEnd": "{TODAY}"
+            },
+            "inputSource": "사용자 수집 코드 onbid_notice_list.py (2026-04 사용, 기본값: 오늘 기준 1주 전~오늘, 부동산). 이번 점검에서 실호출 확인 전"
           },
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },

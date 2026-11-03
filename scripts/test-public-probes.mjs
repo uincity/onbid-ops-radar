@@ -1,5 +1,5 @@
-// 추가 오퍼레이션 9개를 실제 온비드 OpenAPI에 한 번씩 불러 보는 시험을 실행하는 스크립트 (R04 확장)
-// 실행: npm run test:public-probes   (.env의 DATA_GO_KR_SERVICE_KEY 필요. 호출은 9번뿐이고 DB에는 아무것도 쓰지 않는다)
+// 추가 오퍼레이션 13개를 실제 온비드 OpenAPI에 한 번씩 불러 보는 시험을 실행하는 스크립트 (R04 확장)
+// 실행: npm run test:public-probes   (.env의 DATA_GO_KR_SERVICE_KEY 필요. 호출은 13번뿐이고 DB에는 아무것도 쓰지 않는다)
 import { spawnSync } from "node:child_process";
 import path from "node:path";
 import { rootDir } from "./lib/supabase-cli.mjs";
