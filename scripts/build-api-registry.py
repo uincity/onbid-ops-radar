@@ -56,8 +56,8 @@ TARGET_SERVICES = 26  # 사용자가 정한 관리 목표 수 (PRD 용어 주의
 
 # 2026-10-29에 실제 호출로 응답 형식을 확인한 오퍼레이션 (PRD 부록 A-1, tests/unit/public-live.test.ts)
 LIVE_VERIFIED = {"getRlstCltrList", "getRlstDtlInf"}
-# 2026-11-03 사용자가 npm run test:public-probes로 실호출 1회씩 확인한 13개 (PASS_DATA, 필수 항목 누락 0)
-LIVE_VERIFIED_2026_11_03 = ["getItrsCltrRnkClg", "getInqRnkClg", "get50PctDecrCltr", "getOnbidUsgCodeInfo", "getOnbidDtlAddrInfo", "getKamcoCltrClarStats", "getOrgCltrClarStats", "getKamcoCltrUsgStats", "getOrgCltrUsgStats", "getMvastCltrList", "getCarCltrList", "getCltrBidRsltList", "getPbancList"]
+# 2026-11-03 사용자가 npm run test:public-probes로 실호출 1회씩 확인한 14개 (PASS_DATA, 필수 항목 누락 0). getPbancDtlInf는 공고 목록(getPbancList)의 pbancMngNo로 호출
+LIVE_VERIFIED_2026_11_03 = ["getItrsCltrRnkClg", "getInqRnkClg", "get50PctDecrCltr", "getOnbidUsgCodeInfo", "getOnbidDtlAddrInfo", "getKamcoCltrClarStats", "getOrgCltrClarStats", "getKamcoCltrUsgStats", "getOrgCltrUsgStats", "getMvastCltrList", "getCarCltrList", "getCltrBidRsltList", "getPbancList", "getPbancDtlInf"]
 LIVE_VERIFIED_EVIDENCE_2026_11_03 = "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0"
 COMMON_REQUEST = ("serviceKey", "pageNo", "numOfRows", "resultType")
 # 다른 서비스의 결과를 받아야 입력값을 얻을 수 있는 식별 파라미터
@@ -236,7 +236,7 @@ for d in docs:
                 "noDataPolicy": "UNDEFINED",
                 "quota": USER_QUOTA,
                 # 승인은 확인됐지만 점검에 쓸 유효 입력값(probe.input)은 아직 정하지 않았다. 정하기 전에는 요청을 보내지 않고 검증 불가로 둔다
-                "availabilityBeforeProbe": None if live or f"{d['service_id']}/{o['name']}" in PROBE_INPUTS else "UNVERIFIED:NO_VALID_INPUT",
+                "availabilityBeforeProbe": None if live or o["name"] in LIVE_VERIFIED_2026_11_03 or f"{d['service_id']}/{o['name']}" in PROBE_INPUTS else "UNVERIFIED:NO_VALID_INPUT",
             }
         )
     services.append(
@@ -301,7 +301,7 @@ w("")
 w("## 1. 확정 결과")
 w("")
 w(f"- **관리 목표 {TARGET_SERVICES}종 중 {len(services)}종의 명세를 확인해 등록했고, {TARGET_SERVICES - len(services)}종은 미확정**이다. 미확정 슬롯은 점검 대상·분모에 넣지 않는다.")
-w(f"- 등록한 오퍼레이션은 {n_ops}개이며, 이 중 실제 호출로 응답 형식을 확인한 것은 **{n_live}개**(부동산 물건목록·상세, 그리고 2026-11-03 사용자가 실행한 순위 3종·코드·주소·통계 4종·공고·입찰결과·동산·차량 목록 13개)다. 나머지 {n_ops - n_live}개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).")
+w(f"- 등록한 오퍼레이션은 {n_ops}개이며, 이 중 실제 호출로 응답 형식을 확인한 것은 **{n_live}개**(부동산 물건목록·상세, 그리고 2026-11-03 사용자가 실행한 순위 3종·코드·주소·통계 4종·공고·입찰결과·동산·차량 목록·공고 상세 14개)다. 나머지 {n_ops - n_live}개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).")
 w(f"- 미확정 1종의 단서: {registry['unresolved'][0]['note']}")
 w("- 승인 상태·유효 샘플·무데이터 정책·점검 주기·호출 예산·Probe 방식은 명세서로 알 수 없어 **미정**이다. 임의로 채우지 않는다.")
 w(f"- 결과코드표는 {'25개 문서가 모두 같다' if not differing else '문서마다 다른 곳이 있다: ' + ', '.join(differing)}.")

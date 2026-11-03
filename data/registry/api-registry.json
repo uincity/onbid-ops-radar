@@ -5367,9 +5367,9 @@
           ],
           "dependencyNote": "필수 식별 파라미터 pbancMngNo는 선행 오퍼레이션 응답에서 얻는 값으로 보이며, 후보는 같은 이름의 필드를 응답에 가진 목록형 오퍼레이션이다(이름 기준 추정, R04에서 확인)",
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-03 사용자 실행 실호출 1회(npm run test:public-probes): 공고 목록(015) 응답의 pbancMngNo로 호출, HTTP 200·결과코드 00·1건 응답, 응답 구조 필수 항목 누락 0·자료형 경고 0, 요청한 pbancMngNo와 응답의 pbancMngNo 일치",
+            "verifiedAt": "2026-11-03"
           },
           "approval": "APPROVED",
           "probe": {
@@ -5382,7 +5382,7 @@
             "dailyLimit": 100000,
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },

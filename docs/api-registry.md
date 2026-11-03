@@ -29,7 +29,7 @@
 | 08 | SVC-API-013 | 온비드 물건 입찰결과목록 조회서비스 | `getCltrBidRsltList` | `https://apis.data.go.kr/B010003/OnbidCltrBidRsltListSrvc2/getCltrBidRsltList2` | cltrTypeCd, prptDivCd, opbdDtStart, opbdDtEnd | - | 명세만 확인 |
 | 09 | SVC-API-014 | 온비드 물건 입찰결과상세 조회서비스 | `getCltrBidRsltDtl` | `https://apis.data.go.kr/B010003/OnbidCltrBidRsltDtlSrvc2/getCltrBidRsltDtl2` | cltrMngNo | getRlstCltrList, getMvastCltrList, getCarCltrList, getItrsCltrRnkClg, getInqRnkClg, get50PctDecrCltr, getCltrBidRsltList | 명세만 확인 |
 | 10 | SVC-API-015 | 온비드 공고목록 조회서비스 | `getPbancList` | `https://apis.data.go.kr/B010003/OnbidPbancListSrvc2/getPbancList2` | cltrTypeCd, prptDivCd, opbdDtStart, opbdDtEnd | - | 명세만 확인 |
-| 11 | SVC-API-016 | 온비드 공고상세 조회서비스 | `getPbancDtlInf` | `https://apis.data.go.kr/B010003/OnbidPbancDtlnfSrvc2/getPbancDtlInf2` | pbancMngNo | getPbancList, getPbancBidRsltList | 명세만 확인 |
+| 11 | SVC-API-016 | 온비드 공고상세 조회서비스 | `getPbancDtlInf` | `https://apis.data.go.kr/B010003/OnbidPbancDtlnfSrvc2/getPbancDtlInf2` | pbancMngNo | getPbancList, getPbancBidRsltList | 실호출 확인 |
 | 12 | SVC-API-017 | 온비드 공고상세 입찰정보 조회서비스 | `getPbancBidInf` | `https://apis.data.go.kr/B010003/OnbidPbancBidDtlSrvc2/getPbancBidInf2` | pbancMngNo | getPbancList, getPbancBidRsltList | 명세만 확인 |
 | 13 | SVC-API-018 | 온비드 공고상세 물건정보 조회서비스 | `getPbancCltrInf` | `https://apis.data.go.kr/B010003/OnbidPbancCltrDtlSrvc2/getPbancCltrInf2` | pbancMngNo | getPbancList, getPbancBidRsltList | 명세만 확인 |
 | 14 | SVC-API-019 | 온비드 공고 입찰결과목록 조회서비스 | `getPbancBidRsltList` | `https://apis.data.go.kr/B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList2` | cltrTypeCd, prptDivCd, opbdDtStart, opbdDtEnd | - | 명세만 확인 |
