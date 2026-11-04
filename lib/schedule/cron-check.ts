@@ -22,7 +22,7 @@ export type CronCheckDeps = {
 const reply = (httpStatus: number, message: string, extra: Partial<CronResponse["body"]> = {}): CronResponse => ({ httpStatus, body: { ok: httpStatus === 200, message, ...extra } });
 
 // 길이가 달라도 시간 차이로 값을 추측할 수 없게 같은 길이의 해시 대신 고정 길이로 맞춰 비교한다
-function sameSecret(given: string, expected: string): boolean {
+export function sameSecret(given: string, expected: string): boolean {
   const a = Buffer.from(given);
   const b = Buffer.from(expected);
   if (a.length !== b.length) {
