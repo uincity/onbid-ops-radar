@@ -2,7 +2,7 @@
 
 - 문서 버전: v0.2 (PRD v0.2 정합, 문서 검토 F1~F35 반영)
 - 작성일: 2026-11-04 (v0.2 개정: 2026-11-04)
-- 근거 문서: [PRD 초안 v0.2](prd-homepage-monitoring.md), [사전 조사 결과](web-monitor-research.md), [PRD.md](../PRD.md) v2.1, [DESIGN.md](../DESIGN.md), [CLAUDE.md](../CLAUDE.md)
+- 근거 문서: [PRD 초안 v0.2](prd-homepage-monitoring.md), [설계서](design-homepage-monitoring.md), [사전 조사 결과](web-monitor-research.md), [PRD.md](../PRD.md) v2.1, [DESIGN.md](../DESIGN.md), [CLAUDE.md](../CLAUDE.md)
 - 이 파일 이름: 기존 [PLAN.md](../PLAN.md)(1~39번 작업, 완료)를 덮어쓰지 않으려고 `docs/` 아래에 따로 만들었고, `PLAN.md` 맨 위에 안내가 있습니다. 작업 번호는 `W00~W24`입니다.
 - 상태: **계획만 있고 코드는 한 줄도 만들지 않았습니다.** 2026-11-04 사용자가 **C1(텔레그램 알림 허용)과 C2(온비드 운영부서 담당자로서 업무시간 외 자동 점검 허용)를 승인**했고, C3~C5 권장안으로 "진행"하라고 했습니다(변경 가능). 아래 §3-B의 "결정 필요" 항목은 기본안으로 계획을 썼으며 해당 마일스톤 시작 전에 확정합니다.
 
@@ -112,7 +112,9 @@ lib/web-monitor/
   probes/files.ts                      L4 파일 서버 썸네일 이미지 1개(M3)
   classify.ts                          프로브 판정(결정적 순수 함수) + 대표 판정(인증서·보조 제외)
   runner.ts                            대상 1개 점검 실행(격리, 시간 예산)
-  state.ts                             상태 전환표·연속 횟수·재알림 기준(순수 함수)
+  decide.ts                            상태 전환표·연속 횟수·재알림 기준(순수 함수, 설계서 5.3)
+  store.ts                             DB 저장·조회(서버 관리용 연결)
+  summary.ts                           일별·보고서 집계(순수 함수)
   maintenance.ts                       계획 점검 창 판정
   notify/types.ts · telegram.ts · messages.ts
 app/api/cron/web-check/route.ts        매시간 점검 입구(CRON_SECRET)
@@ -198,7 +200,7 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 
 ### 4.6 DESIGN.md 갱신 목록 (F1)
 
-새 기능을 만들 때 아래 절을 함께 갱신합니다(작업 완료 조건에 포함). DESIGN.md의 낡은 내용은 먼저 바로잡습니다(문서 검토 묶음 D).
+**확장 기능의 설계 기준은 새 문서 [design-homepage-monitoring.md](design-homepage-monitoring.md)입니다**(2026-11-04 결정). 기존 `DESIGN.md`에는 아래 절에 **링크와 짧은 요약만** 반영합니다(작업 완료 조건에 포함). DESIGN.md의 낡은 내용은 이미 바로잡았습니다(문서 검토 묶음 D).
 
 | DESIGN 절 | 갱신 내용 | 담당 작업 |
 |---|---|---|
