@@ -3,6 +3,7 @@
 import { describe, expect, it } from "vitest";
 import { classifyProbe, type ObservedBody, type ProbeObservation, type ProbePolicy } from "@/lib/checks/probe/classify";
 import { observationFromCheck, policyFromOperation } from "@/lib/checks/probe/from-check";
+import { findOperation } from "@/lib/registry";
 import { FAIL_CODES, PROBE_STATUSES, describeProbe, isKeyOrQuotaProblem, summarizeProbes, type ProbeResult } from "@/lib/checks/probe/status";
 import type { SchemaCheckResult } from "@/lib/checks/probe/schema-check";
 import type { ApiCheckRecord } from "@/lib/checks/types";
@@ -263,5 +264,20 @@ describe("조회 결과(ApiCheckRecord) → 관측 변환", () => {
 
   it("등록부의 정책으로 만든 점검 정책은 기대 데이터·지연 기준을 임의로 정하지 않는다", () => {
     expect(policyFromOperation({ probe: { mode: null, input: null, inputSource: null }, noDataPolicy: "UNDEFINED" })).toEqual({ mode: null, noDataPolicy: "UNDEFINED", expectDataKnown: false, slowMs: null });
+  });
+});
+
+describe("등록부의 무데이터 허용 오퍼레이션 (공유일반재산 SVC-API-022)", () => {
+  const op = findOperation("SVC-API-022/getPbownGnrPrptInf");
+
+  it("등록부에서 무데이터를 허용했고, 0건이면 정상 무데이터(PASS_NO_DATA)다 — 정상 데이터(PASS_DATA)로 세지 않는다", () => {
+    expect(op?.operation.noDataPolicy).toBe("ALLOWED");
+    const result = classify(withBody({ kind: "nodata" }), policyFromOperation(op!.operation));
+    expect(result).toEqual({ status: "PASS_NO_DATA", attempted: true });
+  });
+
+  it("0건이 아니라 오류 코드면 여전히 실패다 — 무데이터 허용이 오류를 가리지 않는다", () => {
+    const result = classify(withBody({ kind: "error", code: "99" }), policyFromOperation(op!.operation));
+    expect(result.status).toBe("FAIL");
   });
 });

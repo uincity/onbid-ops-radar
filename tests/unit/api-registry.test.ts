@@ -55,12 +55,12 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     ]);
   });
 
-  it("나머지 1개 오퍼레이션(공유일반재산, 실호출 결과 0건)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
+  it("나머지 1개 오퍼레이션(공유일반재산, 실호출 결과 0건이라 무데이터 허용)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
     expect(others).toHaveLength(1); // 모두 점검 입력의 근거가 없어 검증 불가(NO_VALID_INPUT)
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
-      expect(operation.noDataPolicy, key).toBe("UNDEFINED");
+      expect(operation.noDataPolicy, key).toBe("ALLOWED"); // 2026-11-04: 9가지 입력에서 모두 0건이라 사용자 결정으로 0건을 정상 무데이터로 처리
       if (operation.probe.input === null) {
         // 점검 입력의 근거가 없는 것은 비워 두고 검증 불가로 둔다 (지어내지 않는다)
         expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
