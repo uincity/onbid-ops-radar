@@ -1,9 +1,9 @@
 // 통합 대시보드 화면 시험 (PLAN 작업 29번) — 작성만 해 두었고 실행은 나중에 한꺼번에 한다.
 // Design Ref: DESIGN §4.3, PRD 5-6
 import { expect, test } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 test.describe("통합 대시보드", () => {
   test("오늘의 예약 점검 상태 띠가 보이고 예정·확인 기한을 알려 준다 (R07)", async ({ page }) => {

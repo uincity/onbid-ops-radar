@@ -1,5 +1,5 @@
 // Design Ref: DESIGN §3(Playwright), §10(화면 동작 시험) — 브라우저를 자동으로 열어 화면을 눌러 보는 테스트 설정
-// 실행: npm run test:e2e  (.env의 시연 계정 정보를 읽어서 쓴다)
+// 실행: npm run test:e2e  (.env의 서버 관리용 키로 시험 전용 계정을 시작 때 준비하고, 끝나면 정지한다)
 // 브라우저는 컴퓨터에 이미 설치된 Microsoft Edge를 쓴다. (Playwright 전용 브라우저를 따로 내려받지 않는다)
 import { defineConfig } from "@playwright/test";
 
@@ -11,6 +11,8 @@ const REMOTE = process.env.E2E_BASE_URL;
 
 export default defineConfig({
   testDir: "tests/e2e",
+  globalSetup: "./tests/e2e/global-setup.ts",
+  globalTeardown: "./tests/e2e/global-teardown.ts",
   // 로그인 시험은 순서대로 하나씩 돌린다 (같은 개발 서버·같은 계정을 쓰므로)
   fullyParallel: false,
   workers: 1,

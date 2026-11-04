@@ -1,9 +1,9 @@
 // 이상징후 상세의 처리 조작 버튼 노출 시험 (PLAN 26·27) — 작성만 해 둔 시험. 실제 DB를 바꾸는 버튼은 누르지 않는다.
 // 이상징후가 하나도 없으면 건너뛴다. 역할별로 "보이는 버튼이 다른지"만 확인한다.
 import { expect, test, type Page } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 // 목록에서 첫 이상징후 상세로 들어간다. 없으면 false.
 async function openFirstAnomaly(page: Page): Promise<boolean> {

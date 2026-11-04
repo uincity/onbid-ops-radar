@@ -1,9 +1,11 @@
-// 시연·테스트 계정이 제대로 만들어졌고 권한이 설계대로인지 "실제로 로그인해서" 확인하는 스크립트 (PLAN 작업 13)
+// 시험 전용 계정(팀장·운영 담당자)으로 "실제로 로그인해서" 권한이 설계대로인지 확인하는 스크립트 (PLAN 작업 13)
+// 시험 전용 계정은 실행할 때 준비하고(비밀번호는 매번 새로 무작위, 저장하지 않음) 끝나면 정지한다. 실사용 계정(실명)은 건드리지 않는다.
 // 실행: npm run check:accounts
 // - 두 계정으로 진짜 로그인해서 받은 로그인 정보(JWT)로 DB를 직접 호출해 본다. (SEC-07, SEC-03, SEC-04를 실제 계정으로 확인)
 // - 수정 시도는 "거부되는지"만 본다. 저장되는 데이터는 없다.
 // - 비밀번호·로그인 정보(토큰)는 절대 출력하지 않는다. 시험이 끝나면 로그인 세션도 정리(로그아웃)한다.
 import { createClient } from "@supabase/supabase-js";
+import { prepareTestAccounts, releaseTestAccounts, TEST_ACCOUNTS } from "./lib/test-accounts.mjs";
 
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const publishable = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
@@ -30,21 +32,17 @@ if (![url, publishable, secret].every(Boolean)) {
 
 const admin = createClient(url, secret, { auth: { autoRefreshToken: false, persistSession: false } });
 
-const ACCOUNTS = [
-  { label: "팀장", role: "admin", displayName: "시연 팀장", emailVar: "DEMO_ADMIN_EMAIL", passwordVar: "DEMO_ADMIN_PASSWORD" },
-  { label: "운영 담당자", role: "operator", displayName: "시연 담당자", emailVar: "DEMO_OPERATOR_EMAIL", passwordVar: "DEMO_OPERATOR_PASSWORD" },
-];
-
-// ---------------------------------------------------------------- 1. 환경변수 (값은 출력하지 않음)
+// ---------------------------------------------------------------- 1. 시험 전용 계정 준비 (비밀번호는 매번 새로 만들어 이 프로세스의 환경변수에만 둠)
+await prepareTestAccounts(admin);
+const ACCOUNTS = TEST_ACCOUNTS.map((a) => ({ ...a }));
 for (const a of ACCOUNTS) {
-  for (const name of [a.emailVar, a.passwordVar]) {
-    const filled = Boolean(process.env[name]?.trim());
-    report(filled, name, filled ? "값 있음" : "값 없음 — npm run setup:accounts를 실행해 주세요");
-  }
-  report((process.env[a.emailVar] ?? "").toLowerCase().endsWith("@example.com"), `${a.emailVar}는 가상 이메일(@example.com)`);
+  report(Boolean(process.env[a.emailVar]) && Boolean(process.env[a.passwordVar]), `${a.label} 시험 계정 정보가 준비됨`, "값은 출력하지 않음");
+  report(process.env[a.emailVar].endsWith("@example.com"), `${a.emailVar}는 가상 이메일(@example.com)`);
 }
 if (failed > 0) {
-  console.log(`\n실패 ${failed}건`);
+  await releaseTestAccounts(admin);
+  console.log(`
+실패 ${failed}건`);
   process.exit(1);
 }
 
@@ -70,17 +68,14 @@ for (const a of ACCOUNTS) {
 }
 const [adminAcc, opAcc] = ACCOUNTS;
 if (!adminAcc.user || !opAcc.user) {
+  await releaseTestAccounts(admin);
   console.log(`\n실패 ${failed}건`);
   process.exit(1);
 }
 
-// 테스트 계정 외의 계정이 있으면 알린다 (공개 회원가입으로 누군가 가입했을 가능성). 개인정보 보호를 위해 개수만 출력한다.
+// 시험 계정 외의 계정은 실제 사용자(실명 계정)다. 개인정보 보호를 위해 개수만 알린다. 공개 회원가입 여부는 아래 7번에서 설정으로 확인한다.
 const others = allUsers.filter((u) => u.id !== adminAcc.user.id && u.id !== opAcc.user.id);
-if (others.length > 0) {
-  warn("테스트 계정 외의 계정이 있음", `${others.length}개 — 공개 회원가입으로 만들어졌을 수 있으니 Supabase 대시보드 Authentication > Users에서 확인하세요`);
-} else {
-  report(true, "로그인 계정은 테스트 계정 2개뿐임");
-}
+console.log(`알림 | 시험 계정 외의 계정 ${others.length}개 (실제 사용자) — 개인정보 보호를 위해 개수만 표시`);
 
 // ---------------------------------------------------------------- 3. 역할(profiles)
 const { data: profiles, error: profilesError } = await admin.from("profiles").select("id, display_name, role");
@@ -88,9 +83,9 @@ report(!profilesError, "profiles 조회 (서버 관리용 키)", profilesError?.
 for (const a of ACCOUNTS) {
   const p = profiles?.find((x) => x.id === a.user.id);
   report(p?.role === a.role, `${a.label}의 역할이 ${a.role}로 부여됨`, p ? `현재 ${p.role}` : "프로필 없음");
-  report(p?.display_name === a.displayName, `${a.label}의 이름이 가상 이름(${a.displayName})임`);
+  report(p?.display_name === a.displayName, `${a.label}의 이름이 시험 이름(${a.displayName})임`);
 }
-report(profiles?.length === 2, "profiles에는 테스트 계정 2개의 줄만 있음", `${profiles?.length ?? 0}줄`);
+report((profiles?.length ?? 0) >= 2, "profiles에 시험 계정 2개의 줄이 있음", `${profiles?.length ?? 0}줄`);
 
 // ---------------------------------------------------------------- 4. 실제 로그인
 function decodeJwtPayload(jwt) {
@@ -122,6 +117,7 @@ for (const a of ACCOUNTS) {
   report(claims.sub === a.user.id && claims.role === "authenticated", `${a.label}의 로그인 정보(JWT)가 본인 계정·authenticated 역할`);
 }
 if (!adminAcc.token || !opAcc.token) {
+  await releaseTestAccounts(admin);
   console.log(`\n실패 ${failed}건`);
   process.exit(1);
 }
@@ -156,9 +152,9 @@ const denied = (r) => r.status === 403 && r.code === "42501";
 
 // 읽기는 된다
 const adminProfiles = await rest(adminAcc.token, "GET", "profiles", { search: "?select=id,role" });
-report(adminProfiles.status === 200 && adminProfiles.json?.length === 2, "팀장 로그인으로 profiles 2줄을 읽을 수 있음", `응답 ${adminProfiles.status}`);
+report(adminProfiles.status === 200 && (adminProfiles.json?.length ?? 0) >= 2, "팀장 로그인으로 profiles를 읽을 수 있음", `응답 ${adminProfiles.status}`);
 const opSettings = await rest(opAcc.token, "GET", "settings", { search: "?select=key" });
-report(opSettings.status === 200 && opSettings.json?.length === 14, "운영 담당자 로그인으로 settings 14개를 읽을 수 있음", `응답 ${opSettings.status}`);
+report(opSettings.status === 200 && opSettings.json?.length === 16, "운영 담당자 로그인으로 settings 16개를 읽을 수 있음", `응답 ${opSettings.status}`);
 const opRuns = await rest(opAcc.token, "GET", "check_runs", { search: "?select=id&limit=1" });
 report(opRuns.status === 200, "운영 담당자 로그인으로 점검 실행 이력을 읽을 수 있음", `응답 ${opRuns.status}`);
 
@@ -201,6 +197,9 @@ for (const token of sessions) {
 }
 report(loggedOut === sessions.length, "시험에 쓴 로그인 세션을 모두 정리(로그아웃)함", `${loggedOut}/${sessions.length}`);
 
+// 시험 계정을 정지하고 비밀번호를 새 무작위 값으로 바꿔 둔다
+await releaseTestAccounts(admin);
+
 // ---------------------------------------------------------------- 7. 공개 회원가입 설정 (읽기 전용 조회)
 if (projectRef && managementToken) {
   const res = await fetch(`https://api.supabase.com/v1/projects/${projectRef}/config/auth`, {
@@ -221,5 +220,5 @@ if (projectRef && managementToken) {
   report(config?.external_anonymous_users_enabled !== true, "익명 로그인은 꺼져 있음");
 }
 
-console.log(failed === 0 ? `\n테스트 계정 확인 완료${warned ? ` (주의 ${warned}건)` : ""}` : `\n실패 ${failed}건`);
+console.log(failed === 0 ? `\n시험 계정 확인 완료${warned ? ` (주의 ${warned}건)` : ""}` : `\n실패 ${failed}건`);
 process.exit(failed === 0 ? 0 : 1);

@@ -1,14 +1,14 @@
 // 로그인·로그아웃과 비로그인 차단 시험 (PLAN 작업 14번, 보안 테스트 SEC-01)
 // Design Ref: DESIGN §4.1(/login), §7(signIn/signOut), §9(로그인 없이 접근 → proxy 차단), §10(화면 동작 시험)
 //
-// 시연 계정(팀장·운영 담당자)으로 실제 로그인한다. 비밀번호는 .env에서 읽어 입력창에만 넣고 어디에도 출력하지 않는다.
+// 시험 전용 계정(팀장·운영 담당자)으로 실제 로그인한다. 비밀번호는 시험 시작 때 새로 만든 값을 환경변수에서 읽어 입력창에만 넣고 어디에도 출력하지 않는다.
 // 계정은 `npm run setup:accounts`가 만든다.
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes } from "node:crypto";
 import { expect, test } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 test.describe("비로그인 차단 (SEC-01)", () => {
   test("로그인하지 않고 첫 화면을 열면 /login으로 이동한다", async ({ page }) => {

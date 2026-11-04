@@ -1,9 +1,9 @@
 // 보고서 화면 시험 (PLAN 30번): 팀장은 생성 폼이 보이고, 운영 담당자는 안내만 보인다. 목록은 있거나 빈 안내가 나온다.
 // 보고서는 한번 저장하면 지울 수 없는 장부라서, 이 시험은 [보고서 생성]을 누르지 않는다.
 import { expect, test } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 test.describe("보고서 화면: 팀장", () => {
   test("생성 폼(날짜·출처·버튼)과 목록 영역이 보인다", async ({ page }) => {

@@ -1,28 +1,28 @@
-// 화면 자동 테스트가 함께 쓰는 도우미: 시연 계정 정보와 로그인·로그아웃 동작
-// 비밀번호는 .env(DEMO_*)에서 읽어 입력창에만 넣는다. 어디에도 출력하지 않는다.
+// 화면 자동 테스트가 함께 쓰는 도우미: 시험 전용 계정 정보와 로그인·로그아웃 동작
+// 시험 전용 계정(팀장·운영 담당자)은 global-setup.ts가 시험 시작 때 준비하고 비밀번호를 환경변수(E2E_*)에 둔다. 입력창에만 넣고 어디에도 출력하지 않는다.
 import { expect, type Page } from "@playwright/test";
 
 export const ADMIN = {
-  email: process.env.DEMO_ADMIN_EMAIL ?? "",
-  password: process.env.DEMO_ADMIN_PASSWORD ?? "",
-  name: "시연 팀장",
+  email: process.env.E2E_ADMIN_EMAIL ?? "",
+  password: process.env.E2E_ADMIN_PASSWORD ?? "",
+  name: "시험 팀장",
   roleLabel: "팀장",
 };
 
 export const OPERATOR = {
-  email: process.env.DEMO_OPERATOR_EMAIL ?? "",
-  password: process.env.DEMO_OPERATOR_PASSWORD ?? "",
-  name: "시연 담당자",
+  email: process.env.E2E_OPERATOR_EMAIL ?? "",
+  password: process.env.E2E_OPERATOR_PASSWORD ?? "",
+  name: "시험 담당자",
   roleLabel: "운영 담당자",
 };
 
-// test.beforeAll에 넘겨 쓴다: 시연 계정 정보가 없으면 이유를 알려 주며 멈춘다.
-export function requireDemoAccounts() {
-  const missing = ["DEMO_ADMIN_EMAIL", "DEMO_ADMIN_PASSWORD", "DEMO_OPERATOR_EMAIL", "DEMO_OPERATOR_PASSWORD"].filter(
+// test.beforeAll에 넘겨 쓴다: 시험 계정 정보가 없으면 이유를 알려 주며 멈춘다.
+export function requireTestAccounts() {
+  const missing = ["E2E_ADMIN_EMAIL", "E2E_ADMIN_PASSWORD", "E2E_OPERATOR_EMAIL", "E2E_OPERATOR_PASSWORD"].filter(
     (name) => !process.env[name],
   );
   if (missing.length > 0) {
-    throw new Error(`시연 계정 정보가 .env에 없습니다: ${missing.join(", ")} — npm run setup:accounts를 먼저 실행해 주세요.`);
+    throw new Error(`시험 계정 정보가 준비되지 않았습니다: ${missing.join(", ")} — npm run test:e2e로 실행해 주세요(.env를 읽고 시험 계정을 자동으로 준비합니다).`);
   }
 }
 

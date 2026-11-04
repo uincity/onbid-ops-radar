@@ -1,8 +1,8 @@
 // 이상징후 목록·상세 화면 시험 (PLAN 25·28번) — 데이터가 있는지 없는지에 관계없이 통과하도록 만든다.
 import { expect, test } from "@playwright/test";
-import { OPERATOR, requireDemoAccounts, signInThroughForm } from "./helpers";
+import { OPERATOR, requireTestAccounts, signInThroughForm } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 test.describe("이상징후 목록", () => {
   test("제목·빠른 필터 버튼·표 또는 빈 안내가 보인다", async ({ page }) => {

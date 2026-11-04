@@ -2,9 +2,9 @@
 // 테스트 데이터가 DB에 있다고 가정하지 않는다: 목록은 "표 또는 빈 안내" 중 하나가 보이면 통과한다.
 // 주의: 수동 점검을 실제로 눌러 실행하지는 않는다(점검 이력은 지울 수 없기 때문).
 import { expect, test } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 test.describe("점검 이력 /runs", () => {
   test("팀장: 수동 점검 패널이 보이고 출처는 PUBLIC만 쓴다(DEMO·응답 시뮬레이션은 보이지 않는다)", async ({ page }) => {

@@ -2,7 +2,7 @@
 // Design Ref: DESIGN §4.2(공통 화면 틀: 앱 이름·메뉴 4개·출처 배지·사용자·로그아웃, 좁은 화면에서는 메뉴가 접힘)
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
-import { ADMIN, OPERATOR, requireDemoAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
+import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
 
 // 배지가 보여 줘야 하는 출처 = 설정값 scheduled_source (운영 DB에서 PUBLIC으로 바뀔 수 있으므로 DEMO로 가정하지 않고 읽어 온다)
 async function configuredSource(): Promise<"DEMO" | "PUBLIC"> {
@@ -14,7 +14,7 @@ async function configuredSource(): Promise<"DEMO" | "PUBLIC"> {
   return data?.value === "PUBLIC" ? "PUBLIC" : "DEMO";
 }
 
-test.beforeAll(requireDemoAccounts);
+test.beforeAll(requireTestAccounts);
 
 const MENUS = [
   { label: "대시보드", href: "/", title: "대시보드" },
@@ -127,7 +127,7 @@ test.describe("공통 화면 틀 (좁은 화면, 모바일)", () => {
     await expect(page.getByTestId("mobile-user-role")).toHaveText(OPERATOR.roleLabel);
 
     // 펼친 메뉴 상자가 화면(너비 390) 밖으로 삐져나가지 않는다. ("보인다"만으로는 일부가 잘린 것을 알 수 없어 위치까지 확인한다)
-    const box = await page.locator("details > div").boundingBox();
+    const box = await page.locator("details.group > div").boundingBox();
     expect(box).not.toBeNull();
     expect(box!.x).toBeGreaterThanOrEqual(0);
     expect(box!.x + box!.width).toBeLessThanOrEqual(390);
