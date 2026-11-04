@@ -54,6 +54,9 @@ export const RULE_LABEL: Record<AnyRuleId, string> = {
 export const SOURCES = ["DEMO", "PUBLIC"] as const;
 export type Source = (typeof SOURCES)[number];
 
+// 화면(출처 배지·건수·필터)에 보여 주는 출처. 실제 점검 이력만 쓰는 단계라 DEMO는 보여 주지 않는다. (데이터·서버의 DEMO 지원은 그대로 둔다)
+export const VISIBLE_SOURCES = ["PUBLIC"] as const;
+
 export const EVENT_TYPE_LABEL: Record<string, string> = {
   created: "최초 탐지",
   detected_again: "다시 탐지됨",

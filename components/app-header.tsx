@@ -44,7 +44,7 @@ function SourceBadge({ source }: { source: Source | null }) {
   return (
     <span
       data-testid="source-badge"
-      title="예약 점검이 조회하는 데이터 출처입니다. DEMO는 가상 데이터, PUBLIC은 공개 OpenAPI 데이터입니다."
+      title="예약 점검이 조회하는 데이터 출처입니다. PUBLIC은 공개 OpenAPI 데이터입니다."
       className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ${style}`}
     >
       {source ?? "출처 확인 불가"}

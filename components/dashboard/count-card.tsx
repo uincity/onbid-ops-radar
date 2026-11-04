@@ -1,14 +1,14 @@
 // 대시보드 숫자 카드: 제목 + 숫자 + 출처별 건수 (색만으로 뜻을 전하지 않고 항상 글자를 함께 쓴다)
 import Link from "next/link";
 import { SourceBadge } from "@/components/ui/badges";
-import { SOURCES } from "@/lib/anomalies/labels";
+import { VISIBLE_SOURCES } from "@/lib/anomalies/labels";
 import type { SourceCount } from "@/lib/dashboard/summary";
 
-// "DEMO 3  PUBLIC 0" 처럼 출처별 건수를 보여 준다
+// "PUBLIC 3건" 처럼 출처별 건수를 보여 준다
 export function SourceBreakdown({ count }: { count: SourceCount }) {
   return (
     <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-      {SOURCES.map((source) => (
+      {VISIBLE_SOURCES.map((source) => (
         <span key={source} className="inline-flex items-center gap-1 text-xs text-zinc-600 dark:text-zinc-400">
           <SourceBadge source={source} />
           <span className="tabular-nums">{count[source]}건</span>

@@ -49,7 +49,7 @@ export function AvailabilitySection({ summary }: { summary: AvailabilitySummary 
         온비드 OpenAPI 가용성 (PUBLIC)
       </h2>
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400" data-testid="availability-basis">
-        우리 점검 요청에 관측된 결과이며, 온비드 서버 전체의 가용성이 아닙니다. DEMO 점검 결과는 포함하지 않습니다. 가장 최근 판정 시각: {summary.lastCheckedAt ?? "점검 기록 없음"}
+        우리 점검 요청에 관측된 결과이며, 온비드 서버 전체의 가용성이 아닙니다. 가장 최근 판정 시각: {summary.lastCheckedAt ?? "점검 기록 없음"}
       </p>
       <p className="mt-1 text-sm text-zinc-700 dark:text-zinc-300" data-testid="availability-registry">
         관리 대상: 목표 {registry.target}종 · 등록 확인 {registry.registered}종 · 미확정 {registry.unconfirmed}종 (공식 목록 대조 전, 분모에 넣지 않음) · 오퍼레이션 {registry.operations}개

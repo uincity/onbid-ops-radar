@@ -1,14 +1,7 @@
 "use client";
 // 수동 점검 패널 (팀장에게만 보인다). 실제 권한 확인은 서버 액션이 다시 한다.
-import { useActionState, useState } from "react";
+import { useActionState } from "react";
 import { startManualCheck, type ManualCheckState } from "@/app/(app)/runs/actions";
-
-const MODE_OPTIONS = [
-  { value: "normal", label: "정상 응답" },
-  { value: "http_error", label: "HTTP 오류" },
-  { value: "timeout", label: "타임아웃" },
-  { value: "empty", label: "빈 결과(0건)" },
-];
 
 const TONE_CLASS = {
   success: "border-emerald-300 bg-emerald-50 text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200",
@@ -16,11 +9,8 @@ const TONE_CLASS = {
   error: "border-red-300 bg-red-50 text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-200",
 };
 
-const field = "mt-1 block rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm dark:border-zinc-700 dark:bg-zinc-900";
-
 export function ManualCheckForm() {
   const [state, formAction, pending] = useActionState<ManualCheckState, FormData>(startManualCheck, null);
-  const [source, setSource] = useState("DEMO");
 
   return (
     <form action={formAction} className="rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-800 dark:bg-zinc-950" data-testid="manual-check-panel">
@@ -28,26 +18,12 @@ export function ManualCheckForm() {
       <p className="mt-1 text-sm text-zinc-600 dark:text-zinc-400">팀장만 실행할 수 있습니다. 실행하면 점검 이력에 기록이 남습니다.</p>
 
       <div className="mt-4 flex flex-wrap items-end gap-4">
-        <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          출처
-          <select name="source" value={source} onChange={(e) => setSource(e.target.value)} className={field}>
-            <option value="DEMO">DEMO</option>
-            <option value="PUBLIC">PUBLIC (온비드 OpenAPI 실제 데이터)</option>
-          </select>
-        </label>
-
-        <label className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
-          응답 시뮬레이션
-          <select name="mode" defaultValue="normal" disabled={source === "PUBLIC"} className={field}>
-            {MODE_OPTIONS.map((o) => (
-              <option key={o.value} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          {/* 비활성(disabled) 칸은 폼 전송에서 빠진다. PUBLIC은 응답 시뮬레이션을 쓰지 않지만 서버 검사가 값을 요구하므로 기본값을 따로 보낸다 */}
-          {source === "PUBLIC" && <input type="hidden" name="mode" value="normal" />}
-        </label>
+        {/* 출처는 PUBLIC만 쓴다. 서버 검사가 출처·응답 모드 값을 요구하므로 숨은 칸으로 함께 보낸다 */}
+        <input type="hidden" name="source" value="PUBLIC" />
+        <input type="hidden" name="mode" value="normal" />
+        <p className="text-sm text-zinc-800 dark:text-zinc-200">
+          출처 <span className="ml-1 rounded-full bg-sky-100 px-2.5 py-1 text-xs font-semibold text-sky-900 dark:bg-sky-950 dark:text-sky-200">PUBLIC</span>
+        </p>
 
         <button
           type="submit"
@@ -57,7 +33,7 @@ export function ManualCheckForm() {
           {pending ? "실행 중…" : "수동 점검 실행"}
         </button>
       </div>
-      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">PUBLIC 점검은 공공데이터포털의 온비드 OpenAPI(부동산 물건목록·상세)를 읽기 전용으로 실제 호출하며, 설정값(실행당 호출 상한, 하루 호출 예산) 안에서만 부릅니다. 응답 시뮬레이션은 DEMO 점검에서만 쓰입니다.</p>
+      <p className="mt-2 text-xs text-zinc-500 dark:text-zinc-400">공공데이터포털의 온비드 OpenAPI(부동산 물건목록·상세)를 읽기 전용으로 실제 호출하며, 설정값(실행당 호출 상한, 하루 호출 예산) 안에서만 부릅니다.</p>
 
       <div aria-live="polite">
         {state && (

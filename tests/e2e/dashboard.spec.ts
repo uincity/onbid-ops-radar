@@ -61,11 +61,11 @@ test.describe("통합 대시보드", () => {
     await expect(page.getByTestId("card-status-open")).toHaveAttribute("href", "/anomalies?status=open");
   });
 
-  test("모든 수치 옆에 출처(DEMO/PUBLIC) 구분이 보인다", async ({ page }) => {
+  test("모든 수치 옆에 출처(PUBLIC)가 보이고 DEMO는 보이지 않는다", async ({ page }) => {
     await signInThroughForm(page, ADMIN);
 
     const card = page.getByTestId("card-unresolved");
-    await expect(card.getByText("DEMO", { exact: true })).toBeVisible();
+    await expect(card.getByText("DEMO", { exact: true })).toHaveCount(0);
     await expect(card.getByText("PUBLIC", { exact: true })).toBeVisible();
   });
 });

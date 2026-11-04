@@ -23,8 +23,7 @@ export function GenerateReportForm({ today }: { today: string }) {
         <label htmlFor="report-source" className="text-sm font-medium text-zinc-800 dark:text-zinc-200">
           데이터 출처
         </label>
-        <select id="report-source" name="source" defaultValue="DEMO" className={field}>
-          <option value="DEMO">DEMO (가상 데이터)</option>
+        <select id="report-source" name="source" defaultValue="PUBLIC" className={field}>
           <option value="PUBLIC">PUBLIC (공개 API)</option>
         </select>
       </div>
