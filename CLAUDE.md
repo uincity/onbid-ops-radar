@@ -119,6 +119,7 @@ DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는
 - **LLM 키:** `.env`에 `OPENAI_API_KEY`가 있지만, MVP에서는 앱 코드에서 사용하지 않습니다.
 - **`.env` 하나로 관리:** 개발 도구용 토큰과 앱용 변수가 모두 `.env`에 있습니다. 변수 목록과 구분은 `.env.example`을 따르고, Vercel에는 "앱용" 변수만 등록합니다. `GITHUB_TOKEN`·`SUPABASE_ACCESS_TOKEN`·`VERCEL_TOKEN`·`OPENAI_API_KEY`·`SUPABASE_PROJECT_REF`·`SUPABASE_DB_PASSWORD`·`DEMO_*`(시연 계정)는 등록하지 않습니다. `DATA_GO_KR_SERVICE_KEY`(공공데이터포털 키)도 **기관의 보안·클라우드 이용 승인을 확인하기 전에는 Vercel에 등록하지 않습니다**(PRD 6-4). 2026-11-03에 사용자가 승인을 확인하고 Production에 Secret으로 등록했으며(`vercel env ls`로 이름만 확인), 배포 환경에서도 PUBLIC 수동 점검이 실행됩니다.
 - **시연·테스트 계정:** 팀장(admin)과 운영 담당자(operator) 가상 계정 2개만 있고, 가상 데이터만 다룹니다. 비밀번호(`DEMO_ADMIN_PASSWORD`, `DEMO_OPERATOR_PASSWORD`)는 사용자에게 묻거나 채팅에 출력하지 않고 `.env`에서 읽어 씁니다(Playwright 로그인 등). 역할은 `npm run setup:accounts`(서버 관리 절차)로만 부여하고, 화면·API로 바꾸는 기능은 만들지 않습니다.
+- **실사용 계정(2026-11-04~):** 실제 점검 이력을 쓰는 단계라 실명 계정(팀장 1, 팀원 1)을 `npm run add:account -- --email 주소 --name 이름 --role admin|operator`로 추가합니다(서버 관리 절차, 화면에서 만드는 기능 없음). 비밀번호는 아무도 모르고 본인이 일회용 링크(`/auth/confirm` → `/reset-password`)로 직접 정합니다. 링크는 터미널에만 출력하고 채팅·문서에 남기지 않으며, 다시 필요하면 `-- --email 주소 --link-only`로 새로 만듭니다. 퇴사·교체 때는 계정을 지우지 않고 정지합니다(처리 이력·보고서가 계정을 가리킴).
 - **공개 회원가입 금지:** Supabase Auth의 "Allow new users to sign up"은 꺼 둡니다(PRD 6-3 7번). 이 설정은 사용자가 대시보드에서 직접 바꾸며, `npm run check:accounts`가 켜져 있으면 "주의"로 알려 줍니다.
 - **개인정보:** 실제 개인정보를 저장하지 않습니다. 공개 API 응답에서도 필요한 필드만 골라 저장합니다.
 - **쓰기 요청 금지:** 실제 온비드 운영시스템이나 공개 API에 쓰기 요청을 보내지 않습니다.

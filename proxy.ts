@@ -13,7 +13,7 @@ import { getSupabasePublicEnv } from "@/lib/supabase/env";
 // 로그인 없이 열 수 있는 화면
 const PUBLIC_PAGES = ["/login"];
 // 자체 인증을 쓰는 입구(예약 점검은 CRON_SECRET 헤더로 인증, PLAN 31번·SEC-09). 로그인 쿠키 검사를 건너뛴다.
-const SELF_AUTHENTICATED_PREFIXES = ["/api/cron/"];
+const SELF_AUTHENTICATED_PREFIXES = ["/api/cron/", "/auth/confirm"]; // /auth/confirm: 비밀번호 설정 링크 확인(일회용 토큰으로 인증)
 
 export async function proxy(request: NextRequest) {
   const { pathname, search } = request.nextUrl;

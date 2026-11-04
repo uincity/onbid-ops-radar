@@ -3,7 +3,7 @@
 
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
-import { loginSchema } from "./schemas";
+import { loginSchema, newPasswordSchema, PASSWORD_MAX_LENGTH, PASSWORD_MIN_LENGTH } from "./schemas";
 import { safeNextPath } from "./safe-next";
 
 export type SignInState = {
@@ -41,6 +41,36 @@ export async function signIn(_prev: SignInState, formData: FormData): Promise<Si
 
   // 성공하면 원래 가려던 화면(안전하게 다듬은 주소)으로 보낸다. redirect()는 try/catch 밖에서 불러야 한다.
   redirect(safeNextPath(formData.get("next")));
+}
+
+export type SetPasswordState = { message?: string };
+
+// 비밀번호 설정 링크로 들어온 사용자가 새 비밀번호를 정한다. 로그인된 사용자(링크 확인 직후의 세션)만 바꿀 수 있다.
+export async function setPassword(_prev: SetPasswordState, formData: FormData): Promise<SetPasswordState> {
+  const parsed = newPasswordSchema.safeParse({
+    password: String(formData.get("password") ?? ""),
+    confirm: String(formData.get("confirm") ?? ""),
+  });
+  if (!parsed.success) {
+    const badLength = parsed.error.issues.some((issue) => issue.path[0] === "password");
+    return {
+      message: badLength
+        ? `비밀번호는 ${PASSWORD_MIN_LENGTH}자 이상 ${PASSWORD_MAX_LENGTH}자 이하로 입력해 주세요.`
+        : "비밀번호와 비밀번호 확인이 서로 다릅니다.",
+    };
+  }
+
+  const supabase = await createClient();
+  const { data } = await supabase.auth.getUser();
+  if (!data.user) redirect("/login");
+
+  const { error } = await supabase.auth.updateUser({ password: parsed.data.password });
+  if (error) {
+    if (error.code === "same_password") return { message: "이전과 같은 비밀번호는 쓸 수 없습니다. 다른 비밀번호를 입력해 주세요." };
+    if (error.code === "weak_password") return { message: "너무 쉬운 비밀번호입니다. 더 복잡하게 입력해 주세요." };
+    return { message: "비밀번호를 바꾸지 못했습니다. 잠시 후 다시 시도해 주세요." };
+  }
+  redirect("/");
 }
 
 export async function signOut() {

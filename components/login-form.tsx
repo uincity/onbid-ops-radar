@@ -18,6 +18,17 @@ function NextField() {
   return <input type="hidden" name="next" value={safeNextPath(searchParams.get("next"))} />;
 }
 
+// 비밀번호 설정 링크가 틀렸거나 이미 썼거나 만료되었을 때(/login?error=link) 안내 문구를 보여 준다. 이유는 구분해서 알려 주지 않는다.
+function LinkErrorNotice() {
+  const searchParams = useSearchParams();
+  if (searchParams.get("error") !== "link") return null;
+  return (
+    <p role="alert" className="rounded-lg bg-amber-50 px-3 py-2 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-100">
+      비밀번호 설정 링크가 올바르지 않거나 만료되었습니다. 담당자에게 새 링크를 요청해 주세요.
+    </p>
+  );
+}
+
 export function LoginForm() {
   const [state, formAction, pending] = useActionState(signIn, initialState);
 
@@ -30,6 +41,10 @@ export function LoginForm() {
     <form action={formAction} className="space-y-5" noValidate>
       <Suspense fallback={<input type="hidden" name="next" value="/" />}>
         <NextField />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <LinkErrorNotice />
       </Suspense>
 
       <div>

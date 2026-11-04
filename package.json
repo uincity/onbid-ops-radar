@@ -10,6 +10,7 @@
     "check:cli": "node --env-file=.env scripts/check-cli-auth.mjs",
     "db:push": "node --env-file=.env scripts/db-push.mjs",
     "setup:accounts": "node --env-file=.env scripts/setup-test-accounts.mjs",
+    "add:account": "node --env-file=.env scripts/add-account.mjs",
     "check:accounts": "node --env-file=.env scripts/check-test-accounts.mjs",
     "generate:demo": "node scripts/generate-demo-data.mjs",
     "seed:demo": "node --env-file=.env scripts/seed-demo-data.mjs",
