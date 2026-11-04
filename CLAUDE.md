@@ -53,7 +53,7 @@
 | 프로덕션 빌드 | `npm run build` |
 | 린트 | `npm run lint` |
 | 타입 검사 | `npx tsc --noEmit` |
-| Supabase·Vercel CLI 로그인 확인 | `npm run check:cli` |
+| Supabase·Vercel 접근 토큰 확인 (프로젝트·팀 범위 토큰 기준, 토큰은 30일·1주 등 만료가 있으니 실패하면 새로 발급) | `npm run check:cli` |
 | Supabase 프로젝트 만들기·연결 | `npm run setup:supabase` |
 | Supabase 연결 확인 | `npm run check:supabase` |
 | 앱 환경변수 채우기 (`.env`) | `npm run setup:env` |
