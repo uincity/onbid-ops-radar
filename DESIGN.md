@@ -71,7 +71,7 @@
  │ Auth : 로그인                     │  │ 온비드 OpenAPI (PUBLIC)     │
  │ DB   : 테이블 + RLS (권한 2차 검사) │  └────────────────────────────┘
  │ DB 함수 : 배정·상태변경 + 이력 저장 │
- │ Cron : 매일 UTC 00:00 → 예약 점검 입구 호출 │
+ │ Cron : 전날 UTC 23:00(KST 08:00) → 예약 점검 입구 호출 │
  └──────────────────────────────────┘
 ```
 
@@ -133,7 +133,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 │ OnBid Ops Radar   대시보드 | 이상징후 | 점검 이력 | 보고서        │
 │                                   [DEMO]  홍길동(팀장)  로그아웃  │
 ├──────────────────────────────────────────────────────────────────┤
-│ ⚠ 예약 점검 누락: 오늘 09:00 점검 기록이 없습니다   (있을 때만)    │
+│ ⚠ 예약 점검 누락: 오늘 08:00 점검 기록이 없습니다   (있을 때만)    │
 ├──────────────────────────────────────────────────────────────────┤
 │                         각 화면 내용                               │
 └──────────────────────────────────────────────────────────────────┘
@@ -228,7 +228,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 
 | 단계 | 입력 | 처리 | 출력 |
 |---|---|---|---|
-| 1. 시작 | Supabase Cron(매일 UTC 00:00) 또는 팀장의 [수동 점검 실행] | 예약이면 `CRON_SECRET` 확인 후 설정값 `scheduled_source`(기본 DEMO)를, 수동이면 로그인·admin 확인 후 팀장이 고른 출처를 쓴다. 시작 후 120초가 지난 `running` 실행은 실패(시간 초과)로 먼저 마감한다. 실행 중인 점검이 있으면 시작하지 않음 | `check_runs` 1줄 (`running`) 또는 `blocked`(중복 실행 차단) 1줄 |
+| 1. 시작 | Supabase Cron(매일 KST 08:00 = 전날 UTC 23:00) 또는 팀장의 [수동 점검 실행] | 예약이면 `CRON_SECRET` 확인 후 설정값 `scheduled_source`(기본 DEMO, 운영 DB는 PUBLIC)를, 수동이면 로그인·admin 확인 후 팀장이 고른 출처를 쓴다. 시작 후 120초가 지난 `running` 실행은 실패(시간 초과)로 먼저 마감한다. 실행 중인 점검이 있으면 시작하지 않음 | `check_runs` 1줄 (`running`) 또는 `blocked`(중복 실행 차단) 1줄 |
 | 2. 조회 | 출처(DEMO/PUBLIC), 설정값(타임아웃 10초, 상한 20회) | 조회기가 `https://`로 허용된 호스트만 호출하고 응답시간·결과를 잰다. 서비스키·한도 오류는 따로 구분. PUBLIC이면 오늘(KST) `api_checks` 건수를 합산해 일일 예산을 넘으면 호출하지 않고 로그를 남긴다 | `api_checks` 기록 |
 | 3. 정리 | API 응답 원본 | 허용된 필드만 골라 담고 개인정보 필드는 버림 | `collected_items` 기록 |
 | 4. 탐지 | 정리된 목록·상세 데이터 | 규칙 3개 실행(순수 함수). 수집 시각 차이 10분 초과면 비교 제외 사유 기록 | 탐지 결과 목록 |
@@ -277,7 +277,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | 테이블 | 담는 것 | 주요 칸 |
 |---|---|---|
 | `profiles` | 사용자 이름과 역할 | `id`(로그인 계정과 같음), `display_name`, `role`(`operator`/`admin`) |
-| `settings` | PRD 5-5 설정값과 탐지 설정 (정해진 14개 항목, 기본값이 들어 있음) | `key`, `value`(JSON), `updated_at`. 키 14개: `compare_window_minutes`, `api_timeout_seconds`, `api_call_limit_default`, `api_call_limit_max`, `public_daily_budget`, `run_time_limit_seconds`, `reason_min_length`, `schedule_missed_grace_minutes`, `stale_running_seconds`, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint` (DEMO 값은 PRD 부록 B) |
+| `settings` | PRD 5-5 설정값과 탐지 설정 (정해진 16개 항목, 기본값이 들어 있음) | `key`, `value`(JSON), `updated_at`. 키 16개: `compare_window_minutes`, `api_timeout_seconds`, `api_call_limit_default`, `api_call_limit_max`, `public_daily_budget`, `run_time_limit_seconds`, `reason_min_length`, `schedule_missed_grace_minutes`, `stale_running_seconds`, `scheduled_source`, `required_fields`, `compare_fields`, `excluded_fields`, `empty_allowed_by_endpoint`, `api_fail_streak_threshold`, `public_call_interval_ms` (DEMO 값은 PRD 부록 B. 마지막 두 키는 선택 키: 없어도 점검이 멈추지 않음) |
 | `check_runs` | 점검 실행 1회 | `trigger`(`scheduled`/`manual`), `source`, `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `api_call_count`, `triggered_by` |
 | `run_logs` | 실행 중 남길 메모 | `run_id`(비울 수 있음), `log_date`(KST 날짜), `level`, `code`(상한 도달, 시간 초과, 비교 제외, 일일 예산 초과, 예약 누락 등), `message` |
 | `api_checks` | API 호출 1번의 결과 | `run_id`, `endpoint_name`(키 없는 이름), `http_status`, `duration_ms`, `outcome`(`success`/`http_error`/`timeout`/`auth_or_quota`/`empty_result`), `record_count`, `data_valid`, **R03 추가(비어 있을 수 있음):** `api_id`(서비스ID), `operation_id`, `result_code`(응답 본문 업무 결과코드), `request_summary`(인증키를 뺀 요청 요약) |
@@ -287,7 +287,7 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 | `anomaly_events` | 이상징후 이력 (추가만 가능) | `anomaly_id`, `actor_type`(`user`/`system`), `actor_id`, `actor_role`(행동 당시의 역할 `operator`/`admin`), `event_type`(`created`/`detected_again`/`assigned`/`status_changed`/`verdict_changed`), `from_value`, `to_value`, `note`, `created_at` |
 | `reports` | 보고서 스냅샷 (추가만 가능) | `report_date`(고른 날짜), `source`(출처별 1개), `generated_by`, `generated_at`, `covers_until`(오늘 보고서면 생성 시각), `content_md`, `summary` |
 
-- **설정값 검증:** `settings`는 14개 항목만 둘 수 있고, 항목마다 값의 모양과 범위를 DB가 검사한다(예: 호출 상한 1~100, 타임아웃 1~60초, 출처는 `DEMO`/`PUBLIC`). 항목 이름은 바꾸거나 지울 수 없다(값만 바꿀 수 있음). `public_daily_budget`은 승인 트래픽 확인 전까지 JSON `null`이다.
+- **설정값 검증:** `settings`는 16개 항목만 둘 수 있고, 항목마다 값의 모양과 범위를 DB가 검사한다(예: 호출 상한 1~100, 타임아웃 1~60초, 출처는 `DEMO`/`PUBLIC`). 항목 이름은 바꾸거나 지울 수 없다(값만 바꿀 수 있음). `public_daily_budget`은 승인 트래픽 확인 전까지 JSON `null`이다.
 - **설정값 사이의 관계는 서버가 확인한다:** DB는 항목 하나씩만 검사하므로, "호출 기본 상한 ≤ 최대 상한", "멈춘 실행 정리 기준(`stale_running_seconds`) > 점검 실행시간 제한(`run_time_limit_seconds`)"은 설정값 모듈(`lib/settings/schema.ts`의 `findRelationProblems`, PLAN 16번)이 값을 읽을 때 함께 확인한다. 같은 곳에서 "비교 대상과 비교 제외에 같은 필드가 있으면 안 된다"도 확인한다.
 
 **설정값 모듈 구현 내용 (PLAN 16번에서 만듦)**
@@ -295,9 +295,9 @@ Next.js를 기본으로 하고, 아래 도구를 그 위에 더한다. 굵게 �
 - **사용법:** 코드는 설정값을 직접 읽지 않고 `loadSettings(await createClient())`(화면·서버 액션, 로그인한 사용자 권한) 또는 `loadSettings(createAdminClient())`(점검 엔진·예약 점검)를 거쳐 `Settings` 객체(camelCase)로 받는다. 숫자를 코드에 직접 쓰지 않는다. 도우미: `resolveCallLimit`(요청이 없으면 기본 20회, 최대 100회로 줄임), `isEmptyAllowed`(설정에 없는 API는 허용 안 함), `fieldsFor`, `apiTimeoutMs`, `runTimeLimitMs`, `compareWindowMs`.
 - **몰래 기본값으로 대신하지 않는다:** DB에서 읽지 못하거나(오류·권한 문제로 줄이 없음) 값이 규칙에 어긋나면 `SettingsError`로 멈추고, 어떤 항목이 왜 문제인지 모아서 알려 준다. 오류 문구에는 잘못된 값이 아니라 규칙을 적고, DB가 돌려준 오류 문구는 옮기지 않는다(SEC-11). 점검 엔진은 설정을 모르면 점검하지 않는 것이 안전하기 때문이다. `DEFAULT_SETTING_VALUES`(PRD 5-5 기본값)는 시험과 기준 확인용이다.
 - **위쪽 막대의 출처 배지:** 이제 이 모듈로 `scheduled_source`를 읽는다. `SettingsError`일 때만 "출처 확인 불가"로 보이고, 그 밖의 예상하지 못한 오류는 그대로 올려 보낸다.
-- **고정 값 (DB 설정이 아님):** 예약 점검 시각 KST 08:00(`SCHEDULED_RUN_KST`, 2026-11-03에 09:00에서 변경)과 이를 UTC로 바꾼 값(`SCHEDULED_RUN_UTC` = 00:00)은 `lib/time.ts`에 있다. 예약 누락 확인 작업은 `scheduleMissedDeadline`(예정 + 대기 30분 = KST 09:30 = UTC 00:30)과 같아야 한다(PLAN 31·32번에서 Cron을 이 값으로 설정).
+- **고정 값 (DB 설정이 아님):** 예약 점검 시각 KST 08:00(`SCHEDULED_RUN_KST`, 2026-11-03에 09:00에서 변경)과 이를 UTC로 바꾼 값(전날 23:00)은 `lib/time.ts`에 있다. 운영 DB의 실행시간 제한 `run_time_limit_seconds`는 2026-11-04에 60초에서 80초로 조정했다. 예약 누락 확인 작업은 `scheduleMissedDeadline`(예정 + 대기 30분 = KST 08:30 = 전날 UTC 23:30)과 같아야 한다(PLAN 31·32번에서 Cron을 이 값으로 설정).
 - **KST 계산 (`lib/time.ts`):** `toKstDateString`, `kstDayRange`(하루 = [00:00, 다음 날 00:00) — 끝은 포함하지 않음), `addDaysKst`, `formatKst`, `scheduledRunAt`, `scheduleMissedDeadline`. 한국은 일광절약시간이 없어 항상 UTC+9로 계산하고, 없는 날짜(2026-02-30)는 거부한다.
-- **코드와 DB가 어긋나지 않게 지킨다:** 설정값 규칙은 DB(CHECK 제약·기본값)와 코드 두 곳에 있어서, `tests/unit/settings-drift.test.ts`가 마이그레이션 SQL을 직접 읽어 항목 이름 14개, 숫자 범위, 기본값 14개가 코드와 같은지 비교한다. 한쪽만 고치면 이 시험이 실패한다.
+- **코드와 DB가 어긋나지 않게 지킨다:** 설정값 규칙은 DB(CHECK 제약·기본값)와 코드 두 곳에 있어서, `tests/unit/settings-drift.test.ts`가 마이그레이션 SQL을 직접 읽어 항목 이름 16개, 숫자 범위, 기본값 16개가 코드와 같은지 비교한다. 한쪽만 고치면 이 시험이 실패한다.
 - **사유 최소 글자 수:** `reason_min_length`는 10 이상으로만 올릴 수 있다. `anomaly_events`의 DB 제약이 공백 제외 10자 미만을 항상 거부하므로 10 아래로는 내릴 수 없다.
 - **보고서 날짜·집계 시각:** `reports.report_date`는 KST 날짜이고 아직 오지 않은 날짜는 저장할 수 없다. `covers_until`은 그 날짜(KST 00:00~다음 날 00:00) 안에 있어야 하고 `generated_at`을 넘을 수 없다.
 - **보고서는 서버가 팀장 확인 후 추가한다:** 로그인 사용자에게는 `reports`의 읽기만 주고, 서버 관리용 키(`service_role`)에게 읽기와 추가(INSERT)만 준다(수정·삭제·비우기 권한 없음). 서버 액션 `generateDailyReport`가 먼저 admin 역할을 확인하고, DB 트리거가 `generated_by`가 admin 역할인지 한 번 더 확인한다(SEC-03). 로그인 사용자가 API로 직접 보고서를 만들 수는 없다(보고서 내용을 위조할 수 없게 하려는 것이다).
@@ -440,7 +440,7 @@ type ActionResult<T> =
 **화면 테스트(Playwright) 실행 방법 (PLAN 14번에서 정함)**
 - **명령:** `npm run test:e2e` (설정 `playwright.config.ts`, 시험 파일 `tests/e2e/*.spec.ts`). 개발 서버를 테스트 전용 포트 **3100**으로 자동으로 띄운다(이미 떠 있으면 그것을 쓴다). 다른 프로그램이 흔히 쓰는 3000번을 피하기 위해서다.
 - **브라우저:** 컴퓨터에 설치된 Microsoft Edge(`channel: "msedge"`)를 쓴다. Playwright 전용 브라우저를 따로 내려받지 않는다.
-- **로그인 정보:** 시연 계정의 이메일·비밀번호를 `.env`의 `DEMO_*`에서 읽어 입력창에만 넣고 출력하지 않는다. 임시 계정이 필요한 시험은 시험 안에서 만들고 끝나면 반드시 지운다(`try/finally`).
+- **로그인 정보:** 2026-11-04부터 화면 시험은 **시험 전용 계정**(`e2e-admin@example.com`·`e2e-operator@example.com`)을 쓴다. 시험을 시작할 때 `tests/e2e/global-setup.ts`가 계정을 준비하고 비밀번호는 매번 무작위로 만들어 환경변수(`E2E_*`)에만 두며 끝나면 정지한다(예전의 `.env`의 `DEMO_*` 시연 계정은 정지됨, 이 문장은 갱신됨). 임시 계정이 필요한 시험은 시험 안에서 만들고 끝나면 반드시 지운다(`try/finally`).
 - **현재 시험(27개):** `login.spec.ts`(로그인·비로그인 차단 16개), `frame.spec.ts`(공통 화면 틀 11개: 메뉴·강조·출처 배지·모바일 메뉴·키보드·가로 넘침·로그인 뒤 원래 화면으로 돌아오기). 공용 도우미는 `tests/e2e/helpers.ts`.
 - **로그인 횟수 주의:** 한 번 돌릴 때 로그인을 약 20번 한다. Supabase의 기본 제한(같은 IP에서 로그인·가입 5분에 약 30회)이 있으니, 5분 안에 연달아 두 번 돌리면 실패할 수 있다. 실패하면 5분쯤 기다렸다 다시 돌린다.
 - **프로덕션 방식 확인:** 배포와 같은 방식으로도 확인하려면 `npm run build` 후 `npx next start -p 3100`을 먼저 띄워 두고 `npm run test:e2e`를 돌린다(이미 떠 있는 서버를 그대로 쓴다).
@@ -463,7 +463,7 @@ type ActionResult<T> =
   - **DB에 넣기:** `npm run seed:demo` — 점검 실행 1건(DEMO·manual·succeeded) + 표식 메모(`run_logs` 코드 `DEMO_SEED`) + 수집 데이터 318줄을 서버 키로 넣는다. 다시 실행하면 이전 주입분만 찾아 지우고 새로 넣으므로 몇 번을 돌려도 같은 상태가 된다(`--clear`는 지우기만). 이상징후는 만들지 않는다. 중간에 실패하면 반쯤 들어간 상태를 남기지 않고 되돌린다.
   - **확인:** 단위 테스트(`tests/unit/demo-scenarios.test.ts` 18개)가 160건의 정답표를 **탐지 규칙과 별개로 다시 계산한 결과**와 맞춰 보고, 개수·번호·경계값(599/600/601초)·개인정보 패턴 없음·파일과 생성기 일치를 검사한다. `npm run check:demo`는 DB에 들어간 값이 파일과 정확히 같은지(필드·수집 시각·시간차 경계) 확인한다.
 - 테스트 계정 2개: 팀장 1, 운영 담당자 1 (가상 이메일·이름)
-  - 만들기: `npm run setup:accounts` (PLAN 13번). Supabase Auth 관리 기능(서버 전용 키)으로 계정을 만들고 `profiles`에 역할을 넣는 것이 PRD 4-4의 "서버의 승인된 관리 절차"이다. 여러 번 실행해도 안전하다.
+  - (이 절은 2026-11-04 이전의 시연 계정 설명이며 **현재는 사용 중지**다. 실사용 계정은 `npm run add:account`로 추가하고 비밀번호는 본인이 일회용 링크로 정한다. 시험은 시험 전용 계정을 쓴다.) 만들기: `npm run setup:accounts` (PLAN 13번). Supabase Auth 관리 기능(서버 전용 키)으로 계정을 만들고 `profiles`에 역할을 넣는 것이 PRD 4-4의 "서버의 승인된 관리 절차"이다. 여러 번 실행해도 안전하다.
   - 이름: 팀장 `admin-demo@example.com`(이름 "시연 팀장", 역할 admin), 운영 담당자 `operator-demo@example.com`(이름 "시연 담당자", 역할 operator). 이메일은 예약 도메인 `@example.com`만 허용해 실제 사람의 계정을 건드리지 않는다.
   - 비밀번호: 무작위 24자를 `.env`의 `DEMO_ADMIN_PASSWORD`·`DEMO_OPERATOR_PASSWORD`에만 저장한다. 소스코드·로그·채팅에 출력하지 않고, Vercel에도 등록하지 않는다. 화면 시연과 Playwright 로그인은 `.env`에서 읽어 쓴다.
   - 확인: `npm run check:accounts`가 두 계정으로 실제 로그인해 받은 JWT로 DB를 직접 호출하며 SEC-03·04·05·07을 실제 계정으로 확인한다.
