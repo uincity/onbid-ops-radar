@@ -1,8 +1,8 @@
 # 계획서: 온비드 홈페이지 가용성 모니터링 및 알림 (OnBid Ops Radar 확장)
 
-- 문서 버전: v0.2 (PRD v0.2 정합, 문서 검토 F1~F35 반영)
+- 문서 버전: v0.3 (PRD v0.2·설계서 v0.2 정합, 문서 검토 F1~F35·설계서 검토 G1~G23 반영)
 - 작성일: 2026-11-04 (v0.2 개정: 2026-11-04)
-- 근거 문서: [PRD 초안 v0.2](prd-homepage-monitoring.md), [사전 조사 결과](web-monitor-research.md), [PRD.md](../PRD.md) v2.1, [DESIGN.md](../DESIGN.md), [CLAUDE.md](../CLAUDE.md)
+- 근거 문서: [PRD 초안 v0.2](prd-homepage-monitoring.md), [설계서](design-homepage-monitoring.md), [사전 조사 결과](web-monitor-research.md), [PRD.md](../PRD.md) v2.1, [DESIGN.md](../DESIGN.md), [CLAUDE.md](../CLAUDE.md)
 - 이 파일 이름: 기존 [PLAN.md](../PLAN.md)(1~39번 작업, 완료)를 덮어쓰지 않으려고 `docs/` 아래에 따로 만들었고, `PLAN.md` 맨 위에 안내가 있습니다. 작업 번호는 `W00~W24`입니다.
 - 상태: **계획만 있고 코드는 한 줄도 만들지 않았습니다.** 2026-11-04 사용자가 **C1(텔레그램 알림 허용)과 C2(온비드 운영부서 담당자로서 업무시간 외 자동 점검 허용)를 승인**했고, C3~C5 권장안으로 "진행"하라고 했습니다(변경 가능). 아래 §3-B의 "결정 필요" 항목은 기본안으로 계획을 썼으며 해당 마일스톤 시작 전에 확정합니다.
 
@@ -58,9 +58,12 @@ PRD §0 지침("구현 전에 기존 패턴을 먼저 읽는다")의 결과입�
 | **C5** | 90초 재확인은 **재확인 대기열 + 매분 작업**(실제 지연 90~150초). 매분 작업은 **대기열에 예정 행이 있을 때만 앱을 부릅니다**(없으면 SQL만 실행, 하루 1,440번 함수 호출 방지) | 진행 지시로 합의 |
 | C6 | 이상징후 규칙 ID는 **`WEB_AVAILABILITY`**(대문자 snake, 기존 관례), 품질 이상은 `WEB_FRESHNESS`, `item_key`는 대상 키 `onbid-home`, **출처는 `WEB`(신설)** | 확정 |
 | **C16** (D4) | 홈페이지 이상징후의 출처는 기존 `PUBLIC` 재사용이 아니라 **`WEB`을 새로 만든다**(집계·보고서가 OpenAPI와 섞이지 않게) | **사용자 결정 2026-11-04**. 영향 범위는 §4.2 "기존 테이블·코드 변경" |
+| **D8** (G1) | 웹 설정을 기존 `settings` 테이블에 넣으면 기존 설정 읽기(`loadSettings`)가 모르는 키를 오류로 거부해 OpenAPI 점검·대시보드·보고서가 즉시 멈추고 설정 드리프트 시험도 깨집니다 | **별도 테이블 `web_settings`**와 웹 전용 설정 읽기. 기존 `settings`·`loadSettings`·드리프트 시험은 **바꾸지 않음** (대안: 같은 테이블에 두고 로더에서 `web_` 키를 거르며 코드를 먼저 배포 — 기존 코드 수정 위험이 커서 비추천) | 확정(M1 W05 전) |
+| **D9** (G9·G23) | 저하가 이상징후를 만드는지, 복구 키·사건 번호가 무엇인지 정의 없음, 담당자가 사건 도중 이상징후를 닫으면 1:1이 깨짐 | **사건 = 확정 실패 또는 저하 알림 확정 시점부터 정상 계열 복귀까지**, 사건 번호 `incident_no`를 멱등 키에 사용, 이상징후는 사건과 보통 1:1이지만 닫히면 새로 만들고 링크·복구 기록은 현재 열린 건에 붙임(PRD §3·FR-7, 설계서 5.3) | 확정 |
+| **D10** (G4·G15) | 계획 점검 창의 취소·겹침·길이·점검 문구 승격 규칙 | 창은 **대상 필수**, 겹침 거부, 최대 168시간, 시작 전 창 취소는 취소 표시만, 점검 문구 6시간 초과 시 일반 실패로 승격, 시각 변환은 서버 액션 한 곳(`+09:00`) (설계서 5.3·5.6) | 확정 |
 | C7 | PRD의 대문자 설정 키를 `web_` 접두어 소문자 키로 옮깁니다(§4.4). 시각·주기는 설정이 아니라 스케줄러 등록 스크립트가 관리 | 확정 |
 | C8 | 텔레그램 토큰·채팅 ID는 설정값이 아니라 **비밀값**: Supabase Vault(DB 감시용)와 Vercel 환경변수(앱 알림용) **두 곳**에만 둡니다 | 확정 |
-| C10 | 서울 리전 고정: 점검 경로에 `preferredRegion="icn1"` 설정, **M1 맨 앞(W00-1)에서 실제로 서울에서 도는지와 접속 성공을 확인**(M0에서 미룬 항목) | 확정(확인 대기) |
+| **C10** | 서울 리전 고정: 설치된 Next.js 16에서 `preferredRegion`은 **사용 중지(deprecated)** 라서 쓰지 않고 **`vercel.json`의 `regions: ["icn1"]`**(프로젝트 전체 함수 지역, 서버 액션 포함)로 정합니다. 기존 OpenAPI 점검 경로도 함께 서울로 옮겨지므로 **M1 맨 앞(W00-1)에서 배포로 실제 실행 지역(`x-vercel-id`)과 영향을 확인**합니다(M0에서 미룬 항목) | 확정(확인 대기) |
 | C11 | 판정 임계값은 코드에 흩어 두지 않고 `settings`로(§4.4), 시험은 경계값 포함 | 확정 |
 | C12 | 상위 문서 정합: 승인 후 `PRD.md` **부록 G**(홈페이지 모니터링 요약)와 이 계획서 링크 추가 | 문서 검토 묶음 C로 처리 |
 | C13 | "모든 기능은 DEMO만으로 동작" 원칙의 예외: 웹 대상은 DEMO 출처가 없고 시험은 목 서버 | 확정, `CLAUDE.md`에 기록 |
@@ -103,7 +106,7 @@ PRD §0 지침("구현 전에 기존 패턴을 먼저 읽는다")의 결과입�
 data/registry/web-targets.json         웹 대상 등록부(Zod 검증). onbid-home 1개(진입 스텁 + main.do)
 lib/web-monitor/
   schema.ts                            등록부 Zod 스키마
-  settings.ts                          웹 전용 설정 읽기(API 점검과 격리)
+  settings.ts                          웹 전용 설정 읽기(`web_settings` 테이블, 기존 `loadSettings`와 완전히 분리)
   allowed-hosts.ts                     요청마다 https·허용 호스트 검사(리다이렉트·HTML에서 뽑은 주소 포함)
   probes/connect.ts                    L1 DNS·TCP·TLS·인증서 남은 일수
   probes/http.ts                       L2 상태 코드·응답 시간·리다이렉트 수동 추적(최대 10회)
@@ -112,37 +115,44 @@ lib/web-monitor/
   probes/files.ts                      L4 파일 서버 썸네일 이미지 1개(M3)
   classify.ts                          프로브 판정(결정적 순수 함수) + 대표 판정(인증서·보조 제외)
   runner.ts                            대상 1개 점검 실행(격리, 시간 예산)
-  state.ts                             상태 전환표·연속 횟수·재알림 기준(순수 함수)
+  decide.ts                            상태 전환표·연속 횟수·재알림 기준(순수 함수, 설계서 5.3)
+  store.ts                             DB 저장·조회(서버 관리용 연결). `WEB_MONITOR_STORE=mock`이면 메모리 목 저장소(화면 시험용, 운영 DB 보호)
+  summary.ts                           일별·보고서 집계(순수 함수)
   maintenance.ts                       계획 점검 창 판정
   notify/types.ts · telegram.ts · messages.ts
 app/api/cron/web-check/route.ts        매시간 점검 입구(CRON_SECRET)
 app/api/cron/web-retry/route.ts        재확인 입구(대기열에 예정 행이 있을 때만 호출됨)
 app/(app)/web/                         "홈페이지 모니터링" 화면(§4.5)
 supabase/migrations/…                  테이블·함수·제약(§4.2)
-scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작업만 해제 옵션(W08)
+scripts/setup-cron.mjs                 크론 작업 등록(매시·매분·10분·하루)·텔레그램 비밀값(Vault) 등록·출력 가림 일반화·웹 작업만 해제 옵션(W08·W12)
+vercel.json                            함수 지역 `regions: ["icn1"]`(W00-1)
 ```
 
 스케줄러 작업 목록(모두 상수 배열로 관리, `--remove`가 전부 해제, `--remove-web`은 웹 작업만):
 매시 `:07` 점검 / 매분 재확인(SQL이 큐를 보고 있을 때만 앱 호출) / 10분마다 자체 감시(DB 함수) / 하루 1회 보존 삭제(DB 함수).
 
-### 4.2 데이터 모델 (PRD §7을 기존 규칙에 맞춘 안)
+### 4.2 데이터 모델 (설계서 §6이 기준, 여기는 요약)
 
 | 테이블/함수 | 하는 일 | 쓰기 방식 |
 |---|---|---|
-| `web_check_runs` | 웹 점검 1회(상태, 시작·종료, 트리거 `scheduled/retry/manual`) | 서버. **웹 전용 `running` 1개** 제약. 재확인·수동 점검도 이 자리를 씀(자리가 차면 재확인은 다음 분에 재시도). 멈춘 실행 정리(기본 180초)는 `start_web_check_run()`이 함. 기존 `check_runs`는 건드리지 않음 |
-| `web_probe_results` | 프로브 1줄(층, 판정, 재확인 여부, `flap`, `planned_maintenance`, HTTP 상태, 응답 시간, 최종 URL, 인증서 남은 일수, `detail`). 응답 본문 전체 저장 금지 | 서버만 쓰기, **추가 전용 아님**(D2) |
-| `web_target_state` | 대상별 현재 판정·시작 시각·연속 저하/검증 불가/보조 이상 횟수·열린 이상징후·마지막 알림 시각·알림 일일 횟수 | 서버(함수). 수동 점검은 **갱신하지 않음** |
-| `web_retry_queue` | 확인 재시도 예정 행(대상, 예정 시각, 원본 실행) | 서버. 매분 작업이 처리 |
-| `web_maintenance_windows` | 계획 점검 창(시작~종료, 사유, `created_by → profiles`) | **쓰기 정책 없음**, 팀장 확인을 하는 DB 함수(`create_maintenance_window`·`cancel_maintenance_window`)로만. 종료>시작 제약, KST 입력→UTC 저장 |
-| `web_notification_keys` | 알림 멱등 키 선점(유니크) | **추가 전용** |
-| `web_notifications` | 발송 **시도마다 한 줄**(키, 채널, 종류, 대상, 사건, 상태 sent/failed, 시도 번호, 응답 코드) | **추가 전용** |
-| `start_web_check_run()` | 멈춘 실행 정리 + 시작 | DB 함수(서버 전용 권한) |
-| `record_web_transition()` | 상태 전환·이상징후 기록·알림 키 선점을 **한 트랜잭션**으로 처리(업무 변경과 이력을 함께 저장하는 기존 원칙) | DB 함수 |
-| `web_monitor_heartbeat()` | 정상 종료 실행이 `HEARTBEAT_STALE_MIN` 넘게 없으면 Vault 비밀값과 `pg_net`으로 텔레그램 직접 호출(앱 독립). 재알림·재개 알림 | `pg_cron`(10분). **확인 필요: `pg_net` 요청 기록에 토큰이 남는지** |
-| 보존 삭제 함수 | 보존 기간(`web_result_retention_days`) 지난 판정을 일별 요약으로 집계한 뒤 삭제. 실행·재시도 큐·알림 시도·요약의 보존 기간도 설정으로 | `pg_cron`(하루 1회). 추가 전용 테이블은 삭제하지 않음 |
-| 기존 테이블·코드 변경 | **DB:** `anomalies`의 `rule_id` 허용 목록에 `WEB_AVAILABILITY`·`WEB_FRESHNESS` 추가, **`anomalies`의 출처 허용 값에 `WEB` 추가**(`record_detection`은 출처를 그대로 받으므로 함수 변경 없음), `anomaly_events`에 `recovered` 사건 허용(제약 3개 + 새 기록 함수). **코드:** `lib/anomalies/labels.ts`(출처 목록, 화면에 보이는 출처는 `PUBLIC`+`WEB`), `list-query.ts`(검색 조건), `lib/dashboard/summary.ts`·`count-card`(출처별 건수), 출처 배지 색, 화면 시험(대시보드 "DEMO는 안 보임" 시험에 WEB 추가). **바뀌지 않는 것:** `check_runs`·`probe_results`·`collected_items`·`reports`의 출처 허용 값, 설정 `scheduled_source`(`DEMO`·`PUBLIC`만) | 새 마이그레이션(이미 적용된 파일은 고치지 않음) |
+| `web_settings` | **웹 전용 설정**(D8). 허용 키·범위 검사, 키 삭제·이름 변경 금지, `updated_at`(다시 켠 시각 기준에 사용) | 서버(SQL) — 기존 `settings`는 건드리지 않음 |
+| `web_check_runs` | 웹 점검 1회(`trigger` scheduled/retry/manual, `slot_at` 정시 칸, `origin_run_id`, `overall_verdict`, `confirmed_verdict`, `flap`, `planned_maintenance`) | 서버. **웹 전용 `running` 1개**. 정시 점검이 차단되면 `replace` 큐로 대체 실행(`slot_at` 유일). 멈춘 실행 정리(180초)는 `start_web_check_run()` |
+| `web_probe_results` | 프로브 1줄(층, `counts_toward_overall`, 판정, **닫힌 사유 목록**, HTTP 상태, 응답 시간, 최종 URL, 인증서 남은 일수, `detail`) | 서버만 쓰기, **추가 전용 아님**(D2) |
+| `web_target_state` | 대상별 확정 상태·`incident_no`·사건의 마지막 알림 시각·`ongoing_count`·`open_anomaly_id`·연속 횟수와 연속 시작 실행(저하·검증 불가·보조 이상·미등록 점검)·알림 일일 횟수·`version` | 서버(함수). 수동 점검은 갱신하지 않음 |
+| `web_retry_queue` | 재확인(`confirm`)·정시 대체(`replace`) 예약, 상태 pending/claimed/done/cancelled | 서버. 대상별 `pending`·`claimed` 1개, 선점은 원자적, 멈춘 줄 정리·만료 |
+| `web_maintenance_windows` | 계획 점검 창(**대상 필수**, 겹침 거부, 최대 길이, `cancelled_at`) | **쓰기 정책 없음**, 팀장 확인 DB 함수(`create_`·`cancel_maintenance_window`)로만 |
+| `web_notification_keys` | 알림 멱등 키 선점 | **추가 전용** |
+| `web_notifications` | 알림 줄: `queued`(키 선점 직후) → 시도마다 `sent`/`failed` 한 줄 추가, 감시 알림은 `net_request_id` | **추가 전용** |
+| `web_daily_summary` | 일별 요약(판정별·`planned_count`·`unplanned_count`·`flap_count`·확정 장애·지속 시간·응답 시간) | 집계 함수 `web_summarize_day()`가 작성(보고서·보존 삭제가 같은 함수 사용) |
+| `start_web_check_run()` / `finish_web_check_run()` | 멈춘 실행 정리·시작 / 종료 기록 | DB 함수(W04) |
+| `record_web_transition()` | 상태 전환·이상징후 기록·알림 키 선점+`queued` 줄을 **한 트랜잭션**으로, 상태 버전이 다르면 `CONFLICT`를 돌려줌(앱이 다시 읽고 다시 결정) | DB 함수(W10a) |
+| `claim_notification()`·`record_notification_attempt()` | 감시 함수 알림의 키 선점·시도 기록 | DB 함수(W10a) |
+| `web_enqueue_due_retries()` | 매분: 예정된 재확인·15분 넘게 미발송인 알림이 있을 때만 앱 호출, 멈춘 줄 정리·만료 | `pg_cron`(W11) |
+| `web_monitor_heartbeat()` | 정시·재확인 실행만 셈, 기준 `max(마지막 정상 실행, 다시 켠 시각)`, `pg_net` 비동기라 결과는 다음 주기에 기록 | `pg_cron` 10분(W16). **확인 필요: `pg_net` 응답 테이블·토큰 잔존** |
+| 보존 삭제 | KST 하루 단위로 요약 후 삭제(판정·실행·완료된 큐), `origin_run_id` `on delete set null`, `cron.job_run_details` 정리 | `pg_cron` 하루 1회(W19) |
+| 기존 테이블·코드 변경 | **DB:** `anomalies`의 `rule_id` 허용 목록에 `WEB_AVAILABILITY`·`WEB_FRESHNESS`, **출처 허용 값에 `WEB`**(`record_detection`은 출처를 그대로 받으므로 함수 변경 없음), `anomaly_events`에 `recovered` 사건(제약 3개 + 새 기록 함수). **코드:** `lib/anomalies/labels.ts`(출처 목록, 화면에 보이는 출처는 `PUBLIC`+`WEB`), `list-query.ts`, `lib/dashboard/summary.ts`·`count-card`, 출처 배지 색, 화면 시험. **바뀌지 않는 것:** `settings`·`loadSettings`·드리프트 시험, `check_runs`·`probe_results`·`collected_items`·`reports`의 출처 허용 값 | 새 마이그레이션(이미 적용된 파일은 고치지 않음) |
 
-모든 새 테이블에 RLS(로그인한 팀 계정은 조회만, 쓰기 정책 없음). 새 테이블·함수마다 pgTAP 시험 파일, `scripts/db-checks/`에 확인 파일, `00_rls_guard` 통과.
+모든 새 테이블에 RLS(역할이 있는 로그인 사용자는 조회만, 쓰기 정책 없음). 새 테이블·함수마다 pgTAP 시험 파일, `scripts/db-checks/`에 확인 파일, `00_rls_guard` 통과.
 
 ### 4.3 판정·알림 흐름 (PRD §5·§6 요약)
 
@@ -155,7 +165,7 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 7. 수동 점검은 기록만 하고 상태·사건·알림·재확인을 바꾸지 않음.
 8. 하루 알림 상한(기본 12건/대상) 초과 시 이후는 기록만 + 억제 알림 1건(모니터 정지는 상한 밖). `web_monitor_enabled=false`면 전부 멈춤.
 
-### 4.4 설정값 대응표 (PRD §9 → `settings` 키)
+### 4.4 설정값 대응표 (PRD §9 → **`web_settings`** 테이블의 `web_` 키, D8)
 
 | PRD 키 | `settings` 키 | 기본값 | 범위 |
 |---|---|---|---|
@@ -171,34 +181,37 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 | `HEARTBEAT_REALERT_HOURS` | `web_heartbeat_realert_hours` | 24 | 1~168 |
 | `FRESHNESS_MAX_HOURS` | `web_freshness_max_hours` | 24 | 1~168 (M3) |
 | `WEB_RESULT_RETENTION_DAYS` | `web_result_retention_days` | 90 | 7~365 |
-| `NOTIFY_ON_MANUAL_CHECK` | `web_notify_on_manual_check` | false | true/false |
 | `WEB_ALERT_DAILY_CAP` | `web_alert_daily_cap` | 12 | 1~100 |
 | `WEB_RUN_TIME_LIMIT_SEC` | `web_run_time_limit_seconds` | 60 | 10~85 (`maxDuration` 90초 미만) |
 | (신규) 실행 정리 기준 | `web_stale_running_seconds` | 180 | 실행 한도보다 커야 함 |
 | (신규) 요청 간격 | `web_request_gap_ms` | 500 | 0~5000 |
-| (신규) 켜기/끄기 | `web_monitor_enabled` | true | true/false |
+| (신규) 켜기/끄기 | `web_monitor_enabled` | true | true/false (`updated_at`이 "다시 켠 시각" 기준) |
+| (신규) 텔레그램 요청 타임아웃 | `web_notify_timeout_ms` | 5000 | 1000~30000 |
+| (신규) 창 최대 길이 | `web_window_max_hours` | 168 | 1~720 |
+| (신규) 미등록 점검 승격 | `web_unplanned_escalate_hours` | 6 | 1~48 |
 | `WEB_CHECK_CRON` | (설정값 아님) | `7 * * * *` | 스케줄러 등록 스크립트가 관리 |
 | 텔레그램 토큰·채팅 ID | (설정값 아님) | — | 비밀값: Vault + Vercel 환경변수 |
 
 리다이렉트 상한(10)은 코드 상수가 아니라 등록부 대상 설정으로 둡니다.
 
-**격리 원칙:** 웹 키가 DB에 없거나 잘못돼도 기존 API 점검이 멈추면 안 됩니다(현재는 필수 키 문제가 전체 오류). 그래서 **웹 전용 설정 읽기(`lib/web-monitor/settings.ts`)를 따로 두고** 기존 `loadSettings`의 필수 키 목록에는 넣지 않거나 선택 키로 둡니다. 키 추가 순서: 마이그레이션 → 웹 설정 Zod(기본값·항목 간 관계: slow<timeout, 실행 한도<`maxDuration`, stale>실행 한도) → DB 범위 검사 → 드리프트 시험 → `check:db`.
+**격리 원칙(D8로 확정):** 기존 `loadSettings`는 `settings` 테이블의 **모든 줄을 읽고 모르는 키를 `SettingsError`로 거부**하며 OpenAPI 예약 점검·대시보드·보고서·수동 점검이 이 함수를 씁니다. 그래서 웹 키를 같은 테이블에 넣지 않고 **별도 테이블 `web_settings`**에 두며 웹 전용 코드(`lib/web-monitor/settings.ts`)만 읽습니다. 웹 설정이 틀리면 웹 점검만 멈추고 기존 점검은 영향이 없습니다. 기존 `settings`·`loadSettings`·`settings-drift.test.ts`는 바꾸지 않습니다. 키 추가 순서: 마이그레이션(`web_settings` 허용 키·범위 검사) → 웹 설정 Zod(기본값·항목 간 관계: slow<timeout, 실행 한도<`maxDuration`, stale>실행 한도, heartbeat≥90) → 웹 설정 시험 → `check:db`. **W04가 `web_stale_running_seconds`를 읽으므로 W05를 W04보다 먼저 합니다.** `web_notify_on_manual_check`는 수동 점검이 알림을 보내지 않으므로 삭제했습니다.
 
 ### 4.5 화면·서버 입구 (D7)
 
 | 화면/입구 | 내용 | 권한 |
 |---|---|---|
 | 메뉴 "홈페이지" `/web` | 현재 상태, 24시간 스트립, 점검 실행 이력(웹 전용, `/runs`와 별개), 알림 기록(실패 표시), 계획 점검 창 목록 | 로그인한 팀 계정 조회 |
-| `/web`의 즉시 점검 버튼 | 수동 점검(상태 갱신·알림 없음) — 서버 액션 `runWebCheckNow` | 팀장만(서버에서 재확인) |
+| `/web`의 즉시 점검 버튼, 점검 상세 `/web/runs/[id]` | 수동 점검(상태 갱신·알림 없음, 서울 리전 서버 액션) — `runWebCheckNow` / 층별 결과 상세 | 팀장만 / 조회 |
 | `/web`의 계획 점검 창 등록·취소 | 서버 액션 `createMaintenanceWindow`·`cancelMaintenanceWindow` → DB 함수 | 팀장만 |
-| 대시보드 홈페이지 카드(M3) | 상태·스트립·응답 시간·인증서 남은 일수 → `/web` 링크 | 조회 |
+| 경고 띠 두 종류(점검 정지, 알림 미발송·실패) | 레이아웃은 다시 그려지지 않으므로 **`/`(대시보드)와 `/web` 화면 안**에 `<Suspense>`로 둠(W13). 알림 띠는 "최근 24시간 안에 마지막 시도가 `failed`이거나 15분 넘게 `queued`"일 때만 | 조회 |
+| 대시보드 홈페이지 카드(M3) | 상태·스트립·응답 시간·인증서 남은 일수·"단일 지점, 1시간 간격 외부 관측" 문구 → `/web` 링크 | 조회 |
 | `/api/cron/web-check`·`/web-retry` | CRON_SECRET(Bearer) 인증, 응답에 내부 정보 없음 | 스케줄러만 |
 
 서버 입구마다 Zod 검사, 오류 코드는 기존 규칙(`RUN_IN_PROGRESS` 등 재사용 여부는 W13에서 확정). 입력 시각은 KST로 받아 UTC로 저장.
 
 ### 4.6 DESIGN.md 갱신 목록 (F1)
 
-새 기능을 만들 때 아래 절을 함께 갱신합니다(작업 완료 조건에 포함). DESIGN.md의 낡은 내용은 먼저 바로잡습니다(문서 검토 묶음 D).
+**확장 기능의 설계 기준은 새 문서 [design-homepage-monitoring.md](design-homepage-monitoring.md)입니다**(2026-11-04 결정). 기존 `DESIGN.md`에는 아래 절에 **링크와 짧은 요약만** 반영합니다(작업 완료 조건에 포함). DESIGN.md의 낡은 내용은 이미 바로잡았습니다(문서 검토 묶음 D).
 
 | DESIGN 절 | 갱신 내용 | 담당 작업 |
 |---|---|---|
@@ -226,16 +239,16 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 
 | ID | 작업 | 시험 | 크기 |
 |---|---|---|---|
-| **W00-1** | **서울 리전 확인(맨 앞)**: 인증된(CRON_SECRET) 최소 경로를 `icn1`로 배포해 함수가 서울에서 도는지, `main.do`·스텁·대기열에 차단 없이 접속되는지 기록. 이후 W07의 입구 경로로 확장 | 배포 후 확인 기록(docs/web-monitor-research.md에 추가). 차단이 있으면 계획 재검토 | S |
+| **W00-1** | **서울 리전 확인(맨 앞)**: `vercel.json`에 `regions: ["icn1"]`과 인증된(CRON_SECRET) 최소 진단 경로를 배포해 실제 실행 지역(`x-vercel-id`)과 `main.do`·스텁·대기열 접속(차단 여부)을 기록. **프로젝트 전체 지역이 기존 OpenAPI 점검·화면에 미치는 영향도 확인.** 이후 W07의 입구 경로로 확장 | 배포 후 확인 기록(docs/web-monitor-research.md에 추가). 차단이 있으면 계획 재검토 | S |
 | W01 | **웹 등록부**: `web-targets.json` + Zod + 로더(`onbid-home`: 스텁 + `main.do`, 표식·창 설정 칸). **허용 호스트 검사**(`allowed-hosts.ts`) | 등록부 검증(잘못된 URL·http·허용 호스트 밖 거부), 호스트 검사(리다이렉트·HTML에서 뽑은 주소가 허용 밖이면 검증 불가) | S |
 | W02 | **판정 규칙**(L1·L2·L3 표의 모든 행) + 대표 판정(인증서 임박·보조 제외) | §6 표 행마다 + 경계: 타임아웃 10000ms 이상, 응답 3000/3001ms, 인증서 14일/15일(내림 계산), 401·403·404·410·429·그 밖의 4xx, 리다이렉트 10/11회, L2 검증 불가면 L3 미점검, 인증서 임박이 있어도 대표 판정이 저하가 되지 않음 | M |
 | W03 | **프로브 구현**: L1(`dns`·`tls`), L2(`fetch` redirect 수동 추적, GET만, 고정 User-Agent), L3(표식·점검 문구·차단 문구·크기·JS 번들 확인, 번들 주소는 HTML에서 뽑음). 요청마다 허용 호스트 검사, 시각·네트워크는 주입 | 목 서버: 503, 타임아웃, 점검 문구, 표식 누락, 차단 페이지, 리다이렉트 루프, 허용 밖 이동, 인증서 만료(고정 시각) | L |
 | W03a | **보조 프로브**: 진입 스텁(이동 코드·이동 대상 확인, 바뀌면 검증 불가)과 대기열 설정 파일(200·JSON). **대표 판정에서 제외**, 별도 연속 횟수 | 스텁 이동 코드 없음, 대기열 5xx·타임아웃, 대표 판정이 영향받지 않음 | M |
-| W04 | **DB 마이그레이션**: `web_check_runs`(웹 전용 `running` 1개), `web_probe_results`(추가 전용 아님), `start_web_check_run()`(멈춘 실행 정리), RLS, `scripts/db-checks` 확인 파일 | pgTAP: RLS(비로그인 거부, 로그인 읽기만, 쓰기 정책 없음), `running` 1개 제약, 멈춘 실행 정리 경계, `00_rls_guard` 통과 | M |
-| W05 | **웹 설정 키 추가**(M1에 필요한 것) + **웹 전용 설정 읽기**(API 점검과 격리) — 마이그레이션·Zod·드리프트 시험 | 웹 키 누락·오류에도 API 점검 설정 읽기가 성공함, 범위·관계 시험, `check:db`, `test:db` | M |
+| W04 | **DB 마이그레이션(W05 다음에 함)**: `web_check_runs`(웹 전용 `running` 1개, `slot_at` 유일), `web_probe_results`(추가 전용 아님, 닫힌 사유 목록), **`web_target_state`**, **`web_retry_queue`**(대상별 1개·상태), `start_web_check_run()`(멈춘 실행 정리·정시 차단 시 대체 예약), **`finish_web_check_run()`**, RLS, `scripts/db-checks` 확인 파일 | pgTAP: RLS(비로그인 거부, 로그인 읽기만, 쓰기 정책 없음), `running` 1개 제약, `slot_at` 유일, 멈춘 실행 정리 경계, `00_rls_guard` 통과 | M |
+| W05 | **웹 설정 테이블과 읽기(W04보다 먼저)**: `web_settings`(허용 키·범위 검사, 변경 시각) + 웹 전용 설정 읽기(`lib/web-monitor/settings.ts`) + 웹 설정 Zod(항목 간 관계). **기존 `settings`·`loadSettings`·드리프트 시험은 바꾸지 않음** | 웹 키·값이 틀려도 기존 `loadSettings`가 성공함(기존 시험 무변경 통과), 웹 설정 범위·관계 시험, `check:db`, `test:db` | M |
 | W06 | **점검 실행기**: 대상 1개를 L1→L3로 돌려 저장. 한 대상·프로브 오류가 다른 것을 막지 않음, **웹 전용 시간 예산**(남은 예산보다 긴 타임아웃 금지, 예산 소진 시 미점검), 동시 실행 방지 | 단위(가짜 저장소) + 라이브 DB 시험(만든 줄만 지움 — 추가 전용이 아니라서 가능) | L |
-| W07 | **입구 경로** `/api/cron/web-check`(CRON_SECRET, 기존 `runScheduledCheck` 패턴) + `preferredRegion="icn1"` | 인증 시험(없음·틀림·정상), 응답에 내부 정보 없음(SEC-11 방식) | M |
-| W08 | **스케줄 등록**: `setup-cron.mjs` 확장 — 매시 `:07` 작업 추가, **미리 보기 출력의 비밀값 가림을 모든 비밀값으로 일반화**, 작업 목록 상수 배열, `--remove`가 전부 해제·`--remove-web`은 웹만. 기존 작업 불변 | cron 설정 시험(가림, 해제 범위), `--dry-run` → 적용, 배포 후 연속 24회 실행 기록 확인 | M |
+| W07 | **입구 경로** `/api/cron/web-check`(CRON_SECRET, 기존 `runScheduledCheck` 패턴). 서울 리전은 W00-1의 `vercel.json` 설정을 사용(`preferredRegion`은 사용 중지라 쓰지 않음). `web_monitor_enabled` 꺼짐·설정 없음이면 아무것도 하지 않음 | 인증 시험(없음·틀림·정상), 응답에 내부 정보 없음(SEC-11 방식), 꺼짐 상태 시험 | M |
+| W08 | **스케줄 등록(매시)**: `setup-cron.mjs` 확장 — 매시 `:07` 작업, **미리 보기 출력의 비밀값 가림을 모든 비밀값으로 일반화**, 작업 목록 상수 배열, `--remove`가 전부 해제·`--remove-web`은 웹만. 기존 작업 불변. **다른 크론 작업(매분 W11, 10분 W16, 하루 W19)은 각 작업에서 같은 스크립트에 추가** | cron 설정 시험(가림, 해제 범위), `--dry-run` → 적용, 배포 후 연속 24회 실행 기록 확인 | M |
 | W09 | 문서: 등록부 사용법·점검 층 설명, `CLAUDE.md` 명령·도메인 규칙(웹 대상은 DEMO 없음), DESIGN §3·§11.1 | — | S |
 | 수용 기준 | PRD §11 M1: 기존 API 점검 결과·누락 감지 불변(회귀), 연속 24회 실행, 표의 모든 행·경계값 시험, 목 서버 시나리오, RLS 시험, 서울 리전 확인 기록 | | |
 
@@ -243,16 +256,17 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 
 | ID | 작업 | 시험 | 크기 |
 |---|---|---|---|
-| W10 | **상태 전환 로직**(순수 함수) — PRD FR-6 전환표, 사건 종류별 멱등 키, 지속 알림 기준(마지막 알림 후 ≥N시간, 점검 시각 단위), 인증서 하루 1회, 보조 이상·점검 불가 연속 횟수, 미등록 점검, 하루 상한 | 시나리오: 매시 실패 7시간 → 장애·지속 2건·복구(지속 2건은 마지막 알림 후 3시간 이상 간격), 2h59m 미발송/3h00m 발송, 1회 실패 후 재시도 정상 → 알림 0건·일시 실패 1건, 중복 실행 → 같은 알림 중복 없음·**반복 알림은 막히지 않음**, 인증서 임박만 있을 때 장애·저하 알림 없음 | L |
-| W11 | **확인 재시도**: `web_retry_queue`, `/api/cron/web-retry`, 매분 작업(**SQL이 예정 행이 있을 때만 앱 호출**), 사건이 열려 있으면 재시도 안 함, 자리가 차면 다음 분 재시도 | 재시도 결과 분기(실패·정상·저하·검증 불가), 큐 중복 처리 방지, 빈 큐에서는 앱 호출 없음 | M |
-| W12 | **Notifier + TelegramNotifier**: 키 선점 → 발송 → 시도 한 줄 추가, 재시도 3회, 메시지 형식(KST, **HTML 이스케이프**, OpenAPI 문구 없음, 링크 `/anomalies/{id}`), 비밀 노출 방지 | 목 텔레그램: 200·429·5xx, 3회 재시도 후 실패 기록, 동시 두 실행에서 한 번만 발송, 이스케이프, 메시지에 비밀값·내부 헤더 없음 | M |
-| W13 | **알림 기록·화면**: `web_notification_keys`·`web_notifications`(추가 전용), `/web` 화면(상태·스트립·실행 이력·알림 기록·알림 실패 표시), 메뉴 "홈페이지" | pgTAP(추가 전용·RLS) + 화면 시험(조회, 모바일) | L |
-| W14 | **이상징후 연동**: 규칙 ID 허용 목록(`WEB_AVAILABILITY`·`WEB_FRESHNESS`)과 **출처 `WEB` 허용** 마이그레이션, 출처 목록·목록 검색·대시보드 출처별 건수·출처 배지 코드 변경(C16), `anomaly_events`의 제약 3개(`event_type`·`actor_matches_event`·`values_check`)와 `recovered` 사건용 새 DB 함수, 근거 해시에 사건 시작 시각, `record_web_transition()`(상태·이상징후·알림 키를 한 트랜잭션), 화면 이력 라벨(`event-view.ts`·`labels.ts`), `rule-id-drift` 시험 갱신 | 기존 이상징후 시험 회귀 + 새 시나리오(오탐 종결 뒤 새 장애는 새 건), pgTAP 허용 규칙·사건 종류·출처 `WEB`, 화면 시험(출처 필터에 WEB, 대시보드 출처별 건수) | L |
-| W15 | **계획 점검 창**: 테이블 + `create_maintenance_window`·`cancel_maintenance_window`(팀장 확인 DB 함수, `created_by → profiles`), 서버 액션 + Zod, `/web`의 창 화면, `planned_maintenance` 표시, 알림·가용률·이상징후 제외, 미등록 점검 | pgTAP(창 종료>시작, 일반 로그인은 함수 거부) + 단위 + 화면 시험(팀장만) | L |
-| W16 | **자체 감시**: `web_monitor_heartbeat()`(정상 종료 실행만 셈, 10분 주기, Vault 비밀값 + `pg_net`으로 앱 독립 발송, 24시간 재알림, 재개 알림, 의도적 정지(`web_monitor_enabled=false`)는 무시) + 크론 작업 | pgTAP(129분/130분 경계, 차단·실패 실행은 세지 않음), 매시간 작업을 멈춘 뒤 정지 알림이 오는지 운영 확인, `pg_net` 요청 기록에 토큰이 남는지 확인 | L |
-| W17 | **수동 점검**: `/web`의 즉시 점검(팀장만, `web_notify_on_manual_check`), **상태·사건·알림·재확인을 바꾸지 않음** | 화면·서버 권한 시험, 수동 점검 후 상태 불변 | M |
+| **W10a** | **알림·전환 DB 함수(W10보다 먼저)**: `web_notification_keys`·`web_notifications`(추가 전용), `claim_notification()`·`record_notification_attempt()`·**`record_web_transition()`**(상태 버전 충돌 시 `CONFLICT`, 알림 키 선점+`queued` 줄)·`record_recovery_event()`, 이상징후 **`WEB` 출처·규칙 ID·`recovered` 사건 허용**(제약 3개) | pgTAP: 추가 전용, 키 유니크, 트랜잭션 원자성, `CONFLICT`, 허용 규칙·출처·사건 종류, 복구는 **열린 이상징후에만** 기록 | L |
+| W10 | **상태 전환 로직**(순수 함수 `decide`) — 설계서 5.3의 **PRD FR-6 전환표 전체**(저하는 사건 시작, 사건 중 검증 불가), 사건 종류별 멱등 키 11가지, 지속 알림 기준(사건의 마지막 알림 후 ≥N시간), 인증서·보조 이상·점검 불가 연속 규칙, 점검 문구 처리표(창 안·밖·승격), 하루 상한, 닫힌 이상징후 후 새 건 | 시나리오: 매시 실패 7시간 → 장애·지속 2건·복구, 2h59m/3h00m, 1회 실패 후 재확인 정상 → 알림 0건·일시 실패 1건, 중복 실행 → 같은 알림 중복 없음·**반복 알림은 막히지 않음**, 저하 2회 연속 → 사건 시작, 인증서 임박만 있을 때 장애·저하 알림 없음, 미등록 점검 6시간 승격 | L |
+| W11 | **확인 재시도·정시 대체 실행**: `web_retry_queue` 수명주기(원자적 선점, 대상별 1개, 멈춘 줄 정리, 만료), `kind=confirm`·`replace`, `/api/cron/web-retry`, **매분 크론 작업 등록**(`web_enqueue_due_retries()`: **예정된 줄·15분 넘게 미발송인 알림이 있을 때만 앱 호출**), 재확인 결과를 원래 정시 실행의 `confirmed_verdict`·`flap`에 반영, 사건이 열려 있으면 재시도 안 함 | 재확인 결과 분기, 큐 중복 처리 방지(동시 두 호출), 멈춘 줄 복구, 만료, 정시 차단 시 대체 실행, 빈 큐에서는 앱 호출 없음 | M |
+| W12 | **Notifier(`telegram`/`log`) + 발송 흐름**: `queued` 줄 → 발송 → 시도 한 줄 추가(최대 3회, 텔레그램 타임아웃 `web_notify_timeout_ms`), **15분 넘게 미발송인 알림 회수·재발송(시도 최대 5회)**, 메시지 형식(KST, **HTML 이스케이프**, OpenAPI 문구 없음, 링크 `/anomalies/{현재 열린 건}`), **`WEB_NOTIFY_MODE`(운영 배포만 `telegram`, 개발·시험은 `log`)**, **텔레그램 비밀값(Vault·Vercel) 등록 스크립트와 출력 가림** | 목 텔레그램: 200·429·5xx, 3회 재시도 후 실패 기록, 동시 두 실행에서 한 번만 발송, 회수 경로, 이스케이프, 메시지에 비밀값·내부 헤더 없음, `log` 모드는 실제로 보내지 않음 | M |
+| W13 | **`/web` 화면**: 상태 카드·24시간 띠(**"확인 중"·"미등록 점검" 칸 포함**)·점검 이력·알림 기록(미발송·실패 표시), **`/web/runs/[id]` 상세**, 메뉴 "홈페이지", **경고 띠 두 종류(대시보드·`/web` 화면 안, 조건 켜짐·꺼짐)**, 점검 꺼짐 안내 | 화면 시험(**`WEB_MONITOR_STORE=mock`로 운영 DB에 쓰지 않음**, 모바일 포함), 띠 조건 단위 시험 | L |
+| W14 | **이상징후 연동(코드 쪽)**: 출처 `WEB` 목록·검색·대시보드 출처별 건수·배지 코드 변경(C16), 근거 해시에 사건 시작 시각, **매 실행마다 `record_detection` 결과로 `open_anomaly_id`를 맞춤(담당자가 닫으면 새 건)**, 규칙·사건 화면 라벨(`event-view.ts`·`labels.ts`), `rule-id-drift` 시험 갱신 (DB 허용 목록·제약은 W10a) | 기존 이상징후 시험 회귀 + 새 시나리오(오탐 종결 뒤 새 장애는 새 건, 사건 중 닫힘), 화면 시험(출처 필터에 WEB, 대시보드 출처별 건수) | L |
+| W15 | **계획 점검 창**: 테이블(**대상 필수, 겹침 거부 배제 제약, 최대 길이**) + `create_maintenance_window`·`cancel_maintenance_window`(팀장 확인 DB 함수, **시작 전 취소=취소 표시만 / 진행 중 취소=종료 시각 당김 / 끝난 창 거부**, DB는 시각 변환 안 함), 서버 액션(**KST→`+09:00` 변환은 여기 한 곳**) + Zod, `/web`의 창 화면, `planned_maintenance` 표시, 알림·가용률·이상징후 제외, 미등록 점검(승격 포함) | pgTAP(겹침·최대 길이·취소 세 경우·일반 로그인 거부) + 단위(경계 `[시작, 종료)`) + 화면 시험(팀장만, 목 저장소) | L |
+| W16 | **자체 감시**: `web_monitor_heartbeat()` — **정시·재확인으로 정상 종료한 실행만 셈(수동·시험 제외)**, 기준 `max(마지막 정상 실행, 다시 켠 시각)`, 10분 주기 크론 등록, Vault 비밀값 + `pg_net` 직접 호출, **비동기라 `queued` 기록 후 다음 주기에 응답 읽어 `sent`/`failed`·재발송**, 24시간 재알림, 재개 알림(`resumed` 키), `web_monitor_enabled=false`·웹 설정 없음이면 무시 | pgTAP(129분/130분, 수동 실행만 있으면 정지 알림이 나감, 다시 켠 직후엔 안 나감, 발송은 분리 가능한 함수로 시험), 운영 확인: 정지 알림, `pg_net` 응답 테이블·토큰 잔존 | L |
+| W17 | **수동 점검**: `/web`의 즉시 점검(팀장만), **상태·사건·알림·재확인을 바꾸지 않음**, 알림을 보내지 않음, 서울 리전 서버 액션 | 화면·서버 권한 시험(목 서버 대상), 수동 점검 후 상태 불변 | M |
 | W18 | 운영 문서 `docs/web-monitor-ops.md`: 봇 만들기, 비밀값 등록(두 곳), 토큰 교체 절차(두 곳 함께), 켜기/끄기와 **롤백 절차**, 알림 시험 1건 수신 기록, 토큰 만료 일정에 추가 | — | S |
-| **W19** | **보존 삭제 작업**: 일별 요약 테이블, 전용 삭제 함수(판정·실행·재시도 큐·요약의 보존 기간), 하루 1회 `pg_cron`. 추가 전용 테이블은 삭제하지 않음 | pgTAP(삭제 대상 경계, 요약 정확성, 일반 로그인 실행 불가) | M |
+| **W19** | **집계·보존 삭제 작업**: `web_daily_summary`(`planned_count`·`unplanned_count` 포함) + **집계 함수 `web_summarize_day()`(보고서와 삭제가 같은 함수 사용)**, KST 하루 단위 삭제 함수, `origin_run_id` `on delete set null`, 하루 1회 크론 등록, `cron.job_run_details` 오래된 줄 정리. 추가 전용 테이블은 삭제하지 않음 | pgTAP(삭제 경계, 요약 정확성, 일반 로그인 실행 불가, 집계 일치) | M |
 | 수용 기준 | PRD §11 M2 전부 | | |
 
 ### 1주 운영 관찰
@@ -266,20 +280,20 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 | W20 | **L4 파일 서버 점검**: HTML에서 `dnldImgFile.do` 주소 1개를 매번 뽑아 GET(허용 호스트 검사), 200·이미지 형식·크기 하한. 주소를 못 찾거나 모양이 다르면 `검증 불가` | 5xx·타임아웃·형식 불일치·크기 0·주소 없음 | M |
 | W21 | **L5 신선도**: PUBLIC 수집 결과(`collected_items`)의 최신 입찰 시작일시, 영업일(평일) 09:00~18:00에 `web_freshness_max_hours` 초과 시 `WEB_FRESHNESS` 이상징후(즉시 알림 없음). DEMO 데이터는 쓰지 않음 | 경계(24h 정확히, 주말, 영업일 경계), 출처 필터 | M |
 | W22 | **대시보드 홈페이지 카드**: 상태, 24시간 스트립, 응답 시간, 인증서 남은 일수, "단일 지점, 1시간 간격 외부 관측" 문구, `/web` 링크 | 화면 시험(모바일 포함) | L |
-| W23 | **일일 점검보고서 홈페이지 절**(`PUBLIC` 보고서 안에서 `WEB` 이상징후를 따로 다룸, 기존 이상징후 표에는 섞지 않음): 24회 판정 분포, 확정 장애 건수·총 지속 시간, 일시 실패 횟수, 평균/최대 응답 시간. 가용률 = 정상 계열 ÷ (판정 횟수 − 검증 불가 − 미점검 − 계획 점검 − 미등록 점검), 판정 횟수는 정시 점검의 확정 판정 | 집계 경계, 미리보기·Markdown 시험 | L |
+| W23 | **일일 점검보고서 홈페이지 절**(`PUBLIC` 보고서 안에서 `WEB` 이상징후를 따로 다룸, 기존 이상징후 표에는 섞지 않음): `web_summarize_day()` 결과로 판정 분포·확정 장애 건수·총 지속 시간·일시 실패·평균/최대 응답 시간. 가용률 = 정상 계열 ÷ (판정 횟수 − 검증 불가 − 미점검 − 계획 점검 − 미등록 점검), 판정 횟수는 정시 점검의 확정 판정, **저하는 정상 계열이 아님(기존 `summarizeProbes`는 재사용하지 않음)** | 가용률 경계, 미리보기·Markdown 시험 | L |
 | W24 | 문서 최종 갱신(PRD.md 부록 G, DESIGN.md, README), 완료 보고, Gap 분석 갱신 | — | M |
 | 수용 기준 | PRD §11 M3 | | |
 
 ### 전체 순서
 
-`결정(C1·C2 승인됨, D1~D7 기본안)` → `M0(완료)` → **`W00-1(서울 리전)`** → `M1` → (문서 반영: PRD.md 부록 G·CLAUDE.md) → `M2` → `1주 관찰` → `M3`. M1 안에서는 W00-1, W01~W03a(순수 로직), W04~W05(DB·설정), W06~W08(실행·스케줄) 순입니다.
+`결정(C1·C2 승인됨, D1~D10 확정)` → `M0(완료)` → **`W00-1(서울 리전)`** → `M1` → (문서 반영: PRD.md 부록 G·CLAUDE.md) → `M2` → `1주 관찰` → `M3`. M1 안에서는 W00-1, W01~W03a(순수 로직), W04~W05(DB·설정), W06~W08(실행·스케줄) 순입니다.
 
 ## 6. 시험 전략
 
 - **단위**: 판정·상태 전환·메시지·멱등 키는 순수 함수로 만들어 경계값(한 칸 안·밖)을 시험하고, 네트워크·시각은 주입합니다.
 - **목 서버**: 로컬 HTTP(S) 서버로 PRD §11 시나리오(503, 타임아웃, 점검 문구, 표식 누락, 차단 페이지, 리다이렉트 루프, 스텁 이동 코드 소실, 허용 밖 이동)를 재현합니다. 인증서는 만료일 + 고정 시각 주입으로 계산을 시험하고 TLS 연결 자체는 로컬 HTTPS 목 서버 1~2건만 확인합니다(새 라이브러리 없음).
 - **DB(pgTAP)**: 새 테이블마다 RLS(비로그인·일반 로그인·서버 역할), 쓰기 정책 없음, 추가 전용 대상(알림 키·시도), 제약(`running` 1개, 창 종료>시작), 함수 권한(감시·삭제·창 등록은 지정한 역할만), 경계(129/130분). **시험 데이터는 `begin…rollback` 안에서만** 만듭니다.
-- **시험 데이터 전략(운영 DB 공유)**: 화면 시험·`check:db`는 연결된 운영 DB를 씁니다. 홈페이지 화면 시험은 **목 저장소**를 쓰거나, 표식이 붙은 시험 대상 키를 쓰고 화면 목록에서 제외합니다. 라이브 DB 시험은 만든 줄만 지웁니다(웹 판정 결과 테이블은 추가 전용이 아니라서 가능).
+- **시험 데이터 전략(운영 DB 공유)**: 화면 시험·`check:db`는 운영 DB를 씁니다. **홈페이지 화면 시험은 개발 서버를 `WEB_MONITOR_STORE=mock`(Playwright 설정의 `webServer` 환경변수)으로 띄워 `store.ts`가 메모리 목 저장소를 쓰게 합니다.** 그러면 창 등록(전체 알림을 억제할 수 있는 줄), 알림 실패 기록(영구 추가 전용 + 경고 띠 상시 켜짐), 수동 점검(실제 온비드 요청)이 운영에 남지 않고, 수동 점검의 대상은 목 서버로 바뀝니다. `WEB_NOTIFY_MODE`는 시험에서 항상 `log`이고, 목 저장소 환경변수가 운영 환경에 있으면 앱이 시작 시 거부합니다. pgTAP은 `begin…rollback` 안에서만 데이터를 만듭니다. 라이브 DB 시험은 만든 줄만 지웁니다(웹 판정 결과 테이블은 추가 전용이 아니라 가능).
 - **화면(Playwright)**: `/web` 조회, 계획 점검 창(팀장만), 수동 점검, 알림 실패 표시, 홈페이지 카드(모바일). 시험 전용 계정 그대로 사용합니다.
 - **회귀**: 기존 단위·pgTAP·화면 시험이 계속 통과해야 합니다. 특히 `mark_schedule_missed`, `check_runs`, `settings` 로더, `00_rls_guard`.
 - **운영 확인(자동 시험으로 못 하는 것)**: 서울 리전 접속, 연속 24회 실행, 실제 텔레그램 1건 수신, 매시간 작업 정지 시 정지 알림, `pg_net` 기록의 토큰 잔존 여부. 결과를 문서에 기록합니다.
@@ -288,7 +302,8 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
 
 - 텔레그램 토큰은 `NEXT_PUBLIC_`을 붙이지 않고 브라우저 코드·로그·DB 평문·커밋에 넣지 않습니다. DB 쪽 감시용은 Vault, 앱 쪽 알림용은 Vercel 환경변수(Secret)입니다. **크론 등록 스크립트의 미리 보기 출력에 모든 비밀값이 가려지게** 합니다(W08). 알림 메시지에는 비밀값·요청 헤더·개인정보를 넣지 않습니다.
 - 온비드에는 **읽기 전용 GET만** 보냅니다(코드에서 메서드 고정 + 시험). 요청마다 https와 허용 호스트(`www.onbid.co.kr`, `wait.onbid.co.kr`)만 허용합니다.
-- **요청 수**: 대상 1개·시간당 `main.do` 1, 진입 스텁 1, 대기열 설정 1, JS 번들 1~2, (M3) 이미지 1 = **약 5~7개**, 확인 재시도가 있으면 한 번 더. 동시 요청 없음, 요청 사이 약 0.5초, 웹 전용 시간 예산 60초. 승인(C2) 때 말씀드린 "2~3회"보다 늘어난 값입니다.
+- **서울 리전**: `preferredRegion`은 사용 중지라 쓰지 않고 `vercel.json`의 `regions`로 정합니다(프로젝트 전체, 서버 액션 포함). 기존 OpenAPI 점검 경로도 함께 서울로 가므로 W00-1에서 영향을 확인합니다.
+- **요청 수**:
 - 고정 User-Agent `OnBidOpsRadar-Monitor/1.0`(연락처·개인정보 없음). 화면·보고서·알림에 "단일 지점, 1시간 간격 외부 관측이며 간격 사이의 짧은 장애는 탐지하지 못한다"고 적습니다.
 - 끄기·롤백: `web_monitor_enabled=false`와 `setup-cron --remove-web`으로 즉시 멈출 수 있고, 새 DB 객체는 마이그레이션 파일로만 만듭니다.
 - 토큰 만료 관리: Vercel·Supabase·GitHub 토큰 점검 일정에 텔레그램 봇 토큰 점검(유출 시 즉시 교체, **Vercel과 Vault 두 곳**)을 추가합니다.
@@ -317,7 +332,7 @@ scripts/setup-cron.mjs                 작업 추가·가림 일반화·웹 작�
   - `PRD.md`: **부록 G**(홈페이지 모니터링 요약·링크), 6-3 #8 수정, **부록 A의 서비스·오퍼레이션 수**(현재 "25종·28개 + 1종 미확정"으로 낡음)
   - `CLAUDE.md`: 범위(알림 허용 범위)·기술 스택(Telegram Bot API)·도메인 규칙(웹 대상은 DEMO 없음)·명령 표·Vercel 등록 변수 목록(텔레그램), 설정값 문구의 서비스 수
   - `README.md`: 현황
-  - `.env.example`·`check:env`(앱용 텔레그램 변수 이름), `scripts/db-checks/`(새 테이블·함수 확인), `tests/unit/rule-id-drift.test.ts`·규칙 라벨(새 규칙 ID)
+  - `vercel.json`(함수 지역), `.env.example`·`check:env`(앱용 텔레그램 변수 이름과 `WEB_NOTIFY_MODE`, 시험의 `WEB_MONITOR_STORE`)
   - `docs/web-monitor-research.md`(서울 리전 결과), `docs/web-monitor-ops.md`(운영·롤백), `docs/web-monitor-observation.md`(1주 관찰)
   - **`docs/api-registry.md`는 고치지 않습니다**(명세서에서 생성하는 파일). 웹 대상 정보는 `docs/web-monitor-*.md`에 씁니다.
 - 웹 대상 "정상"이라는 표현은 외부 관측 결과일 뿐 홈페이지 전체가 정상이라는 보증이 아니라는 한계를 화면·보고서·알림에 유지.
