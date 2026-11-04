@@ -16,11 +16,12 @@ const rejects = (mutate: (r: ReturnType<typeof clone>) => void) => {
 };
 
 describe("등록부 내용 (2026-10-29 확정)", () => {
-  it("관리 목표 26종 중 25종을 등록했고 1종은 미확정이다", () => {
-    expect(registryCoverage()).toEqual({ target: 26, registered: 25, unconfirmed: 1, operations: 28, liveVerifiedOperations: 27 });
-    expect(API_REGISTRY.unresolved).toHaveLength(1);
-    expect(API_REGISTRY.unresolved[0].note).toContain("16번");
-    expect(API_REGISTRY.unresolved[0].note).toContain("008");
+  it("관리 목표 26종을 모두 등록했다(16번 활용가이드 SVC-API-009 유가증권 상세정보 추가, 2026-11-04). 미확정은 없다", () => {
+    expect(registryCoverage()).toEqual({ target: 26, registered: 26, unconfirmed: 0, operations: 29, liveVerifiedOperations: 27 });
+    expect(API_REGISTRY.unresolved).toHaveLength(0);
+    // 16번 활용가이드는 SVC-API-009(유가증권 상세정보)다. 서비스 ID는 001~027 중 008이 없어 26개다(명세서에도 008에 해당하는 문서가 없음)
+    expect(findOperation("SVC-API-009/getSctDtlInf")?.operation.requiredParams.map((p) => p.name)).toEqual(["cltrMngNo"]);
+    expect(findOperation("SVC-API-009/getSctDtlInf")?.operation.url).toBe("https://apis.data.go.kr/B010003/OnbidSctDtlInfSrvc/getSctDtlInf");
   });
 
   it("실호출로 확인한 오퍼레이션은 27개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 25개(2026-11-03)", () => {
@@ -55,12 +56,13 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     ]);
   });
 
-  it("나머지 1개 오퍼레이션(공유일반재산, 실호출 결과 0건이라 무데이터 허용)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
+  it("나머지 2개 오퍼레이션(공유일반재산: 실호출 결과 0건이라 무데이터 허용 / 유가증권 상세정보: 점검 입력 미정)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
-    expect(others).toHaveLength(1); // 모두 점검 입력의 근거가 없어 검증 불가(NO_VALID_INPUT)
+    expect(others.map((o) => o.key).sort()).toEqual(["SVC-API-009/getSctDtlInf", "SVC-API-022/getPbownGnrPrptInf"]);
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
-      expect(operation.noDataPolicy, key).toBe("ALLOWED"); // 2026-11-04: 9가지 입력에서 모두 0건이라 사용자 결정으로 0건을 정상 무데이터로 처리
+      // 공유일반재산은 2026-11-04 9가지 입력에서 모두 0건이라 사용자 결정으로 0건을 정상 무데이터로 처리, 유가증권 상세정보는 무데이터 정책 미정
+      expect(operation.noDataPolicy, key).toBe(key === "SVC-API-022/getPbownGnrPrptInf" ? "ALLOWED" : "UNDEFINED");
       if (operation.probe.input === null) {
         // 점검 입력의 근거가 없는 것은 비워 두고 검증 불가로 둔다 (지어내지 않는다)
         expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
@@ -206,9 +208,9 @@ describe("잘못된 등록부는 거부된다", () => {
   });
 
   it("서비스ID 중복", () => expect(rejects((r) => (r.services[1].serviceId = r.services[0].serviceId))).toBe(true));
-  it("확정 서비스 수가 실제 등록 수와 다름", () => expect(rejects((r) => (r.confirmedServices = 26))).toBe(true));
+  it("확정 서비스 수가 실제 등록 수와 다름", () => expect(rejects((r) => (r.confirmedServices = 25))).toBe(true));
   it("목표 수 ≠ 확정 + 미확정", () => expect(rejects((r) => (r.targetServices = 27))).toBe(true));
-  it("미확정 슬롯 설명이 없음", () => expect(rejects((r) => (r.unresolved = []))).toBe(true));
+  it("미확정 서비스가 없는데 미확정 슬롯 설명이 있음", () => expect(rejects((r) => (r.unresolved = [{ slot: "x", state: "UNCONFIRMED", note: "y" }]))).toBe(true));
   it("허용되지 않은 호스트", () =>
     expect(
       rejects((r) => {

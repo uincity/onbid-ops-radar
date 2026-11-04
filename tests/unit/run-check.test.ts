@@ -510,13 +510,13 @@ describe("PUBLIC 점검", () => {
       expect(JSON.stringify(rec.logs)).not.toContain("secret");
     });
 
-    it("조회기가 없는 오퍼레이션 26개는 요청 없이 UNVERIFIED로 저장하고 probes(점검 2개)에는 섞지 않는다", async () => {
+    it("조회기가 없는 오퍼레이션 27개는 요청 없이 UNVERIFIED로 저장하고 probes(점검 2개)에는 섞지 않는다", async () => {
       const { store, rec } = fakeStore();
       const result = await runPublic({ store });
       expect(result.probes).toHaveLength(2);
-      expect(result.unprobeable).toHaveLength(26);
+      expect(result.unprobeable).toHaveLength(27);
       const unprobed = rec.probeRows.filter((p) => !["SVC-API-001/getRlstCltrList", "SVC-API-004/getRlstDtlInf"].includes(`${p.apiId}/${p.operationId}`));
-      expect(unprobed).toHaveLength(26);
+      expect(unprobed).toHaveLength(27);
       expect(unprobed.every((p) => p.result.status === "UNVERIFIED" && p.result.attempted === false && p.requestSummary === null)).toBe(true);
       expect(rec.apiChecks).toHaveLength(7); // 요청은 목록 1 + 상세 5 + 0건 상세 재조회 1뿐
     });
@@ -672,7 +672,7 @@ describe("PUBLIC 점검", () => {
     it("판정은 DB에 남길 모양(probe_results 한 줄)으로 저장 요청된다: 서비스ID·오퍼레이션 ID·결과코드·응답시간·요청 요약", async () => {
       const { store, rec } = fakeStore();
       const result = await runPublic({ store });
-      expect(rec.probeRows).toHaveLength(28); // 점검한 2개 + 조회기가 없어 UNVERIFIED로 남긴 26개
+      expect(rec.probeRows).toHaveLength(29); // 점검한 2개 + 조회기가 없어 UNVERIFIED로 남긴 27개
       const [list, detail] = rec.probeRows;
       expect(list).toMatchObject({ apiId: "SVC-API-001", operationId: "getRlstCltrList", result: { status: "PASS_DATA" }, resultCode: "00", httpStatus: 200, recordCount: 5 });
       expect(list.requestSummary).toContain("pageNo=1");
@@ -705,7 +705,7 @@ describe("PUBLIC 점검", () => {
         },
       });
       await runPublic({ store: budget.store });
-      expect(budget.rec.probeRows).toHaveLength(28);
+      expect(budget.rec.probeRows).toHaveLength(29);
 
       const limited = fakeStore();
       await runPublic({ store: limited.store, callLimit: 1 });

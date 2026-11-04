@@ -1,17 +1,11 @@
 {
   "registryVersion": 1,
   "generatedAt": "2026-10-29",
-  "source": "온비드 OpenAPI 활용가이드(명세서) 25개 — 로컬 폴더, 공공데이터포털 공식 문서와의 대조는 사용자 확인 필요",
+  "source": "온비드 OpenAPI 활용가이드(명세서) 26개 — 로컬 폴더, 공공데이터포털 공식 문서와의 대조는 사용자 확인 필요",
   "targetServices": 26,
-  "confirmedServices": 25,
-  "unconfirmedServices": 1,
-  "unresolved": [
-    {
-      "slot": "26번째 서비스",
-      "state": "UNCONFIRMED",
-      "note": "명세서 파일 번호 16번이 없고, 서비스ID(SVC-API-NNN)도 008, 009번이 없다. 26종의 정확한 구성은 공공데이터포털 공식 목록과 대조해야 확정된다. 확정 전에는 이 슬롯을 점검 대상·분모에 넣지 않고 '미확정'으로 표시한다."
-    }
-  ],
+  "confirmedServices": 26,
+  "unconfirmedServices": 0,
+  "unresolved": [],
   "common": {
     "allowedHosts": [
       "apis.data.go.kr"
@@ -6253,6 +6247,185 @@
             "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
           },
           "availabilityBeforeProbe": null
+        }
+      ]
+    },
+    {
+      "no": 16,
+      "serviceId": "SVC-API-009",
+      "name": "온비드 유가증권 상세정보 조회서비스",
+      "nameEn": "OnbidSctDtlInfSrvc",
+      "baseUrl": "https://apis.data.go.kr/B010003/OnbidSctDtlInfSrvc",
+      "version": "1.0",
+      "deployedAt": "2026/04/06",
+      "specFile": "OpenAPI활용가이드_16_온비드_유가증권_상세정보_조회서비스.docx",
+      "operations": [
+        {
+          "operationId": "getSctDtlInf",
+          "nameKr": "유가증권 상세정보",
+          "method": "GET",
+          "path": "getSctDtlInf",
+          "url": "https://apis.data.go.kr/B010003/OnbidSctDtlInfSrvc/getSctDtlInf",
+          "tpsLimit": 10,
+          "avgResponseMs": 500,
+          "requiredParams": [
+            {
+              "name": "cltrMngNo",
+              "kr": "물건관리번호",
+              "type": "VARCHAR(100)",
+              "sample": "2024-1100-084555"
+            }
+          ],
+          "optionalParamCount": 0,
+          "responseFields": [
+            {
+              "name": "cltrMngNo",
+              "kr": "물건관리번호",
+              "type": "VARCHAR(100)",
+              "required": true,
+              "multiplicity": "1"
+            },
+            {
+              "name": "splrItmNm",
+              "kr": "증권명",
+              "type": "VARCHAR(200)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "onrt",
+              "kr": "지분율",
+              "type": "NUMBER(12,6)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "sctKindCont",
+              "kr": "주식의종류",
+              "type": "VARCHAR(200)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "sctPrshDnmtAmt",
+              "kr": "주당액면가",
+              "type": "NUMBER(22)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "sctDnmtTotalamt",
+              "kr": "액면총액",
+              "type": "NUMBER(22)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "rprsvNm",
+              "kr": "대표자",
+              "type": "VARCHAR(100)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "pblcnStkTtlNum",
+              "kr": "발행주식총수(주)",
+              "type": "NUMBER(22)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "fndnYmd",
+              "kr": "설립일자",
+              "type": "CHAR(8)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "camm",
+              "kr": "결산월",
+              "type": "CHAR(2)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "tfbNm",
+              "kr": "업종",
+              "type": "VARCHAR(100)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "sctPrmrProdNm",
+              "kr": "주요제품",
+              "type": "VARCHAR(2000)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "pmngAmt",
+              "kr": "물납금액",
+              "type": "NUMBER(15)",
+              "required": false,
+              "multiplicity": "0"
+            },
+            {
+              "name": "sthlPscdClgList",
+              "kr": "주요주주현황목록",
+              "type": "Array",
+              "required": false,
+              "multiplicity": "0..n"
+            },
+            {
+              "name": "fnclStatClgList",
+              "kr": "요약재무상태표",
+              "type": "Array",
+              "required": false,
+              "multiplicity": "0..n"
+            },
+            {
+              "name": "plClgList",
+              "kr": "요약손익계산서",
+              "type": "Array",
+              "required": false,
+              "multiplicity": "0..n"
+            },
+            {
+              "name": "fnclRtoClgList",
+              "kr": "재무비율",
+              "type": "Array",
+              "required": false,
+              "multiplicity": "0..n"
+            }
+          ],
+          "responseFieldCount": 49,
+          "inputSourceCandidates": [
+            "SVC-API-001/getRlstCltrList",
+            "SVC-API-002/getMvastCltrList",
+            "SVC-API-003/getCarCltrList",
+            "SVC-API-010/getItrsCltrRnkClg",
+            "SVC-API-011/getInqRnkClg",
+            "SVC-API-012/get50PctDecrCltr",
+            "SVC-API-013/getCltrBidRsltList"
+          ],
+          "dependencyNote": "필수 식별 파라미터 cltrMngNo는 선행 오퍼레이션 응답에서 얻는 값으로 보이며, 후보는 같은 이름의 필드를 응답에 가진 목록형 오퍼레이션이다(이름 기준 추정, R04에서 확인)",
+          "verification": {
+            "state": "SPEC_ONLY",
+            "evidence": "명세서 확인만 함. 실호출 없음",
+            "verifiedAt": null
+          },
+          "approval": "APPROVED",
+          "probe": {
+            "mode": null,
+            "input": null,
+            "inputSource": null
+          },
+          "noDataPolicy": "UNDEFINED",
+          "quota": {
+            "dailyLimit": 100000,
+            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+          },
+          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
         }
       ]
     },

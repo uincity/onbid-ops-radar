@@ -192,10 +192,10 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     expect(result.probes).toHaveLength(28);
     expect(rec.probes.filter((p) => p.result.status !== "UNVERIFIED" || p.result.attempted)).toHaveLength(28);
     expect(rec.collected).toBe(2); // 목록·상세만 저장
-    // 등록부 28개 모두 점검 대상이라 요청 없이 검증 불가로 남기는 오퍼레이션은 없다 (28개가 중복 없이 기록됨)
-    expect(result.unprobeable).toHaveLength(0);
+    // 등록부 29개 중 점검 입력이 없는 유가증권 상세정보(SVC-API-009)만 요청 없이 검증 불가로 남는다 (점검 28개는 중복 없이 기록됨)
+    expect(result.unprobeable).toEqual(["SVC-API-009/getSctDtlInf"]);
     const keys = rec.probes.map((p) => `${p.apiId}/${p.operationId}`);
-    expect(new Set(keys).size).toBe(28);
+    expect(new Set(keys).size).toBe(29); // 점검 28개 + 입력이 없어 요청 없이 검증 불가로 남긴 1개
   });
 
   it("한 추가 오퍼레이션이 실패(HTTP 500)·타임아웃성 오류여도 다른 오퍼레이션은 계속 점검된다 (격리)", async () => {
@@ -268,6 +268,6 @@ describe("점검 엔진 + 추가 오퍼레이션", () => {
     const fetcher = createPublicFetcher({ serviceKey: KEY, timeoutSeconds: 10, fetchImpl: api.impl });
     const result = await runCheck({ trigger: "manual", source: "PUBLIC", settings, store: mem.store, fetcher });
     expect(result.probes).toHaveLength(2);
-    expect(result.unprobeable).toHaveLength(26);
+    expect(result.unprobeable).toHaveLength(27);
   });
 });

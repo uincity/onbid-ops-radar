@@ -62,7 +62,7 @@ describe("summarizeAvailability", () => {
     const s = summarizeAvailability({ rows: [row(LIST, "PASS_DATA"), row(DETAIL, "PASS_DATA")], okRows: [] });
     expect(s.serviceCoverage.den).toBe(26);
     expect(s.serviceCoverage.num).toBe(2); // 목록·상세 서비스는 각각 오퍼레이션이 1개
-    expect(s.registry).toMatchObject({ target: 26, unconfirmed: 1 });
+    expect(s.registry).toMatchObject({ target: 26, registered: 26, unconfirmed: 0 });
   });
 
   it("마지막 정상 응답 시각은 마지막 판정 시각과 따로 보여 준다", () => {

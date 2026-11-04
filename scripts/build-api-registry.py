@@ -124,7 +124,7 @@ def parse(path):
         if "운영환경" in c and "base_url" not in doc:
             v = c[c.index("운영환경") + 1]
             if v.startswith("http") and any("서비스URL" in x for x in ls[max(0, idx - 2) : idx + 1]):
-                doc["base_url"] = v
+                doc["base_url"] = v.rstrip("/")  # 끝의 / 제거(16번 명세서는 / 로 끝나 호출 주소가 //가 됨)
         if "서비스버전" in c:
             doc["version"] = c[c.index("서비스버전") + 1]
         if "배포일자" in c:

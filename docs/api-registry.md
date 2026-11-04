@@ -5,9 +5,9 @@
 
 ## 1. 확정 결과
 
-- **관리 목표 26종 중 25종의 명세를 확인해 등록했고, 1종은 미확정**이다. 미확정 슬롯은 점검 대상·분모에 넣지 않는다.
-- 등록한 오퍼레이션은 28개이며, 이 중 실제 호출로 응답 형식을 확인한 것은 **2개**(부동산 물건목록·상세)다. 나머지 26개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).
-- 미확정 1종의 단서: 명세서 파일 번호 16번이 없고, 서비스ID(SVC-API-NNN)도 008, 009번이 없다. 26종의 정확한 구성은 공공데이터포털 공식 목록과 대조해야 확정된다. 확정 전에는 이 슬롯을 점검 대상·분모에 넣지 않고 '미확정'으로 표시한다.
+- **관리 목표 26종을 모두 등록했다**(2026-11-04: 활용가이드 16번 `SVC-API-009 온비드 유가증권 상세정보 조회서비스`를 찾아 추가). 서비스ID는 001~027 중 008이 없어 26개이며, 008에 해당하는 서비스·문서는 확인되지 않았다. 미확정 슬롯은 없다.
+- 등록한 오퍼레이션은 29개이며(유가증권 상세정보 `getSctDtlInf` 추가, 점검 입력 미정 → 요청 없이 `UNVERIFIED:NO_VALID_INPUT`), 이 중 실제 호출로 응답 형식을 확인한 것은 **2개**(부동산 물건목록·상세)다. 나머지 26개는 명세서 확인만 했으므로 점검 결과가 나오기 전까지 `UNVERIFIED`로 취급한다(정상으로 세지 않음).
+- (해소됨, 2026-11-04) 미확정 1종은 16번 활용가이드(SVC-API-009)로 확인되었다. 당시 단서: 명세서 파일 번호 16번이 없고, 서비스ID(SVC-API-NNN)도 008, 009번이 없다. 26종의 정확한 구성은 공공데이터포털 공식 목록과 대조해야 확정된다. 확정 전에는 이 슬롯을 점검 대상·분모에 넣지 않고 '미확정'으로 표시한다.
 - 승인 상태·유효 샘플·무데이터 정책·점검 주기·호출 예산·Probe 방식은 명세서로 알 수 없어 **미정**이다. 임의로 채우지 않는다.
 - **갱신(2026-11-03, 사용자 확인):** 등록한 25종 서비스는 모두 공공데이터포털에서 승인되어 있고 서비스별 일일 100,000회 트래픽이 가능하다. 등록부의 승인 상태(`APPROVED`)와 쿼터에 반영했다. 유효 샘플·무데이터 정책·점검 주기·Probe 방식은 여전히 **미정**이며, 그전까지 해당 오퍼레이션은 요청을 보내지 않고 `UNVERIFIED(NO_VALID_INPUT)`로 둔다. 등록부를 스크립트로 다시 만들어도 같은 값이 나오도록 `scripts/build-api-registry.py`에도 반영했다.
 - **점검 입력(2026-11-03, 1단계 9개):** 사용자의 수집 코드(2026-04 사용)에서 확인된 값으로 순위 3종(`cltrDivNm=부동산`), 코드·주소 2종(입력 없음), 통계 4종(`statsTypeCd`·`inqPerd={PREV_YEAR}`)의 점검 입력을 등록부 `probe`에 기록했다. 근거는 `probe.inputSource`에 파일 이름으로 남겼고, **이번 점검에서 실호출로 확인하기 전**이다. 나머지 오퍼레이션은 근거가 없어 비워 두었다. `{PREV_YEAR}`는 점검할 때 KST 기준 직전 연도로 풀어 쓴다.
@@ -35,6 +35,7 @@
 | 13 | SVC-API-018 | 온비드 공고상세 물건정보 조회서비스 | `getPbancCltrInf` | `https://apis.data.go.kr/B010003/OnbidPbancCltrDtlSrvc2/getPbancCltrInf2` | pbancMngNo | getPbancList, getPbancBidRsltList | 명세만 확인 |
 | 14 | SVC-API-019 | 온비드 공고 입찰결과목록 조회서비스 | `getPbancBidRsltList` | `https://apis.data.go.kr/B010003/OnbidPbancBidRsltListSrvc2/getPbancBidRsltList2` | cltrTypeCd, prptDivCd, opbdDtStart, opbdDtEnd | - | 명세만 확인 |
 | 15 | SVC-API-020 | 온비드 공고 입찰결과상세 조회서비스 | `getPbancBidRsltDtl` | `https://apis.data.go.kr/B010003/OnbidPbancBidRsltDtlSrvc2/getPbancBidRsltDtl2` | pbancMngNo | getPbancList, getPbancBidRsltList | 명세만 확인 |
+| 16 | SVC-API-009 | 온비드 유가증권 상세정보 조회서비스 | `getSctDtlInf` | `https://apis.data.go.kr/B010003/OnbidSctDtlInfSrvc/getSctDtlInf` | cltrMngNo | getRlstCltrList, getMvastCltrList, getCarCltrList, getItrsCltrRnkClg, getInqRnkClg, get50PctDecrCltr, getCltrBidRsltList (이름 기준 후보, 확정 아님) | 명세만 확인 |
 | 17 | SVC-API-010 | 온비드 순위물건목록 관심물건순위 조회서비스 | `getItrsCltrRnkClg` | `https://apis.data.go.kr/B010003/OnbidItrsCltrRnkClgSrvc/getItrsCltrRnkClg` | (공통 항목만) | - | 명세만 확인 |
 | 18 | SVC-API-011 | 온비드 순위물건목록 조회수 순위 조회서비스 | `getInqRnkClg` | `https://apis.data.go.kr/B010003/OnbidInqRnkClgSrvc/getInqRnkClg` | (공통 항목만) | - | 명세만 확인 |
 | 19 | SVC-API-012 | 온비드 순위물건목록 저감률순위 조회서비스 | `get50PctDecrCltr` | `https://apis.data.go.kr/B010003/Onbid50PctDecrCltrSrvc/get50PctDecrCltr` | (공통 항목만) | - | 명세만 확인 |
