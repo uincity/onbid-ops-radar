@@ -3,7 +3,7 @@
 > **기능 이름(PDCA):** homepage-monitoring
 > **기준 문서:** [prd-homepage-monitoring.md](prd-homepage-monitoring.md)(v0.2) → [plan-homepage-monitoring.md](plan-homepage-monitoring.md)(v0.2) → 이 문서
 > **함께 보는 문서:** [web-monitor-research.md](web-monitor-research.md)(사전 조사), 기존 서비스 설계 [DESIGN.md](../DESIGN.md)
-> **작성일:** 2026-11-04 · **단계:** Design · **상태:** 초안(사용자 검토 전)
+> **작성일:** 2026-11-04 (v0.2 개정: 같은 날, 설계서 검토 G1~G23 반영) · **단계:** Design · **상태:** 초안(사용자 검토 전)
 >
 > 이 문서는 **홈페이지 확장 기능의 설계 기준**입니다. 기존 서비스(OpenAPI 점검)의 설계는 `DESIGN.md`에 있고 거기에는 이 문서로 가는 링크와 구성도·메뉴 요약만 반영합니다(계획서 §4.6). 두 문서가 다르면 **확장 기능에 대해서는 이 문서**, 기존 기능에 대해서는 `DESIGN.md`를 따릅니다.
 > 이 문서의 장 번호는 `DESIGN.md`와 같은 순서(1 목표 → 2 구조 → 3 기술 → 4 화면 → 5 데이터 흐름 → 6 데이터 구조 → 7 서버 입구 → 8 오류 → 9 보안 → 10 시험 → 11 폴더 → 12 구현)로 맞췄습니다.
@@ -85,7 +85,8 @@
 - **`proxy.ts`:** `/api/cron/` 경로는 이미 "로그인 검사 제외, 자체 인증" 목록에 있으므로 `/api/cron/web-check`, `/api/cron/web-retry`는 따로 열 필요가 없다. `/web` 화면은 로그인 검사를 그대로 받는다.
 - **Cache Components:** 로그인 정보나 DB 최신 값을 읽는 화면 조각은 `<Suspense>`로 감싸고 `"use cache"`는 쓰지 않는다. 홈페이지 상태는 사용자 요청마다 최신이어야 한다.
 - **서버 액션은 누구나 직접 호출할 수 있다:** 계획 점검 창 등록, 즉시 점검은 서버 액션 안에서 **역할을 다시 확인**한다(버튼을 숨기는 것만으로는 안 된다).
-- **점검 경로 설정:** `export const runtime = "nodejs"`(Node의 `tls`·`dns`를 쓰므로 Edge 불가), `export const preferredRegion = "icn1"`(서울), `export const maxDuration = 90`.
+- **점검 경로 설정:** `export const runtime = "nodejs"`(Node의 `tls`·`dns`를 쓰므로 Edge 불가), `export const maxDuration = 90`.
+- **서울 리전(v0.2 변경):** 설치된 Next.js 16 문서에서 `preferredRegion`은 **사용 중지(deprecated)** 라서 쓰지 않는다. 대신 프로젝트 설정 파일 **`vercel.json`의 `regions: ["icn1"]`**(프로젝트 전체 함수 지역)을 쓴다. 이렇게 하면 점검 경로뿐 아니라 서버 액션(수동 점검)도 같은 서울 리전에서 실행된다. 기존 OpenAPI 점검 경로도 함께 서울로 옮겨지므로 그 영향(응답 시간, 요금제 제한)을 W00-1에서 배포로 확인한다(**확인 필요**: 실제 실행 지역은 응답 머리글 `x-vercel-id`로 확인).
 
 ---
 
@@ -114,7 +115,7 @@
 | **Telegram Bot API** | 텔레그램 앱으로 문자처럼 알림을 보내 주는 무료 서비스(봇) | 알림 발송 | **외부 서비스, 2026-11-04 사용자 승인**(`CLAUDE.md`에 기록). 채널 교체 가능한 구조로 사용 |
 | Supabase Vault (기존, 새 사용) | 비밀번호·토큰을 안전하게 보관하는 금고 | 텔레그램 토큰·채팅 ID(DB 감시용) | 기존 `CRON_SECRET`과 같은 방식 |
 | `pg_net` (기존, 새 사용) | DB가 직접 외부에 요청을 보내게 해 주는 기능 | 앱 없이 보내는 감시 알림 | 요청 기록에 토큰이 남는지 확인 필요(§9) |
-| Vercel 함수 지역 설정 (서울 `icn1`) | 우리 점검 프로그램이 서울에서 실행되도록 고르는 설정 | 점검 경로 | 해외에서 접속하면 막힐 수 있어 오탐을 줄이는 용도. M1 W00-1에서 효과 확인 |
+| Vercel 함수 지역 설정 (`vercel.json`의 `regions: ["icn1"]`, 서울) | 우리 프로그램이 서울에서 실행되도록 고르는 설정 | 프로젝트 전체(점검 경로·서버 액션) | 해외에서 접속하면 막힐 수 있어 오탐을 줄이는 용도. 기존 `preferredRegion`은 사용 중지라 쓰지 않음. M1 W00-1에서 효과 확인 |
 
 ### 3.3 검토했지만 쓰지 않는 것
 | 도구 | 쉬운 설명 (한 줄) | 쓰지 않는 이유 |
@@ -150,15 +151,14 @@
 │ OnBid Ops Radar  대시보드 | 이상징후 | 점검 이력 | 홈페이지 | 보고서   │
 │                                  [PUBLIC]  홍길동(팀장)  로그아웃    │
 ├─────────────────────────────────────────────────────────────────────┤
-│ ⚠ 홈페이지 점검이 130분 넘게 실행되지 않았습니다   (있을 때만)          │
-│ ⚠ 알림 발송에 실패한 기록이 있습니다 → 확인        (있을 때만)          │
-├─────────────────────────────────────────────────────────────────────┤
-│                        각 화면 내용                                    │
+│   (이 아래는 각 화면의 내용. 경고 띠는 대시보드와 /web 화면 맨 위에 보임)   │
 └─────────────────────────────────────────────────────────────────────┘
 ```
-- **메뉴:** 4개 → **5개**("홈페이지"를 "점검 이력"과 "보고서" 사이에 둔다). 두 역할이 같은 메뉴를 본다.
-- **경고 띠에 두 가지 추가:** ① 홈페이지 점검 정지(마지막 정상 종료 실행이 `web_heartbeat_stale_min` 넘게 전), ② 알림 발송 실패 기록 있음. 둘 다 기존 "예약 점검 누락" 띠와 같은 자리에 쌓아서 보인다.
-- **점검 꺼짐 표시:** `web_monitor_enabled=false`이면 `/web` 맨 위에 "홈페이지 점검이 꺼져 있습니다(설정)" 안내를 보이고 정지 경고는 띄우지 않는다.
+- **메뉴:** 4개 → **5개**("홈페이지"를 "점검 이력"과 "보고서" 사이에 둔다. PRD의 "홈페이지 모니터링" 화면의 메뉴 이름이다). 두 역할이 같은 메뉴를 본다.
+- **경고 띠(v0.2 변경):** 기존 "예약 점검 누락" 띠는 레이아웃이 아니라 **대시보드 화면 안**에 있다(레이아웃은 화면을 옮겨 다닐 때 다시 그려지지 않아 최신 값을 반영하지 못하기 때문, `app/(app)/layout.tsx` 주석). 새 띠도 같은 방식으로 **`/`(대시보드)와 `/web` 화면 맨 위**에만 둔다. 공통 서버 컴포넌트 `components/web/web-banners.tsx`를 `<Suspense>`로 감싸 불러 쓰고, 조회가 실패해도 화면 전체가 깨지지 않고 띠만 생략한다.
+  - 띠 ①: 홈페이지 점검 정지 — 마지막 **정시·재확인으로 정상 종료한 실행**이 `web_heartbeat_stale_min` 넘게 전일 때(점검이 꺼져 있으면 띄우지 않음).
+  - 띠 ②: 알림 미발송·발송 실패 — **최근 24시간 안에, 마지막 시도가 `failed`(3회 모두 실패)이거나 `queued`(만든 지 15분 넘게 미발송)인 알림이 있을 때**만 띄운다. 이후 `sent`가 생기면 꺼진다.
+- **점검 꺼짐 표시:** `web_monitor_enabled=false`이면 `/web` 맨 위에 "홈페이지 점검이 꺼져 있습니다(설정)" 안내를 보이고 정지 띠는 띄우지 않는다.
 - **출처 배지:** 위쪽 막대의 배지는 기존대로 OpenAPI 예약 점검 출처(`scheduled_source`)를 보여 준다. 홈페이지는 별도 표시를 `/web` 안에 둔다.
 - **모바일:** 기존처럼 메뉴가 `[메뉴]` 안으로 접히고(5개), 표는 카드 목록으로 바뀐다.
 
@@ -173,7 +173,7 @@
 ├─ 최근 24시간 ────────────────────────────────────────────────────────┤
 │  14 15 16 17 18 19 20 21 22 23 00 01 02 03 04 05 06 07 08 09 10 11 12 13 │
 │  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ■  ▨  ■  ■  ■  □  ■  │
-│  ■정상 ■저하 ■실패 □검증불가·미점검 ▨계획 점검 ●일시 실패                  │
+│  ■정상 ■저하 ■실패 □검증불가·미점검 ▨계획 점검 ◇확인 중 ◆미등록 점검 ●일시 실패 │
 ├─ 보조 확인 (홈페이지 판정에는 반영되지 않음) ─────────────────────────────┤
 │  진입 스텁(/)   정상 · 이동 코드 확인됨      대기열 서비스   정상 · 120ms   │
 ├─ 점검 이력 ──────────────────────────────────────────────────────────┤
@@ -192,7 +192,7 @@
 └──────────────────────────────────────────────────────────────────────┘
 ```
 - **현재 상태 배지:** 확정 판정을 쉬운 말로 보여 준다(4.8의 표). 열린 사건이 있으면 "장애 #123 보기" 링크(`/anomalies/[id]`)를 붙인다.
-- **24시간 띠:** 정시 점검(매시 `:07`)의 **확정 판정** 24칸. 칸을 누르거나 키보드로 이동하면 시각·판정·응답 시간이 보인다(색만으로 뜻을 전하지 않도록 칸 아래에 글자 목록을 함께 둔다, 접근성).
+- **24시간 띠:** 정시 점검(매시 `:07`)의 **확정 판정** 24칸. 재확인을 기다리는 칸(`confirmed_verdict`가 아직 비어 있음)은 "확인 중"(◇)으로 보인다. 칸을 누르거나 키보드로 이동하면 시각·판정·응답 시간이 보인다(색만으로 뜻을 전하지 않도록 칸 아래에 글자 목록을 함께 둔다, 접근성).
 - **점검 이력:** 정시·재확인·수동을 구분해 보여 준다. 수동 점검은 "상태에 반영 안 됨"을 표시한다. 상세 링크 → `/web/runs/[id]`. 표는 최근 50건, 더 보기는 쪽 넘김.
 - **알림 기록:** 발송 시도를 모아 한 알림에 한 줄로 보인다(시도 횟수 표시). 실패 알림은 붉은 글씨로 표시하고 맨 위 경고 띠와 연결된다.
 - **계획 점검 창:** 지금 진행 중인 창은 강조한다. 등록·취소는 팀장만 보이고, 서버에서도 팀장만 허용한다. 시간은 KST로 입력·표시한다.
@@ -285,89 +285,145 @@
 
 한 대상·한 프로브의 오류는 해당 프로브를 `UNVERIFIED`(조회기 오류는 내부 문구 없이)로 남기고 다음으로 넘어간다. 시간 예산이 다 되면 남은 것은 `NOT_RUN`(사유 예산 소진)이다.
 
-### 5.2 흐름 ② 확인 재시도
+**정시 점검이 다른 실행 때문에 `blocked`되면(v0.2):** 수동 점검이나 재확인이 막 실행 중이라 14:07 점검이 차단되면, `web_retry_queue`에 종류 `replace` 줄(1분 뒤)을 넣어 **같은 시각 칸(`slot_at`)** 의 정시 점검을 대신 실행한다. 그래서 띠·가용률에서 그 시각이 사라지지 않고, 장애 감지가 한 시간 늦어지는 일을 막는다. 대신 실행은 `trigger='scheduled'`로 기록되고 `slot_at`이 같은 정시 실행은 하나만 인정된다(유니크).
+
+### 5.2 흐름 ② 확인 재시도 (대기열 수명주기)
 ```
 정시 점검 결과 = 실패 ─┬─(열린 사건 있음)→ 재확인 없이 상태 유지 (장애 지속)
-                      └─(열린 사건 없음)→ web_retry_queue에 예약(due = 지금 + 90초)
+                      ├─(점검 문구 감지)→ 재확인 없이 5.3의 '점검 문구 처리표'로
+                      └─(그 밖)→ web_retry_queue에 kind='confirm' 예약(due = 지금 + 90초)
                                               ▼ 매분 pg_cron
-                       "due가 지난 pending 행이 있나?" (SQL로 확인)
+                       "due가 지난 pending 행이나 15분 넘게 미발송인 알림이 있나?" (SQL로 확인)
                           ├ 없음 → 아무것도 하지 않음 (앱 호출 없음)
-                          └ 있음 → POST /api/cron/web-retry → 재점검 실행(trigger='retry')
-                                          │ 자리(실행 중 1개)가 차 있으면 큐 행을 그대로 두고 다음 분에 재시도
+                          └ 있음 → POST /api/cron/web-retry → 줄 선점 → 재점검 실행(trigger='retry')
                                           ▼
                                    재확인 결과 → 5.3의 판단으로
 ```
+- **큐 줄 상태:** `pending`(예약) → `claimed`(처리 선점) → `done` 또는 `cancelled`.
+- **선점은 원자적:** 한 문장으로 `pending`이면서 `due_at`이 지난 가장 오래된 줄을 잠그고(`for update skip locked`) `claimed`로 바꾼다. 앱이 60초 넘게 걸려 다음 분 작업이 겹쳐도 같은 줄을 두 번 처리하지 않는다.
+- **대상별 1개:** 같은 대상의 `pending`·`claimed` 줄은 하나뿐이다(부분 유니크 인덱스).
+- **멈춘 줄 정리:** `claimed`가 5분 넘게 `done`이 되지 않으면(앱이 죽음) 다음 분 작업이 `pending`으로 되돌린다(최대 3번, 그 뒤 `cancelled`).
+- **만료:** 다음 정시 점검이 시작되면 아직 `pending`인 `confirm` 줄은 `cancelled`로 닫는다(오래된 재확인을 하지 않는다).
+- **종류:** `confirm`(확정 재시도), `replace`(정시 점검 대체 실행, 5.1).
+- **재확인 결과 반영:** 재확인 실행이 끝나면 `record_web_transition`이 **원래 정시 실행의 `confirmed_verdict`·`flap`을 채운다**(그 전에는 비어 있고 24시간 띠에는 "확인 중"으로 보인다).
 - 재확인 결과별 처리(PRD FR-4): 실패 → 확정 실패 / 정상 → 일시 실패(알림·이상징후 없음) / 저하 → 저하 규칙 적용 / 검증 불가·미점검 → 연속 규칙 적용. 모두 `flap` 표시.
 - 실제 재확인 시각은 90~150초 뒤(분 단위 스케줄러). 알림에는 **실제 재확인 시각**을 적는다.
 
 ### 5.3 흐름 ③ 상태 전환·알림·이상징후
+
+**용어(v0.2 정리):** *사건*은 대상 하나가 **확정 실패이거나, 저하 알림이 확정된 시점부터** 정상 계열로 돌아올 때까지의 구간이다(저하 1회만 있었고 알림 전에 정상으로 돌아오면 사건이 아니다). 사건 번호 `incident_no`는 대상별로 사건이 시작될 때마다 1씩 늘어나는 번호이고, 알림 멱등 키가 이 번호를 쓴다. 이상징후는 보통 사건 1건에 1건이지만, 담당자가 사건 중간에 이상징후를 닫으면 같은 사건에서 새 이상징후가 만들어질 수 있다(아래).
+
 ```
-[순수 함수 decide]                      [DB 함수 record_web_transition]
- 입력: 대표 판정(확정), 현재 상태,   →    한 트랜잭션:
-       설정, 열린 창, 시각, 연속 횟수          ① 대상별 잠금(advisory lock) + 상태 버전 확인
- 출력: 새 상태, 해야 할 일 목록           ② web_target_state 갱신
-       (알림 종류·멱등 키·이상징후·복구)    ③ 이상징후 생성/발생 추가(record_detection, 출처 WEB)
-                                          ④ 복구면 이력에 '복구 확인됨' 사건 추가
-                                          ⑤ 알림 키 선점(web_notification_keys, 이미 있으면 건너뜀)
-                                       →  출력: 보내야 할 알림 목록(키 선점에 성공한 것만)
+[순수 함수 decide (TypeScript)]          [DB 함수 record_web_transition]
+ 입력: 확정 대표 판정, 현재 상태(버전 포함),  →  한 트랜잭션:
+       설정, 열린 창, 시각, 연속 횟수                ① 대상별 잠금(advisory lock). 읽어 간 상태 버전과 다르면
+ 출력: 새 상태, 해야 할 일 목록                          저장하지 않고 'CONFLICT'를 돌려줌
+       (알림 종류·멱등 키·이상징후·복구)            ② web_target_state 갱신
+                                                   ③ 이상징후 생성/발생 추가(record_detection, 출처 WEB)
+ ← CONFLICT를 받으면 앱이 상태를 다시 읽고           ④ 복구면 열린 이상징후에 '복구 확인됨' 사건 추가
+   decide를 다시 실행해 다시 호출(최대 3번)           ⑤ 알림 키 선점 + 'queued' 줄 만들기(5.4)
+                                                →  출력: 보낼 알림 목록(키 선점에 성공한 것만)
 ```
-- **상태 전환표(요약):** 정상 계열 → 확정 실패 = 🔴 장애 감지(사건 시작, 이상징후 생성) / 정상 계열 → 저하 연속 N회 = 🟠 / 저하·실패 → 정상 계열 = 🟢 복구(지속 시간 포함) / 실패 중 마지막 알림 후 ≥3시간 = ⏳ 지속(점검 시각마다 판단) / 그 외 = 알림 없음.
-- **별도 신호:** 인증서 남은 일수 ≤ 14 → 하루 1회 🟡(대표 판정·이상징후와 무관), 보조 확인이 연속 3회 이상 → 🟡 보조 이상, 검증 불가·미점검 연속 3회 → ⚪.
-- **계획 점검 창·미등록 점검:** 창 안이면 알림·가용률·이상징후 제외, 창 밖에서 점검 문구가 감지되면 🔧 1회(이상징후 없음, 가용률 분모 제외).
+- 결정(`decide`)은 앱에서 하고, 저장은 DB 함수가 한다. DB 함수가 스스로 다시 계산하지는 않는다.
+
+**상태 전환표 (PRD FR-6이 기준이며 전체를 옮겨 적음, 확정 판정 기준):**
+
+| 이전 → 이후 | 처리 |
+|---|---|
+| 정상 계열 → 확정 실패 | 🔴 장애 감지, **사건 시작**(`incident_no`+1), 이상징후 생성 |
+| 정상 계열 → 저하, 연속 `DEGRADED_ALERT_COUNT`회째 | 🟠 성능 저하, **사건 시작**, 이상징후 생성. 그 전(1회째 등)에는 알림·사건 없음 |
+| 저하(사건) → 확정 실패 | 🔴 장애 감지(같은 사건, 키 `down:{사건}`) |
+| 확정 실패 → 저하 | 알림 없음, 사건 유지 |
+| 확정 실패·저하(사건) → 정상 계열 | 🟢 복구(지속 시간 포함), 사건 종료, 열린 이상징후에 '복구 확인됨' |
+| 저하 1회(알림 전) → 정상 계열 | 알림 없음(복구 알림도 없음), 사건 아님 |
+| 사건 중 검증 불가·미점검이 나옴 | 상태·사건 유지. 지속 알림 시계는 **계속** 간다(별도로 연속 검증 불가 규칙이 따로 적용) |
+| 그 밖(같은 계열 유지) | 알림 없음 |
+
+- **지속 알림:** 사건 중에 사건의 **마지막 알림**(장애 감지 또는 직전 지속 알림) 후 `web_realert_after_hours`(3시간) 이상 지난 점검마다 ⏳(키 `ongoing:{사건}:{n}`).
+- **별도 신호(대표 판정과 무관):** 인증서 남은 일수 ≤ 14 → 하루 1회 🟡. 보조 확인이 연속 `web_aux_alert_count`(3)회 이상 → 🟡 보조 이상. 검증 불가·미점검 연속 `web_unverifiable_alert_count`(3)회 → ⚪.
 - **하루 알림 상한:** 대상별 하루 12건을 넘으면 이후는 기록만 하고 "알림 억제" 1건을 보낸다(모니터 정지는 상한 밖).
 - **수동 점검은 이 흐름에 들어오지 않는다**(상태·사건·알림·재확인을 바꾸지 않음).
-- 이상징후 **근거 해시**에는 사건 시작 시각이 들어가서, 오탐으로 종결한 건이 새 장애를 숨기지 않는다.
+- 이상징후 **근거 해시**에는 사건 시작 시각이 들어가서 오탐으로 종결한 건이 새 장애를 숨기지 않는다.
 
-### 5.4 흐름 ④ 알림 발송
+**이상징후와 사건이 어긋날 때(담당자가 진행 중인 사건의 이상징후를 닫은 경우, v0.2):**
+- 매 실행마다 `record_detection`이 돌려준 이상징후 번호로 `web_target_state.open_anomaly_id`를 맞춘다. 닫힌 건 뒤에 새 건(#124)이 생기면 `open_anomaly_id`가 #124로 바뀌고, 이후 지속·복구 알림의 링크와 '복구 확인됨' 사건은 **현재 열린 이상징후**에 붙는다. 닫힌 건(#123)에는 남기지 않는다.
+- 사건 번호(`incident_no`)는 그대로라서 멱등 키(`down:{사건}` 등)는 중복 발송을 막으면서도 새 이상징후로 가는 링크는 알림 메시지가 만들어질 때 현재 열린 건을 조회해 넣는다.
+
+**계획 점검 창·점검 문구 처리표 (v0.2):**
+
+| 상황 | 처리 |
+|---|---|
+| 점검 문구(`MAINTENANCE_DETECTED`)가 감지되고 **창 안** | 판정 기록 + `planned_maintenance`. 알림·가용률·이상징후 제외, **재확인 안 함** |
+| 점검 문구가 감지되고 **창 밖** | 🔧 미등록 점검 감지 1회(키 `unplanned:{대상}:{시작 실행}`), 이상징후 없음, 가용률 분모 제외. 이 상태가 `web_unplanned_escalate_hours`(기본 6시간) 넘게 이어지면 **일반 확정 실패로 승격**(🔴 장애, 사건 시작) |
+| 점검 문구가 아닌 일반 실패가 **창 안** | 판정 기록 + `planned_maintenance`, 재확인 안 함, 알림·가용률·이상징후 제외 |
+| 사건이 열려 있는데 창이 시작됨 | 창 안에서는 지속 알림을 보내지 않는다. 복구(정상 계열)는 창 안이어도 판정대로 처리하고 🟢 복구를 보낸다 |
+| 사건이 열려 있는데 창이 끝남 | 창 밖 판정부터 일반 규칙. 지속 알림 시계는 사건의 마지막 알림 기준 그대로 |
+| 창의 경계 | 점검의 **`started_at`이 `[starts_at, ends_at)` 안**이면 창 안 |
+| 같은 대상의 창이 **겹침** | 등록을 거부한다(DB 제약, 6.1). 서로 이어 붙이는 것(종료=다음 시작)은 허용 |
+| 창 길이 | 최대 `web_window_max_hours`(기본 168시간=7일). 알림을 오래 꺼 두는 실수를 막는다 |
+
+### 5.4 흐름 ④ 알림 발송 (아웃박스 방식)
+
+**키 선점은 한 곳에서만 한다(v0.2):** 상태 전환에서 나온 모든 알림(장애·저하·지속·복구·인증서·보조 이상·점검 불가·미등록 점검·알림 억제)의 키는 `record_web_transition`이 **5.3의 ⑤에서 선점하고 `queued` 줄을 함께 만든다.** `claim_notification`은 상태 전환 밖에서 나가는 **감시 함수의 알림**(모니터 정지·재개)만 쓴다. 앱의 발송 단계는 키를 다시 선점하지 않는다.
+
 | 단계 | 입력 | 처리 | 출력 |
 |---|---|---|---|
-| 1. 키 선점 | 알림 종류·멱등 키 | `web_notification_keys`에 유니크로 삽입(이미 있으면 **발송하지 않음**) | 선점 성공/실패 |
-| 2. 발송 | 메시지(KST, 이스케이프, 링크 `/anomalies/{id}`) | `Notifier.send()` → 텔레그램 `sendMessage`. 실패하면 최대 3회 재시도(짧은 간격) | 응답 코드 |
-| 3. 기록 | 시도 결과 | `web_notifications`에 **시도마다 한 줄 추가**(sent/failed, 응답 코드, 시도 번호) | 알림 기록 |
-| 4. 표시 | 실패 기록 | 모두 실패면 `/web` 알림 기록과 맨 위 경고 띠에 표시 | 화면 |
+| 1. 대기 줄 확인 | `queued` 알림(`record_web_transition`이 만듦) | 키는 이미 선점되어 있음 | 보낼 알림 |
+| 2. 발송 | 메시지(KST, 이스케이프, 링크 `/anomalies/{현재 열린 이상징후}`) | `Notifier.send()` → 텔레그램 `sendMessage`. 실패하면 같은 실행 안에서 최대 3회 재시도(짧은 간격). 텔레그램 요청 타임아웃은 `web_notify_timeout_ms`(기본 5000) | 응답 코드 |
+| 3. 기록 | 시도 결과 | `web_notifications`에 **시도마다 한 줄 추가**(`sent`/`failed`, 응답 코드, 시도 번호). 수정하지 않는다 | 알림 기록 |
+| 4. 회수 | 앱이 죽거나 시간 초과로 `queued`·`failed`만 남은 알림 | 매분 작업이 **15분 넘게 `sent`가 없고 시도 5회 미만인 알림**을 찾아 재발송 경로(`/api/cron/web-retry`)로 다시 보낸다 | 유실 방지 |
+| 5. 표시 | 아직 `sent`가 없는 알림 | `/web` 알림 기록에 "미발송"(`queued`)·"발송 실패"를 표시하고 경고 띠 ②(4.2)와 연결 | 화면 |
 
-- **멱등 키 모양:** 장애 `down:{사건}`, 복구 `recovered:{사건}`, 지속 `ongoing:{사건}:{n}`, 저하 `degraded:{시작 실행}`, 인증서 `cert:{대상}:{KST 날짜}`, 점검 불가 `unverifiable:{시작 실행}`, 미등록 점검 `unplanned:{대상}:{시작 실행}`, 모니터 정지 `stale:{마지막 정상 실행}:{n}`. 같은 사건의 **반복 알림은 막히지 않고**, 같은 알림의 중복만 막힌다.
-- 발송 채널은 `Notifier` 인터페이스 뒤에 숨긴다(지금 구현체는 텔레그램 하나).
+- **알림 줄 상태:** `queued`(키 선점 직후, 시도 0) → 시도마다 `sent` 또는 `failed`가 한 줄씩 추가된다. 키마다 **마지막 줄**이 그 알림의 현재 상태다.
+- **멱등 키 모양(사건 번호 기준):** 장애 `down:{사건}`, 성능 저하 `degraded:{사건}`, 복구 `recovered:{사건}`, 지속 `ongoing:{사건}:{n}`, 인증서 `cert:{대상}:{KST 날짜}`, 점검 불가 `unverifiable:{연속 시작 실행}`, 미등록 점검 `unplanned:{대상}:{시작 실행}`, **보조 이상 `aux:{대상}:{프로브}:{연속 시작 실행}`**, **알림 억제 `suppressed:{대상}:{KST 날짜}`**, 모니터 정지 `stale:{마지막 정상 실행}:{n}`, **모니터 재개 `resumed:{정지 알림의 마지막 정상 실행}`**. 같은 사건의 **반복 알림은 막히지 않고**, 같은 알림의 중복만 막힌다.
+- 발송 채널은 `Notifier` 인터페이스 뒤에 숨긴다. 구현체는 `telegram`(운영)과 `log`(개발·시험: 실제로 보내지 않고 기록만)이며, 환경변수 `WEB_NOTIFY_MODE`로 고른다(**운영 배포에서만 `telegram`**, `.env`에 텔레그램 값이 있어도 개발·시험에서는 `log`가 기본).
 
 ### 5.5 흐름 ⑤ 점검 프로그램 자체 감시 (앱과 독립)
-- 입력: `pg_cron` 10분 주기. 처리: DB 함수 `web_monitor_heartbeat()`가 `web_check_runs`에서 **정상 종료(`succeeded`·`partial`)한 최근 실행**을 확인한다(차단·실패는 세지 않음). `web_monitor_enabled=false`면 아무것도 하지 않는다. 마지막 정상 종료가 `web_heartbeat_stale_min`(130분) 넘게 전이면 키 `stale:{마지막 실행}:{n}`을 선점하고 **Vault의 비밀값과 `pg_net`으로 텔레그램을 직접 호출**한다.
-- 출력: ⚫ 모니터 정지 알림(24시간마다 재알림), 실행이 다시 정상 종료되면 🟢 모니터 재개 1회, 알림 시도 기록.
+- 입력: `pg_cron` 10분 주기. 처리: DB 함수 `web_monitor_heartbeat()`.
+  1. `web_monitor_enabled=false`면 아무것도 하지 않는다.
+  2. **살아 있음의 기준(v0.2):** `trigger in ('scheduled','retry')`이면서 `succeeded`·`partial`로 끝난 실행만 센다. **수동 점검과 시험(라이브) 실행은 세지 않는다**(cron이 죽었는데 수동 점검으로 감시가 리셋되는 일을 막는다). 차단·실패한 실행도 세지 않는다.
+  3. **기준 시각** = `greatest(마지막 정상 정시·재확인 실행의 종료 시각, 점검을 다시 켠 시각)`. 다시 켠 시각은 `web_settings`의 `web_monitor_enabled` 줄의 `updated_at`이다(별도 설정 테이블이라 변경 시각을 믿을 수 있다). 꺼 두었다가 켠 직후 첫 정시 점검 전에 곧바로 "정지"가 울리지 않는다.
+  4. 기준 시각이 `web_heartbeat_stale_min`(130분) 넘게 전이면 키 `stale:{마지막 정상 실행}:{n}`을 `claim_notification`으로 선점하고 **Vault의 비밀값과 `pg_net`으로 텔레그램을 앱 없이 직접 호출**한다.
+- **`pg_net`은 비동기다(v0.2):** `net.http_post`는 요청 번호만 돌려주고 실제 전송은 커밋 뒤에 일어난다. 그래서 감시 알림의 시도는 **두 단계로 기록**한다. ① 호출 때 `web_notifications`에 `queued` 줄(요청 번호 `net_request_id` 포함)을 남긴다. ② **다음 감시 주기(10분 뒤)에** 함수가 `net._http_response`에서 그 요청 번호의 응답을 읽어 `sent`/`failed` 줄을 추가하고, `failed`면 재발송(시도 번호 증가, 최대 3회)한다. 따라서 감시 알림의 재시도는 10분 간격이다(**확인 필요**: 쓰는 Supabase `pg_net` 버전에서 응답 테이블 이름·보존 시간).
+- 정지가 이어지면 `web_heartbeat_realert_hours`(24시간)마다 재알림, 실행이 다시 정상 종료되면 `resumed:{정지 알림의 마지막 정상 실행}` 키로 🟢 모니터 재개를 **같은 감시 함수가** 1회 보낸다(정지 알림도 이 함수가 보냈기 때문).
+- 출력: ⚫ 모니터 정지 알림, 🟢 모니터 재개 알림, 알림 시도 기록.
 
 ### 5.6 흐름 ⑥ 계획 점검 창 등록·취소 (팀장)
 | 단계 | 입력 | 처리 | 출력 |
 |---|---|---|---|
-| 1. 화면 | 시작·종료(KST), 사유 | 폼 검사(Zod): 종료 > 시작, 사유 1~200자 | — |
-| 2. 서버 액션 | `createMaintenanceWindow` | 로그인·팀장 재확인 → DB 함수 `create_maintenance_window()`(DB에서도 팀장 확인, KST → UTC 저장) | 창 1줄 |
-| 3. 취소 | `cancelMaintenanceWindow(id)` | DB 함수가 종료 시각을 지금으로 당기고 취소 표시(지우지 않음) | 갱신된 창 |
+| 1. 화면 | 시작·종료(KST), 사유 | 폼 검사(Zod): 종료 > 시작, 사유 1~200자, 길이 ≤ `web_window_max_hours` | — |
+| 2. 서버 액션 | `createMaintenanceWindow` | 로그인·팀장 재확인 → **KST 입력에 `+09:00`을 붙인 ISO 시각으로** DB 함수 `create_maintenance_window()`를 부른다. **시각 변환은 서버 액션 한 곳에서만 하고 DB 함수는 변환하지 않는다**(9시간이 두 번 밀리는 일 방지). DB에서도 팀장 확인, 같은 대상의 창과 겹치면 거부 | 창 1줄 |
+| 3. 취소 | `cancelMaintenanceWindow(id)` | DB 함수가 규칙대로 취소: **시작 전 창**은 `cancelled_at`만 기록(판정에서 제외, 줄은 남김), **진행 중 창**은 `ends_at`을 지금으로 당기고 `cancelled_at` 기록. **이미 끝난 창**은 취소할 수 없음 | 갱신된 창 |
+
+- 창은 **대상 하나를 반드시 지정**한다(전체 대상 창은 만들지 않는다. 실수로 모든 알림을 끄는 일을 막는다). 같은 대상의 취소되지 않은 창은 시간이 겹칠 수 없다.
 
 ### 5.7 흐름 ⑦ 수동 점검 (팀장)
 `/web`의 [지금 점검] → 서버 액션 `runWebCheckNow` → 팀장 확인 → 같은 점검 실행기를 `trigger='manual'`로 실행 → 결과는 **기록만** 하고(`web_probe_results`, 화면의 이력에 "수동" 표시) 상태·사건·알림·재확인 예약은 바꾸지 않는다. 이미 점검이 실행 중이면 `RUN_IN_PROGRESS`.
 
 ### 5.8 흐름 ⑧ 일일 보고서 홈페이지 절 (M3)
-입력: 보고 날짜(KST) → 처리: 그 날의 정시 점검 **확정 판정**을 `web_daily_summary` 또는 `web_check_runs`에서 집계(판정 분포, 확정 장애 건수·총 지속 시간, 일시 실패 횟수, 평균·최대 응답 시간, 가용률 식), 그 날의 `WEB` 이상징후 목록 → 출력: 보고서 본문의 홈페이지 절(미리보기·Markdown). 집계 함수는 순수 함수로 만들고 경계값을 시험한다.
+입력: 보고 날짜(KST) → 처리: **집계는 DB 함수 하나(`web_summarize_day(date)`)가 맡는다**(보존 삭제와 보고서가 같은 함수를 써서 계산이 어긋나지 않게 한다). 90일 안의 날은 `web_check_runs`에서, 보존 기간이 지나 삭제된 날은 `web_daily_summary`에서 읽는다. 앱의 `summary.ts`(순수 함수)는 이미 집계된 숫자에서 **가용률 식과 문구만** 만든다. 가용률의 분자·분모는 **정시 점검의 확정 판정**만 센다(저하는 정상 계열이 아니다. 기존 OpenAPI의 요약 함수 `summarizeProbes`는 저하를 정상으로 세므로 **재사용하지 않는다**). → 출력: 보고서 본문의 홈페이지 절(미리보기·Markdown), 그날의 `WEB` 이상징후 목록.
 
 ### 5.9 흐름 ⑨ 보존 삭제 (하루 1회)
-`pg_cron` → DB 함수가 보존 기간(`web_result_retention_days`, 90일)이 지난 `web_probe_results`·실행·재확인 큐를 **일별 요약**(`web_daily_summary`)으로 집계한 뒤 삭제한다. 추가 전용 테이블(알림 키·시도 기록)과 이상징후 이력은 지우지 않는다.
-
----
+`pg_cron` → DB 함수가 **KST 하루 전체 단위로** 보존 기간(`web_result_retention_days`, 90일)이 지난 날을 `web_summarize_day`로 `web_daily_summary`에 저장한 뒤 그 날의 `web_probe_results`·`web_check_runs`·완료된 `web_retry_queue`를 삭제한다(날짜가 반쯤 잘리지 않게). 재확인 실행의 `origin_run_id`는 `on delete set null`이다. 추가 전용 테이블(알림 키·시도 기록)과 이상징후 이력은 지우지 않는다. 같은 작업이 `cron.job_run_details`의 오래된 줄(14일 초과)도 정리한다(**확인 필요**: Supabase 권한).
 
 ## 6. 데이터 구조 (DB)
 
 ### 6.1 테이블
-모든 새 테이블: RLS 켬, 역할이 있는 로그인 사용자는 **읽기만**, 쓰기 정책 없음(쓰기는 서버 관리용 연결 또는 DB 함수만), 시각은 `timestamptz`(UTC 저장, 화면에서 KST로 변환).
+모든 새 테이블: RLS 켬, **역할이 있는 로그인 사용자는 읽기만**, 쓰기 정책 없음(쓰기는 서버 관리용 연결 또는 DB 함수만), 시각은 `timestamptz`(UTC 저장, 화면에서 KST로 변환).
 
 | 테이블 | 하는 일 | 주요 칸과 제약 |
 |---|---|---|
-| `web_check_runs` | 웹 점검 1회 | `id`, `target_key`, `trigger`(`scheduled`/`retry`/`manual`), `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `origin_run_id`(재확인이면 원래 실행), `triggered_by`(수동만, `profiles`), `request_count`, `overall_verdict`(6판정, 종료 전 null), `confirmed_verdict`(재확인 반영한 확정 판정, 정시 실행만), `flap`, `planned_maintenance`. 제약: 끝난 줄에는 종료 시각, `manual`만 `triggered_by`, **`running`은 전체에서 1개**(유니크 인덱스) |
-| `web_probe_results` | 프로브 1줄 | `run_id`, `target_key`, `layer`(`L1_CONNECT`/`L2_HTTP`/`L3_CONTENT`/`AUX_STUB`/`AUX_QUEUE`/`L4_FILES`), `counts_toward_overall`(인증서 임박·보조는 false), `verdict`(6판정), `reason`(허용 목록: `TIMEOUT`, `HTTP_5XX`, `HTTP_4XX_BLOCKED`, `HTTP_NOT_FOUND`, `MARKER_MISSING`, `TOO_SMALL`, `MAINTENANCE_DETECTED`, `BLOCK_PHRASE`, `CERT_EXPIRING`, `CERT_INVALID`, `REDIRECT_LIMIT`, `HOST_NOT_ALLOWED`, `STUB_CHANGED`, `BUDGET_SKIP`, `PRECONDITION_FAILED` 등), `http_status`, `duration_ms`, `final_url`(키·토큰 없음), `cert_days_left`, `detail`(JSON, 4KB 이하, 응답 본문 금지) |
-| `web_target_state` | 대상별 확정 상태 | `target_key`(기본키), `current_verdict`, `since`, `first_failure_at`, `consecutive_degraded`, `consecutive_unverifiable`, `consecutive_aux_bad`, `open_anomaly_id`(→ `anomalies`), `last_alert_at`, `alerts_today`, `alerts_today_date`(KST), `version`(동시 갱신 충돌 확인용), `updated_at` |
-| `web_retry_queue` | 재확인 예약 | `id`, `target_key`, `origin_run_id`, `due_at`, `status`(`pending`/`running`/`done`/`cancelled`), `created_at`, `processed_at` |
-| `web_maintenance_windows` | 계획 점검 창 | `id`, `target_key`(비면 전체), `starts_at`, `ends_at`(> `starts_at`), `reason`(1~200자), `created_by`(→ `profiles`, 필수), `created_at`, `cancelled_at`, `cancelled_by` |
-| `web_notification_keys` | 알림 멱등 키 선점 | `key`(기본키), `kind`, `target_key`, `incident_id`, `created_at`. **추가 전용** |
-| `web_notifications` | 발송 시도 기록 | `id`, `key`(→ `web_notification_keys`), `attempt`, `channel`(`telegram`), `kind`, `target_key`, `incident_id`, `status`(`sent`/`failed`), `response_code`, `error_class`(분류 이름만, 내부 문구 금지), `created_at`. `(key, attempt)` 유니크. **추가 전용** |
-| `web_daily_summary` | 일별 요약(보존 삭제·보고서용) | `summary_date`(KST), `target_key`, 판정별 횟수, `flap_count`, `confirmed_down_count`, `down_seconds`, `avg_ms`, `max_ms`. 기본키 `(summary_date, target_key)` |
+| `web_settings` | **웹 전용 설정**(v0.2, 기존 `settings`와 분리) | `key`(기본키, `web_` 접두어 키만), `value`(JSON), `updated_at`. 허용 키 목록과 값 범위는 이 테이블 전용 CHECK·함수가 검사, 키 삭제·이름 변경 금지, 읽기는 로그인 사용자 |
+| `web_check_runs` | 웹 점검 1회 | `id`, `target_key`, `trigger`(`scheduled`/`retry`/`manual`), `slot_at`(정시 칸의 시각, 정시·대체 실행만), `status`(`running`/`succeeded`/`partial`/`failed`/`blocked`), `started_at`, `finished_at`, `origin_run_id`(재확인이면 원래 실행, `on delete set null`), `triggered_by`(수동만, `profiles`), `request_count`, `overall_verdict`(6판정, 종료 전 null), `confirmed_verdict`(재확인 반영한 확정 판정, 정시 실행만, 재확인 대기 중에는 null), `flap`, `planned_maintenance`. 제약: 끝난 줄에는 종료 시각, `manual`만 `triggered_by`, **`running`은 전체에서 1개**(유니크), **`(target_key, slot_at)`는 `blocked`가 아닌 정시 실행에서 유일** |
+| `web_probe_results` | 프로브 1줄 | `run_id`, `target_key`, `layer`(`L1_CONNECT`/`L2_HTTP`/`L3_CONTENT`/`AUX_STUB`/`AUX_QUEUE`/`L4_FILES`), `counts_toward_overall`, `verdict`(6판정), `reason`(**닫힌 허용 목록**: `TIMEOUT`, `SLOW_RESPONSE`, `DNS_FAILED`, `TCP_FAILED`, `TLS_FAILED`, `HTTP_5XX`, `HTTP_BLOCKED`(401·403·429), `HTTP_4XX_OTHER`, `HTTP_NOT_FOUND`, `MARKER_MISSING`, `TOO_SMALL`, `MAINTENANCE_DETECTED`, `BLOCK_PHRASE`, `CERT_EXPIRING`, `CERT_INVALID`, `REDIRECT_LIMIT`, `HOST_NOT_ALLOWED`, `STUB_CHANGED`, `FILE_NOT_FOUND`, `UPSTREAM_FAILED`(앞 층 실패로 건너뜀), `BUDGET_SKIP`, `INTERNAL_ERROR`(조회기의 예기치 않은 오류), 정상은 null), `http_status`, `duration_ms`, `final_url`(키·토큰 없음), `cert_days_left`, `detail`(JSON 4KB 이하, 응답 본문 금지) |
+| `web_target_state` | 대상별 확정 상태 | `target_key`(기본키), `current_verdict`(첫 실행 전에는 줄이 없다. 첫 정시 점검이 줄을 만든다), `since`, `first_failure_at`, `incident_no`(사건 번호, 대상별 증가), `incident_open`, `incident_last_alert_at`(사건의 마지막 알림 시각, 지속 알림 시계), `ongoing_count`, `open_anomaly_id`(→ `anomalies`), `consecutive_degraded`·`degraded_start_run_id`, `consecutive_unverifiable`·`unverifiable_start_run_id`, `aux_state`(JSON: 프로브별 연속 횟수와 시작 실행), `unplanned_since_run_id`·`unplanned_since`, `alerts_today`·`alerts_today_date`(KST), `version`(동시 갱신 충돌 확인), `updated_at`. 연속 횟수는 **정시 점검 1회당 1** 센다(재확인·수동은 세지 않음) |
+| `web_retry_queue` | 재확인·대체 실행 예약 | `id`, `target_key`, `kind`(`confirm`/`replace`), `origin_run_id`, `due_at`, `status`(`pending`/`claimed`/`done`/`cancelled`), `claimed_at`, `attempts`, `created_at`, `processed_at`. **대상별 `pending`·`claimed`는 1개**(부분 유니크) |
+| `web_maintenance_windows` | 계획 점검 창 | `id`, `target_key`(**필수**), `starts_at`, `ends_at`(> `starts_at`, 최대 길이 이내), `reason`(1~200자), `created_by`(→ `profiles`, 필수), `created_at`, `cancelled_at`, `cancelled_by`. **같은 대상의 취소되지 않은 창은 시간 범위가 겹칠 수 없음**(배제 제약) |
+| `web_notification_keys` | 알림 멱등 키 선점 | `key`(기본키), `kind`, `target_key`, `incident_no`, `created_at`. **추가 전용** |
+| `web_notifications` | 알림 줄(대기·시도) | `id`, `key`(→ 키), `attempt`(0=`queued`, 1~5=시도), `channel`(`telegram`/`log`), `kind`, `target_key`, `status`(`queued`/`sent`/`failed`), `response_code`, `net_request_id`(감시 알림 전용), `error_class`(분류 이름만, 내부 문구 금지), `created_at`. `(key, attempt)` 유니크. **추가 전용** |
+| `web_daily_summary` | 일별 요약(보존 삭제·보고서용) | `summary_date`(KST), `target_key`, 판정별 횟수, `planned_count`, `unplanned_count`, `flap_count`, `confirmed_down_count`, `down_seconds`, `avg_ms`, `max_ms`. 기본키 `(summary_date, target_key)` |
 
-**기존 테이블·코드 변경:** `anomalies`의 `rule_id` 허용 목록에 `WEB_AVAILABILITY`·`WEB_FRESHNESS` 추가, **출처 허용 값에 `WEB` 추가**, `anomaly_events`의 사건 종류에 `recovered` 허용(제약 3개 + 새 기록 함수). 그 밖의 기존 테이블(`check_runs`, `probe_results`, `collected_items`, `reports`, `settings`의 `scheduled_source`)은 바뀌지 않는다.
+**기존 테이블·코드 변경:** `anomalies`의 `rule_id` 허용 목록에 `WEB_AVAILABILITY`·`WEB_FRESHNESS` 추가, **출처 허용 값에 `WEB` 추가**, `anomaly_events`의 사건 종류에 `recovered` 허용(제약 3개 + 새 기록 함수). **기존 `settings` 테이블·`loadSettings`·`settings-drift.test.ts`는 바꾸지 않는다**(웹 설정을 따로 두었기 때문). 그 밖의 기존 테이블(`check_runs`, `probe_results`, `collected_items`, `reports`)도 바뀌지 않는다.
 
 ### 6.2 관계
 ```
@@ -383,16 +439,18 @@ web_notification_keys ──< web_notifications
 ### 6.3 DB 함수 (트랜잭션으로 묶어 처리)
 | 함수 | 하는 일 | 호출자 |
 |---|---|---|
-| `start_web_check_run(target, trigger, user, origin)` | 120~180초 지난 멈춘 `running`을 실패로 정리한 뒤 새 줄을 만든다. 이미 실행 중이면 `blocked` 줄을 남기고 알린다 | 서버 |
+| `start_web_check_run(target, trigger, user, origin, slot)` | `web_stale_running_seconds`(기본 180초) 지난 멈춘 `running`을 실패로 정리한 뒤 새 줄을 만든다. 이미 실행 중이면 `blocked` 줄을 남기고, 정시면 `replace` 큐 줄을 예약한다 | 서버 |
 | `finish_web_check_run(run, …)` | 종료·대표 판정·`partial`/`succeeded` 기록 | 서버 |
-| `record_web_transition(run, decision)` | 5.3의 ②~⑤를 **한 트랜잭션**으로 처리(대상별 잠금, 버전 불일치면 다시 읽고 재시도) | 서버 |
-| `claim_notification(key, …)` | 알림 키 선점(유니크), 성공 여부 반환 | 서버, 감시 함수 |
+| `record_web_transition(run, decision, expected_version)` | 5.3의 ②~⑤를 **한 트랜잭션**으로 처리(대상별 잠금). 버전이 다르면 **저장하지 않고 `CONFLICT`를 돌려준다**. 알림 키 선점과 `queued` 줄 생성, 재확인이면 원래 실행의 `confirmed_verdict`·`flap` 채움 | 서버 |
+| `claim_notification(key, …)` | 알림 키 선점(유니크), 성공 여부 반환. **감시 함수의 알림에만 쓴다** | 감시 함수 |
 | `record_notification_attempt(key, attempt, status, code, class)` | 시도 한 줄 추가 | 서버, 감시 함수 |
-| `create_maintenance_window(start, end, reason)` / `cancel_maintenance_window(id)` | **팀장만**(DB에서 호출자 역할 확인), KST→UTC, 취소는 종료 시각을 당김 | 로그인 사용자(서버 액션 경유) |
-| `web_enqueue_due_retries()` | 매분: due가 지난 큐 행이 있을 때만 앱 재확인 경로를 `pg_net`으로 호출 | `pg_cron` |
+| `create_maintenance_window(target, start, end, reason)` / `cancel_maintenance_window(id)` | **팀장만**(DB에서 호출자 역할 확인). 입력 시각은 이미 UTC 기준 시각이며 DB는 변환하지 않는다. 겹침·최대 길이 검사, 취소는 5.6의 규칙 | 로그인 사용자(서버 액션 경유) |
+| `web_enqueue_due_retries()` | 매분: due가 지난 큐 줄이나 15분 넘게 미발송인 알림이 있을 때만 앱 재발송·재확인 경로를 `pg_net`으로 호출, 멈춘 `claimed` 줄 정리, 만료 처리 | `pg_cron` |
 | `web_monitor_heartbeat()` | 5.5 | `pg_cron` |
+| `web_summarize_day(date)` | 하루의 집계(5.8). 보고서와 보존 삭제가 같은 함수를 씀 | 서버, 보존 함수 |
 | `web_retention_cleanup()` | 5.9 | `pg_cron` |
 | `record_recovery_event(anomaly, …)` | 이상징후 이력에 `recovered` 사건 추가(시스템 행위자, 상태 불변) | `record_web_transition` 안 |
+| `get_web_setting(key)` 류 | 웹 설정 읽기(앱은 직접 테이블을 읽는다) | 서버 |
 
 ### 6.4 RLS와 쓰기 경로 요약
 - 읽기: 역할(`operator`/`admin`)이 있는 로그인 사용자. 비로그인은 거부.
@@ -400,10 +458,13 @@ web_notification_keys ──< web_notifications
 - 추가 전용(수정·삭제 금지 트리거): `web_notification_keys`, `web_notifications`, 기존 `anomaly_events`. **`web_probe_results`는 추가 전용이 아니다**(기존 `probe_results`와 같은 성격, 보존 삭제·시험 정리를 위해).
 - 새 테이블·함수는 기존 `00_rls_guard` 시험을 통과해야 한다.
 
-### 6.5 설정값
-계획서 §4.4의 `web_*` 키(타임아웃 `web_http_timeout_ms`=10000, 저하 `web_http_slow_ms`=3000, 재확인 지연 90초, 재알림 3시간, 저하·검증 불가·보조 이상 연속 횟수, 인증서 14일, 감시 130분·재알림 24시간, 보존 90일, 하루 알림 상한 12, 실행 시간 예산 60초, 실행 정리 180초, 요청 간격 500ms, `web_monitor_enabled`)를 따른다. **웹 설정은 기존 API 점검 설정과 따로 읽는다**(`lib/web-monitor/settings.ts`): 웹 키가 없거나 틀려도 OpenAPI 점검이 멈추지 않는다. 스케줄(`7 * * * *` 등)은 설정값이 아니라 스케줄러 등록 스크립트가 관리한다.
+### 6.5 설정값 (웹 전용 테이블, v0.2)
+**기존 `settings` 테이블에 넣지 않고 별도 테이블 `web_settings`에 둔다.** 기존 설정 읽기(`loadSettings`)는 테이블의 **모든 줄을 읽고 모르는 키를 오류로 거부**하며, 이 함수는 OpenAPI 예약 점검·대시보드·보고서·수동 점검이 쓴다. 웹 키를 같은 테이블에 넣으면 그 즉시 기존 기능이 멈추고 설정 드리프트 시험도 깨진다. 별도 테이블은 **기존 코드·시험을 전혀 건드리지 않는다.** 읽기는 웹 전용 코드(`lib/web-monitor/settings.ts`)가 맡고, 웹 설정이 틀려도 웹 점검만 `SettingsError`로 멈추며 OpenAPI 점검에는 영향이 없다.
 
----
+- 키와 기본값은 계획서 §4.4를 따른다: `web_http_timeout_ms`=10000(1000~30000), `web_http_slow_ms`=3000(타임아웃 미만), `web_confirm_retry_delay_sec`=90, `web_realert_after_hours`=3, `web_degraded_alert_count`=2, `web_unverifiable_alert_count`=3, `web_aux_alert_count`=3, `web_cert_warn_days`=14, `web_heartbeat_stale_min`=130(90 이상), `web_heartbeat_realert_hours`=24, `web_freshness_max_hours`=24, `web_result_retention_days`=90, `web_alert_daily_cap`=12, `web_run_time_limit_seconds`=60(10~85), `web_stale_running_seconds`=180(실행 한도보다 큼), `web_request_gap_ms`=500, `web_notify_timeout_ms`=5000, `web_window_max_hours`=168, `web_unplanned_escalate_hours`=6, `web_monitor_enabled`=true.
+- **뜻이 없는 설정은 두지 않는다:** `web_notify_on_manual_check`는 수동 점검이 상태 전환을 만들지 않아 보낼 알림이 정의되지 않으므로 **삭제**한다(수동 점검은 알림을 보내지 않는다).
+- 스케줄(`7 * * * *`, 매분, 10분, 하루 1회)은 설정값이 아니라 **스케줄러 등록 스크립트**(`scripts/setup-cron.mjs`)가 관리한다.
+- 비밀값(텔레그램 토큰·채팅 ID)은 설정이 아니라 Vault와 Vercel 환경변수다. 개발·시험의 실발송 방지는 환경변수 `WEB_NOTIFY_MODE`(`telegram`/`log`)로 한다.
 
 ## 7. 서버 입구 (API)
 
@@ -416,7 +477,8 @@ web_notification_keys ──< web_notifications
 | 서버 액션 | `cancelMaintenanceWindow(id)` | 계획 점검 창 취소 | admin |
 | 서버 컴포넌트 조회 | `/web`, `/web/runs/[id]`, 대시보드 카드 | 상태·이력·알림·창 조회 | 로그인 사용자(역할 있음) |
 
-- 서버 액션 응답 모양과 `ActionResult<T>`는 기존과 같다(`DESIGN.md` 7장). 입력은 Zod로 검사하고, 시각은 KST로 받아 UTC로 저장한다.
+- 서버 액션 응답 모양과 `ActionResult<T>`는 기존과 같다(`DESIGN.md` 7장). 입력은 Zod로 검사한다. **시각 변환은 서버 액션 한 곳에서만 한다**: KST 입력값에 `+09:00`을 붙인 ISO 시각을 DB 함수에 넘기고 DB 함수는 변환하지 않는다(`lib/time.ts` 사용).
+- 수동 점검 서버 액션은 점검 경로와 같은 서울 리전에서 실행된다(`vercel.json`의 프로젝트 전체 리전, 2.3).
 - 점검 경로의 응답 본문에는 내부 정보(주소, 토큰, 예외 문구)를 넣지 않는다.
 
 ---
@@ -472,18 +534,19 @@ web_notification_keys ──< web_notifications
 
 | 수준 | 도구 | 무엇을 |
 |---|---|---|
-| 단위 | Vitest | `classify`(판정 표의 모든 행·경계값), `decide`(상태 전환표, 지속 알림 기준, 인증서·보조·점검 불가 연속 규칙, 하루 상한), 멱등 키 생성, 메시지(KST·이스케이프), 허용 호스트, 집계·가용률 |
-| 목 서버 | Vitest + 로컬 HTTP(S) 서버 | 503, 타임아웃, 점검 문구, 표식 누락, 차단 페이지, 리다이렉트 루프, 허용 밖 이동, 스텁 이동 코드 소실, 인증서 만료(만료일 + 고정 시각 주입) |
-| DB | pgTAP | 새 테이블 RLS(비로그인·로그인·서버), 쓰기 정책 없음, 추가 전용, `running` 1개, 멈춘 실행 정리, 창 종료>시작, 팀장 함수 권한, 감시 경계(129/130분), 키 선점 유니크, `record_web_transition` 원자성, 허용 규칙·출처 `WEB`·사건 종류 |
-| 화면 | Playwright (시험 전용 계정) | `/web` 조회, 팀장만 보이는 버튼·창 등록, 수동 점검, 알림 실패 표시, 경고 띠, 홈페이지 카드(모바일 포함) |
-| 라이브 DB | Vitest(서버 키) | 점검 실행기가 실제 DB에 기록하는지(만든 줄만 지움) |
-| 운영 확인 | 수동·기록 | 서울 리전 접속, 연속 24회 실행, 실제 텔레그램 1건 수신, 매시간 작업 정지 시 정지 알림, `pg_net` 기록의 토큰 잔존 |
+| 단위 | Vitest | `classify`(판정 표의 모든 행·경계값), `decide`(**PRD FR-6 전환표의 모든 행**, 지속 알림 기준, 인증서·보조·점검 불가 연속 규칙, 하루 상한, 점검 문구 처리표, 창 경계·승격), 멱등 키 생성(키 종류 11가지 모양과 중복·반복 구분), 메시지(KST·이스케이프), 허용 호스트, 가용률 식(저하는 정상 계열이 아님) |
+| 목 서버 | Vitest + 로컬 HTTP(S) 서버 | 503, 타임아웃, 점검 문구, 표식 누락, 차단 페이지, 리다이렉트 루프, 허용 밖 이동, 스텁 이동 코드 소실, 인증서 만료(만료일 + 고정 시각 주입), 이미지 5xx·형식 불일치 |
+| 시나리오 | Vitest(가짜 저장소 + 목 서버 + 목 텔레그램) | **목 서버 → 판정 → 전환 → 알림**을 잇는 시나리오: 정상→실패→정상이면 알림 정확히 2건(장애·복구), 1회 실패 후 재확인 정상이면 알림 0건·일시 실패 1건, 7시간 지속이면 지속 알림 2건, 같은 실행 중복 시 중복 발송 없음·반복 알림은 막히지 않음, 저하 2회 연속 → 사건 시작, 점검 문구 창 안·창 밖·승격, 정시 점검이 `blocked`되면 대체 실행 |
+| 알림 발송 | Vitest(목 텔레그램) | 200·429·5xx, 3회 재시도 후 실패 기록, `queued` 줄 회수(15분 넘게 미발송이면 재발송), 동시에 두 실행이 같은 알림을 보내지 않음, `WEB_NOTIFY_MODE=log`는 실제로 보내지 않음 |
+| DB | pgTAP | 새 테이블 RLS(비로그인·로그인·서버), 쓰기 정책 없음, 추가 전용(키·시도), `running` 1개, `(target, slot_at)` 유일, 멈춘 실행 정리, 대기열 선점 원자성·대상별 1개·멈춘 줄 정리·만료, 창 종료>시작·**겹침 거부·시작 전 창 취소·진행 중 창 취소**·최대 길이, 팀장 함수 권한, 감시 경계(129/130분, **수동·시험 실행만 있으면 정지 알림이 나감**, 다시 켠 직후엔 안 나감), 키 선점 유니크, `record_web_transition`의 원자성·`CONFLICT`, 이상징후 닫힘 후 새 건·`recovered`는 열린 건에만, 허용 규칙·출처 `WEB`·사건 종류, `web_settings` 허용 키·범위·**기존 `loadSettings`가 웹 키가 있어도 성공**, 집계 함수·보존 삭제 경계(KST 하루 단위) |
+| 화면 | Playwright (시험 전용 계정) | `/web` 조회, 팀장만 보이는 버튼·창 등록, 수동 점검, 알림 실패 표시, 경고 띠(조건 켜짐·꺼짐), 홈페이지 카드(모바일 포함). **웹 쓰기가 운영 DB에 닿지 않도록 목 저장소를 쓴다(아래)** |
+| 라이브 DB | Vitest(서버 키) | 점검 실행기가 실제 DB에 기록하는지(만든 줄만 지움. 판정 결과 테이블은 추가 전용이 아니라 지울 수 있음) |
+| 운영 확인 | 수동·기록 | 서울 리전 접속, 연속 24회 실행, 실제 텔레그램 1건 수신, 매시간 작업 정지 시 정지 알림, `pg_net` 기록의 토큰 잔존, 웹 설정 키 추가 후 기존 점검이 정상인지 |
 
-**경계값(꼭 시험할 것):** 타임아웃 10000ms, 응답 3000ms/3001ms, 인증서 14일/15일, 401·403·404·410·429·그 밖의 4xx, 리다이렉트 10/11회, 지속 알림 2시간 59분/3시간 00분, 감시 129분/130분, 하루 알림 12/13건.
-**시험 데이터:** pgTAP은 `begin…rollback` 안에서만 만들고, 화면 시험은 목 저장소 또는 표식이 붙은 시험 대상 키를 쓰며 화면 목록에서 제외한다(운영 DB를 공유하므로 시험 데이터가 영구히 남지 않게).
-**회귀:** 기존 단위·pgTAP·화면 시험, 특히 `mark_schedule_missed`, `check_runs`, 설정 읽기, `00_rls_guard`.
-
----
+**경계값(꼭 시험할 것):** 타임아웃 10000ms, 응답 3000ms/3001ms, 인증서 14일/15일, 401·403·404·410·429·그 밖의 4xx, 리다이렉트 10/11회, 지속 알림 2시간 59분/3시간 00분, 감시 129분/130분, 하루 알림 12/13건, 창 시작·종료 시각의 점검(`[시작, 종료)`), 창 최대 길이 168/169시간, 점검 문구 승격 5시간 59분/6시간.
+**화면 시험의 운영 DB 보호(v0.2):** `test:e2e`의 개발 서버는 운영 DB에 붙는다. 그래서 **개발 서버를 띄울 때 `WEB_MONITOR_STORE=mock`**(Playwright 설정의 `webServer` 환경변수)을 주어 `store.ts`가 **메모리 목 저장소**를 쓰게 한다. 그러면 창 등록, 알림 실패 표시, 수동 점검이 운영 DB에 줄을 남기지 않고, 수동 점검의 대상 주소도 목 서버로 바뀐다(실제 온비드에 요청하지 않음). `WEB_NOTIFY_MODE`는 시험에서 항상 `log`다. 목 저장소는 운영 배포에서 켜지지 않도록 운영 환경변수에 두지 않는다(값이 있으면 앱이 시작 시 거부).
+**시험 데이터:** pgTAP은 `begin…rollback` 안에서만 만든다.
+**회귀:** 기존 단위·pgTAP·화면 시험, 특히 `mark_schedule_missed`, `check_runs`, **기존 설정 읽기와 드리프트 시험(무변경)**, `00_rls_guard`.
 
 ## 11. 폴더 구조와 코드 규칙
 
@@ -497,17 +560,20 @@ lib/web-monitor/
   probes/connect.ts    L1  ·  probes/http.ts  L2  ·  probes/content.ts  L3
   probes/aux.ts        보조 확인(진입 스텁, 대기열)  ·  probes/files.ts  L4(M3)
   classify.ts          프로브 판정과 대표 판정 (순수)
-  decide.ts            상태 전환·알림 결정 (순수)  (계획서의 state.ts)
+  decide.ts            상태 전환·알림 결정 (순수)
   maintenance.ts       계획 점검 창 판정 (순수)
   runner.ts            점검 1회 실행(격리·시간 예산)
-  store.ts             DB 저장·조회(서버 관리용 연결)
+  store.ts             DB 저장·조회(서버 관리용 연결). `WEB_MONITOR_STORE=mock`이면 메모리 목 저장소(화면 시험용)
+  settings.ts          웹 설정 읽기(web_settings 테이블 전용)
   notify/types.ts  telegram.ts  messages.ts
   summary.ts           일별·보고서 집계 (순수)
 app/api/cron/web-check/route.ts · web-retry/route.ts
 app/(app)/web/page.tsx · actions.ts · runs/[id]/page.tsx
 components/web/        status-card · hour-strip · runs-table · notification-list · window-form
-supabase/migrations/…  테이블·함수·제약·크론 작업
+supabase/migrations/…  테이블·함수·제약 (크론 작업은 마이그레이션이 아니라 아래 스크립트가 등록)
 supabase/tests/database/…  새 pgTAP 시험
+scripts/setup-cron.mjs  크론 작업 등록(매시·매분·10분·하루)과 텔레그램 비밀값(Vault) 등록, 출력의 비밀값 가림
+vercel.json             함수 지역 `regions: ["icn1"]`
 tests/unit/web-*.test.ts · tests/e2e/web.spec.ts
 docs/web-monitor-*.md  조사·운영·관찰 문서
 ```
@@ -525,23 +591,32 @@ docs/web-monitor-*.md  조사·운영·관찰 문서
 ## 12. 구현 안내
 
 ### 12.1 구현 순서 (계획서의 작업 번호)
-`W00-1` 서울 리전 확인 → `M1`: `W01~W03a`(등록부·판정·프로브, 순수 로직) → `W04~W05`(DB·설정) → `W06~W08`(실행기·입구·스케줄) → `W09` → (문서 반영 후) `M2`: `W10~W19` → 1주 관찰 → `M3`: `W20~W24`.
+`W00-1` 서울 리전 확인 → `M1`: `W01~W03a`(등록부·판정·프로브, 순수 로직) → `W05 → W04`(웹 설정, 그다음 DB·테이블) → `W06~W08`(실행기·입구·스케줄) → `W09` → (문서 반영 후) `M2`: `W10a`(알림·전환 DB 함수) → `W10~W19` → 1주 관찰 → `M3`: `W20~W24`.
 
 ### 12.2 작업 묶음 (세션 안내)
 | 세션 | 작업 | 만드는 것 | 확인 방법 |
 |---|---|---|---|
-| S0 | W00-1 | 서울 리전 최소 경로 | 배포 후 접속 결과 기록 |
+| S0 | W00-1 | `vercel.json` 서울 리전과 진단 경로 | 배포 후 지역·접속 결과 기록 |
 | S1 | W01, W02, W03, W03a | 등록부, 판정, 프로브 | `npm run test:unit`(목 서버) |
-| S2 | W04, W05 | DB 테이블·함수, 웹 설정 | `db:push`, `check:db`, `test:db` |
-| S3 | W06, W07, W08 | 실행기, 입구, 스케줄 | 연속 24회 실행 기록 |
-| S4 | W10, W11, W12 | 상태 전환, 재확인, 텔레그램 | 시나리오 시험, 실제 알림 1건 |
-| S5 | W13, W14, W15 | `/web` 화면, 이상징후 연동(출처 `WEB`), 계획 점검 창 | `test:e2e`, `test:db` |
-| S6 | W16, W17, W18, W19 | 자체 감시, 수동 점검, 운영 문서, 보존 삭제 | 정지 알림 운영 확인 |
+| S2 | **W05 → W04** | 웹 설정 테이블·읽기, 점검 실행·결과·상태·재확인 큐 테이블과 시작·종료 함수(W04가 W05의 `web_stale_running_seconds`를 읽으므로 **W05를 먼저**) | `db:push`, `check:db`, `test:db`, 기존 설정 읽기 무변경 확인 |
+| S3 | W06, W07, W08 | 실행기, 입구, 매시 스케줄 | 연속 24회 실행 기록 |
+| S4a | **W10a** | 알림 키·알림 줄 테이블, `claim_notification`·`record_notification_attempt`·`record_web_transition`·`record_recovery_event`·이상징후 출처·규칙·사건 종류 허용 | `test:db` |
+| S4b | W10, W11, W12 | 상태 전환(decide), 재확인·대체 실행 큐와 매분 작업, 텔레그램·`log` Notifier, **텔레그램 비밀값(Vault) 등록과 가림** | 시나리오 시험, 실제 알림 1건 |
+| S5 | W13, W14, W15 | `/web`·`/web/runs/[id]`·경고 띠 화면, 이상징후 화면(출처 `WEB`) 연동, 계획 점검 창 | `test:e2e`(목 저장소), `test:db` |
+| S6 | W16, W17, W18, W19 | 자체 감시(10분 작업), 수동 점검, 운영 문서, 보존 삭제(매일 작업)와 집계 함수 | 정지 알림 운영 확인 |
 | S7 | W20~W24 | 파일 서버 점검, 신선도, 카드, 보고서 | 화면·집계 시험 |
 
 각 세션은 `CLAUDE.md`의 검증 루프(변경 → 린트·빌드 → 시험 → 커밋)를 따른다.
 
----
+### 12.3 배포 순서와 롤백 (v0.2)
+| 단계 | 순서 | 이유·주의 |
+|---|---|---|
+| 1 | 코드 먼저(웹 코드는 `web_monitor_enabled`가 없거나 false이면 아무것도 하지 않음) | 기존 설정·점검에 영향 없음 |
+| 2 | DB 마이그레이션(`web_*` 테이블, 함수, `anomalies` 출처·규칙 허용) | 웹 설정 테이블이 **기존 `settings`와 별개**라서 기존 점검이 멈출 위험이 없다. `anomalies`의 출처 `WEB` 허용은 **실제 웹 이상징후가 생기면 되돌릴 수 없다**(되돌리려면 먼저 그 줄을 정리해야 하며 이력은 삭제 금지) |
+| 3 | 웹 설정 값 넣기(`web_settings`), 텔레그램 비밀값(Vault·Vercel) 등록 | `WEB_NOTIFY_MODE=log`로 먼저 시험 |
+| 4 | **크론 등록은 가장 마지막**(매시 → 매분 → 10분 → 하루) | 등록 전에는 점검이 돌지 않는다 |
+| 롤백 | `web_monitor_enabled=false`(SQL: `web_settings` 갱신) + `setup-cron --remove-web` | 웹 점검·재확인·알림·감시 중지, 기존 OpenAPI 점검에는 영향 없음. 화면에서 끄는 기능은 만들지 않는다(설정 화면 없음) |
+| 웹 설정이 아직 DB에 없을 때 | 웹 코드는 "꺼진 것"으로 보고 아무것도 하지 않으며 감시 함수도 정지 알림을 보내지 않는다 | 설정 읽기 실패가 정지 오경보나 점검 중단으로 번지지 않게 |
 
 ## 부록. 확인이 필요한 항목과 열린 질문
 
@@ -553,9 +628,14 @@ docs/web-monitor-*.md  조사·운영·관찰 문서
 | D5: `main.do` 404·410을 실패로 볼지 | 기본안 실패 |
 | D6: L5 공휴일 처리 | 기본안 평일만 영업일 |
 | 대시보드 R05 재설계와 홈페이지 카드의 순서 | 겹치면 카드는 M3에서 조정 |
-| 점검 정지 경고 띠를 서버에서 계산하는 방법(마지막 정상 종료 시각 조회) | W13에서 확정 |
+| 경고 띠는 `/`·`/web` 화면 안에 둔다(레이아웃은 다시 그려지지 않음) | 확정(4.2) |
+| `vercel.json` 프로젝트 전체 서울 리전이 기존 OpenAPI 점검·응답 시간·요금제에 미치는 영향 | 확인 필요(W00-1) |
+| 쓰는 `pg_net` 버전의 응답 테이블(`net._http_response`) 이름·보존 시간 | 확인 필요(W16) |
+| `cron.job_run_details` 정리 권한 | 확인 필요(W19) |
+| 응답 시간 측정: Node `fetch`는 연결 시간을 따로 주지 않으므로 "연결 시간을 뺀" 정의를 쓸 수 있는지 | 확인 필요(W03, 필요하면 PRD §6.2 정의를 "요청 시작부터 응답 완료까지"로 단순화) |
 
 ## 버전 기록
 | 버전 | 날짜 | 내용 |
 |---|---|---|
 | v0.1 | 2026-11-04 | 최초 작성(PRD v0.2·계획서 v0.2 기준, 화면·데이터 흐름·기술 선택) |
+| v0.2 | 2026-11-04 | 설계서 검토 G1~G23 반영: 웹 설정 별도 테이블, 서울 리전(`vercel.json`), 알림 아웃박스, 사건 정의(저하 포함), 감시 기준, 대기열 수명주기, 창 취소·겹침, 화면 시험 목 저장소, 배포 순서·롤백 |
