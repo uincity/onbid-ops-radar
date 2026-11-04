@@ -144,7 +144,7 @@ function memoryStore(usedToday: Record<string, number> = {}) {
   return { store, rec };
 }
 
-const extraBody = () => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" });
+const extraBody = () => okBody({ pbctCdtnNo: "1", onbidPbancNo: "1", pbancMngNo: "202406-21411-00", cltrMngNo: "2026-1100-000001", cltrUsgMclsCtgrId: "11200", pbctNo: "1", ctgrId: "1", ctgrNm: "x", upCtgrId: "0" });
 function mixedApi(extra: (url: URL) => Response = extraBody) {
   return fakeApi((url) => {
     if (url.pathname.endsWith("getRlstCltrList2")) return okBody([listItem(1), listItem(2), listItem(3)]);
@@ -202,7 +202,8 @@ describe("서비스 단위 배치 순서와 요약 (엔진)", () => {
     await run(api, memoryStore(), true); // 일부러 거꾸로 넘긴다
     const targets = genericProbeTargets(NOW);
     const expected = targets.map((t) => new URL(t.url).pathname.split("/").pop());
-    const actualExtras = api.urls.map((u) => u.pathname.split("/").pop()).filter((name) => expected.includes(name));
+    // 유가증권 상세(009)는 부모 목록(동산 목록, 용도 11200 조건)을 먼저 한 번 더 부르므로, 그 조회 호출은 순서 비교에서 뺀다 (자식 호출 직전에 붙어 있다)
+    const actualExtras = api.urls.filter((u) => !(u.pathname.endsWith("getMvastCltrList2") && u.searchParams.get("cltrUsgMclsCtgrId") === "11200")).map((u) => u.pathname.split("/").pop()).filter((name) => expected.includes(name));
     expect(actualExtras).toEqual(expected);
   });
 

@@ -7,6 +7,6 @@ export function buildPublicCheck(options: { serviceKey: string; timeoutSeconds: 
   const targets = genericProbeTargets(options.now);
   return {
     fetcher: createPublicFetcher({ serviceKey: options.serviceKey, timeoutSeconds: options.timeoutSeconds, extraOperations: targets, callIntervalMs: options.callIntervalMs }),
-    extraEndpoints: targets.map((t) => ({ endpoint: t.endpoint, operationKey: t.operationKey })),
+    extraEndpoints: targets.map((t) => ({ endpoint: t.endpoint, operationKey: t.operationKey, calls: t.lookup ? 2 : 1 })),
   };
 }

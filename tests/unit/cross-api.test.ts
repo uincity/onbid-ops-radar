@@ -22,8 +22,8 @@ describe("관계 목록과 등록부(명세)의 일치", () => {
     expect(relationProblems(REL)).toEqual([]);
   });
 
-  it("선언한 관계 8개가 모두 등록부(명세)와 맞는다: 자식의 필수 입력 = 관계의 항목, 부모 응답에 항목이 있고, 부모가 자식의 입력 출처 후보다", () => {
-    expect(CROSS_API_RELATIONS).toHaveLength(8);
+  it("선언한 관계 9개(8개 + 동산 목록의 유가증권 물건 → 유가증권 상세)가 모두 등록부(명세)와 맞는다: 자식의 필수 입력 = 관계의 항목, 부모 응답에 항목이 있고, 부모가 자식의 입력 출처 후보다", () => {
+    expect(CROSS_API_RELATIONS).toHaveLength(9);
     for (const relation of CROSS_API_RELATIONS) expect(relationProblems(relation), `${relation.parentKey} → ${relation.childKey}`).toEqual([]);
     expect(validCrossApiRelations()).toEqual([...CROSS_API_RELATIONS]);
   });
@@ -49,7 +49,7 @@ describe("관계 목록과 등록부(명세)의 일치", () => {
     for (const s of withoutSource.services) for (const o of s.operations) if (`${s.serviceId}/${o.operationId}` === CHILD) o.inputSourceCandidates = [];
     expect(relationProblems(REL, withoutSource).join()).toContain("입력값 출처");
     expect(validCrossApiRelations(withoutSource)).not.toContainEqual(REL); // 연결이 끊긴 관계만 빠진다
-    expect(validCrossApiRelations(withoutSource)).toHaveLength(7);
+    expect(validCrossApiRelations(withoutSource)).toHaveLength(8);
 
     expect(relationProblems({ ...REL, fields: ["noSuchField"] }).join()).toContain("noSuchField");
     expect(relationProblems({ ...REL, childKey: "SVC-API-999/none" }).join()).toContain("등록부에 없습니다");
@@ -254,7 +254,7 @@ describe("관계가 여러 개일 때 (엔진)", () => {
   }
   const callsTo = (fake: ReturnType<typeof byPath>, name: string) => fake.urls.filter((u) => u.pathname.endsWith(name));
 
-  it("부모가 모든 식별키를 내주면 자식 8개를 모두 부른다. 각 자식은 자기 필수 입력만 받는다", async () => {
+  it("부모가 모든 식별키를 내주면 자식 8개를 모두 부른다. 각 자식은 자기 필수 입력만 받는다 (유가증권 상세는 부모 조회가 따로 있어 아래에서 시험한다)", async () => {
     const fake = byPath({});
     const { result } = await run(fake);
     const childNames = ["getPbancDtlInf2", "getPbancBidInf2", "getPbancCltrInf2", "getPbancBidRsltDtl2", "getMvastDtlInf2", "getCarDtlInf2", "getCltrBidInf2", "getCltrBidRsltDtl2"];
@@ -264,7 +264,56 @@ describe("관계가 여러 개일 때 (엔진)", () => {
     expect(callsTo(fake, "getMvastDtlInf2")[0].searchParams.has("pbctCdtnNo")).toBe(false); // 필수 입력이 아닌 값은 보내지 않는다
     const bid = callsTo(fake, "getCltrBidInf2")[0];
     expect([bid.searchParams.get("cltrMngNo"), bid.searchParams.get("pbctCdtnNo")]).toEqual(["M-1", "100"]); // 두 항목이 모두 필요한 자식
-    expect(result.probes.filter((p) => CROSS_API_RELATIONS.some((r) => r.childKey === p.operationKey) && "attempted" in p.result && p.result.attempted)).toHaveLength(8);
+    // 유가증권 상세(009)는 부모 응답에 용도 11200 물건이 없어 부르지 못했다 (나머지 8개 + 9번째는 시도했으나 입력을 얻지 못한 검증 불가)
+    expect(callsTo(fake, "getSctDtlInf")).toHaveLength(0);
+    expect(result.probes.filter((p) => CROSS_API_RELATIONS.some((r) => r.childKey === p.operationKey) && "attempted" in p.result && p.result.attempted && p.result.status !== "UNVERIFIED")).toHaveLength(8);
+  });
+
+  // ---- 동산 목록 중 용도가 유가증권(11200)인 물건의 식별키로 유가증권 상세(009)를 부르는 관계: 부모 목록을 조건(cltrUsgMclsCtgrId=11200)으로 한 번 더 조회한다 ----
+  describe("유가증권 상세정보(SVC-API-009): 동산 목록을 용도 11200으로 다시 조회해 얻은 식별키로 호출", () => {
+    const SCT = "SVC-API-009/getSctDtlInf";
+    // 용도 조건(11200)이 붙은 요청에만 유가증권 물건을 돌려주고, 기본 점검 요청에는 일반 동산을 돌려준다
+    const withSecurities = (usage: string, sctBody: (url: URL) => Response) =>
+      byPath({
+        getMvastCltrList2: (url) => (url.searchParams.get("cltrUsgMclsCtgrId") === "11200" ? mvast({ cltrMngNo: "S-1", cltrUsgMclsCtgrId: usage }) : mvast()),
+        getSctDtlInf: sctBody,
+      });
+
+    it("부모 조회에 용도 조건이 붙고, 얻은 식별키로 상세를 부른다. 호출은 2번이고 식별키가 같으면 이상징후가 없다", async () => {
+      const fake = withSecurities("11200", () => okBody({ cltrMngNo: "S-1", splrItmNm: "x" }));
+      const { result } = await run(fake);
+      const lookups = callsTo(fake, "getMvastCltrList2").filter((u) => u.searchParams.get("cltrUsgMclsCtgrId") === "11200");
+      expect(lookups).toHaveLength(1);
+      expect(lookups[0].searchParams.get("numOfRows")).toBe("1");
+      expect(lookups[0].searchParams.get("pvctTrgtYn")).toBe("N"); // 부모의 기본 점검 입력에 조건만 더한다
+      const detail = callsTo(fake, "getSctDtlInf");
+      expect(detail).toHaveLength(1);
+      expect(detail[0].searchParams.get("cltrMngNo")).toBe("S-1");
+      expect(result.probes.find((p) => p.operationKey === SCT)!.result).toMatchObject({ attempted: true });
+      expect(cross(result.detections).filter((d) => d.itemKey.startsWith(SCT))).toEqual([]);
+    });
+
+    it("상세가 다른 식별키를 돌려주면 교차 참조 이상징후(DQ_CROSS_API_REF)가 만들어진다", async () => {
+      const fake = withSecurities("11200", () => okBody({ cltrMngNo: "S-OTHER" }));
+      const { result } = await run(fake);
+      expect(cross(result.detections).filter((d) => d.itemKey.startsWith(SCT))).toHaveLength(1);
+    });
+
+    it("용도가 11200이 아니면(한 칸 밖: 11201) 그 물건으로 상세를 부르지 않고 검증 불가로 남긴다 (장애로 세지 않음)", async () => {
+      const fake = withSecurities("11201", () => okBody({ cltrMngNo: "S-1" }));
+      const { result } = await run(fake);
+      expect(callsTo(fake, "getSctDtlInf")).toHaveLength(0);
+      expect(result.probes.find((p) => p.operationKey === SCT)!.result).toMatchObject({ status: "UNVERIFIED" });
+      expect(cross(result.detections).filter((d) => d.itemKey.startsWith(SCT))).toEqual([]);
+    });
+
+    it("부모 조회가 실패하면(HTTP 500) 상세를 부르지 않고 검증 불가로 남기며 다른 점검은 계속된다", async () => {
+      const fake = byPath({ getMvastCltrList2: (url) => (url.searchParams.get("cltrUsgMclsCtgrId") === "11200" ? new Response("x", { status: 500 }) : mvast()), getSctDtlInf: () => okBody({ cltrMngNo: "S-1" }) });
+      const { result } = await run(fake);
+      expect(callsTo(fake, "getSctDtlInf")).toHaveLength(0);
+      expect(result.probes.find((p) => p.operationKey === SCT)!.result).toMatchObject({ status: "UNVERIFIED" });
+      expect(result.probes.filter((p) => "attempted" in p.result && p.result.attempted).length).toBeGreaterThan(10);
+    });
   });
 
   it("두 항목이 필요한 자식은 하나라도 쓸 수 없으면 부르지 않는다 (공매조건번호가 위험한 모양)", async () => {

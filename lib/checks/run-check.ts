@@ -49,7 +49,7 @@ export type RunCheckInput = {
   callLimit?: number; // 안 주면 기본 상한(20회). 최대 상한(100회)을 넘을 수 없다
   clock?: () => number; // 지금 시각(ms). 시험에서 바꿔 끼운다
   // PUBLIC: 목록·상세 외에 일반 조회기로 점검할 오퍼레이션 (generic-probe.ts). 오퍼레이션마다 호출 1번이며, 호출 상한에서 이만큼을 미리 떼어 두어 목록·상세가 다 써 버리지 않게 한다
-  extraEndpoints?: readonly { endpoint: string; operationKey: string }[];
+  extraEndpoints?: readonly { endpoint: string; operationKey: string; calls?: number }[]; // calls: 이 점검이 쓰는 호출 수(기본 1, 부모 목록을 다시 조회하는 유가증권 상세는 2)
 };
 
 // 점검 하나(조회 이름)의 판정 결과. PUBLIC 점검에서만 만든다 (등록부에 있는 오퍼레이션만 판정한다)
@@ -135,7 +135,8 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
   // 교차 참조(DQ_CROSS_API_REF): 점검 대상에 부모와 자식이 모두 있는 공식 관계만 쓴다
   const callableKeys = new Set(Object.values(callable));
   const relations = source === "PUBLIC" ? validCrossApiRelations().filter((r) => callableKeys.has(r.parentKey) && callableKeys.has(r.childKey)) : [];
-  const relationByChild = new Map(relations.map((r) => [r.childKey, r]));
+  // 입력을 부모의 기본 점검 응답에서 받는 관계만 쓴다. 부모 목록을 조건으로 다시 조회하는 관계(parentLookup)는 조회기가 직접 입력을 얻는다
+  const relationByChild = new Map(relations.filter((r) => !r.parentLookup).map((r) => [r.childKey, r]));
   const serviceOf = (endpoint: string): string | undefined => keyOf(endpoint)?.split("/")[0];
   // 추가 오퍼레이션은 서비스(배치) 단위로 묶어 등록부 순서대로 실행한다. 같은 서비스끼리 이어서 부르므로 서비스별 호출 간격·예산·결과 집계가 한 덩어리로 움직인다
   const plannedBatches = buildBatches(callable);
@@ -175,7 +176,8 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       effectiveLimit = Math.min(callLimit, left);
     }
     // 목록·상세가 쓸 수 있는 호출 수: 추가 오퍼레이션 몫(오퍼레이션당 1번)을 미리 떼어 둔다. 추가 오퍼레이션이 없으면 전체 상한과 같다
-    const mainLimit = Math.min(effectiveLimit, Math.max(2, effectiveLimit - extras.length));
+    const reservedCalls = extras.reduce((n, e) => n + (e.calls ?? 1), 0);
+    const mainLimit = Math.min(effectiveLimit, Math.max(2, effectiveLimit - reservedCalls));
     const timeLimitMs = settings.runTimeLimitSeconds * 1000;
     const collected: Record<"list" | "detail", FetchedRecord[]> = { list: [], detail: [] };
     const emptyApis: string[] = [];
@@ -282,6 +284,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
       for (const check of checks) await store.recordApiCheck(runId, check);
       schemas.set(name, result.schema ?? null);
       if (result.linkValues) linkValues.set(keyOf(name), result.linkValues);
+      if (result.lookupParentValues) linkValues.set(`${keyOf(name)}<-parent`, result.lookupParentValues);
       if (op) await record(name, classifyProbe({ policy: policyFromOperation(op.operation), observation: observationFromCheck(result) }), result);
 
       if (result.outcome === "success") {
@@ -383,7 +386,7 @@ export async function runCheck(input: RunCheckInput): Promise<RunCheckResult> {
         let crossChecked = 0;
         for (const relation of relations) {
           const primary = relation.fields[0]; // 대표 식별키
-          const parentKeys = new Set(linkValues.get(relation.parentKey)?.[primary] ?? []);
+          const parentKeys = new Set((relation.parentLookup ? linkValues.get(`${relation.childKey}<-parent`) : linkValues.get(relation.parentKey))?.[primary] ?? []);
           const requested = [...parentKeys].find((v) => LINK_VALUE_PATTERN.test(v));
           const childValues = linkValues.get(relation.childKey)?.[primary] ?? [];
           const cross = detectCrossApiRef(parentKeys, requested === undefined ? [] : childValues.map((returned) => ({ childKey: requested, parentKey: returned })));

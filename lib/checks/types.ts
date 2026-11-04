@@ -39,6 +39,8 @@ export type ApiFetchResult = ApiCheckRecord & {
   requeried?: { tried: number; recovered: number };
   // 교차 참조에 쓰려고 응답 항목에서 뽑아 둔 식별키 값 (항목 이름 → 값 목록, 최대 5개). 관계가 있는 오퍼레이션만 채운다
   linkValues?: Record<string, string[]>;
+  // 부모 목록을 조건으로 다시 조회해 얻은 식별키 (교차 참조 관계에 parentLookup이 있는 자식만). 자식 응답의 식별키와 같은지 비교하는 데 쓴다
+  lookupParentValues?: Record<string, string[]>;
 };
 
 // 엔진이 조회기에 알려 주는 "지금 남은 한도". 조회기는 이를 넘겨 호출하지 않는다 (호출 상한 20/100회, 실행시간 60초).

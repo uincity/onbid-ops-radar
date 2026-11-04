@@ -6408,11 +6408,11 @@
             "SVC-API-012/get50PctDecrCltr",
             "SVC-API-013/getCltrBidRsltList"
           ],
-          "dependencyNote": "필수 식별 파라미터 cltrMngNo는 선행 오퍼레이션 응답에서 얻는 값으로 보이며, 후보는 같은 이름의 필드를 응답에 가진 목록형 오퍼레이션이다(이름 기준 추정, R04에서 확인)",
+          "dependencyNote": "사용자 확인(2026-11-04): 동산 물건목록(SVC-API-002) 조회 결과의 용도 중분류가 유가증권(11200)인 물건의 cltrMngNo로 부른다. 점검은 동산 목록을 cltrUsgMclsCtgrId=11200 조건으로 한 번 더 조회해 얻은 cltrMngNo를 쓴다(교차 참조 관계의 parentLookup)",
           "verification": {
-            "state": "SPEC_ONLY",
-            "evidence": "명세서 확인만 함. 실호출 없음",
-            "verifiedAt": null
+            "state": "LIVE_VERIFIED",
+            "evidence": "2026-11-04 사용자가 활용신청해 승인됨(처음에는 403 SERVICE_KEY_IS_NOT_REGISTERED_ERROR). 승인 뒤 Claude가 읽기 전용 실호출을 1회씩 했다: 동산 목록(002)을 cltrUsgMclsCtgrId=11200으로 조회(코드 00, 총 2,360건, 첫 건 용도 11000/11200/11201 유가증권)한 물건의 cltrMngNo로 이 오퍼레이션을 호출해 HTTP 200·코드 00·1건 응답, 응답 cltrMngNo가 요청과 일치했고 응답 항목 17개가 명세와 같은 이름으로 왔다. 명세 샘플 번호(2024-1100-084555)는 코드 03(데이터 없음). 응답 구조 필수 항목 누락 여부는 아직 자동 검사(DQ_SCHEMA)로 확인하지 못했다(npm run test:public-probes 또는 다음 점검에서 확인)",
+            "verifiedAt": "2026-11-04"
           },
           "approval": "APPROVED",
           "probe": {
@@ -6423,9 +6423,9 @@
           "noDataPolicy": "UNDEFINED",
           "quota": {
             "dailyLimit": 100000,
-            "source": "사용자 확인 2026-11-03: 25종 모두 승인, 일 100,000회 트래픽 (공공데이터포털 개발계정)"
+            "source": "사용자 확인 2026-11-04: 이 서비스는 25종 일괄 승인에 없어 활용신청 후 승인됨(공공데이터포털 개발계정, 일 100,000회 트래픽은 다른 서비스와 같은 개발계정 기준으로 보며 이 서비스의 실제 한도는 확인하지 못함)"
           },
-          "availabilityBeforeProbe": "UNVERIFIED:NO_VALID_INPUT"
+          "availabilityBeforeProbe": null
         }
       ]
     },

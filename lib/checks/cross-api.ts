@@ -7,6 +7,9 @@ export type CrossApiRelation = {
   parentKey: string; // 식별키를 내주는 쪽 ("서비스ID/오퍼레이션ID")
   childKey: string; // 그 식별키로 부르는 쪽
   fields: readonly string[]; // 부모 응답 항목 이름 = 자식 필수 입력 이름 (자식 응답에도 있다). 첫 번째가 교차 참조 비교에 쓰는 대표 식별키
+  // 부모 목록의 "일부 물건"에만 자식이 있는 관계(예: 동산 목록 중 용도가 유가증권인 물건만 유가증권 상세가 있다). 있으면 자식을 점검할 때 부모 목록을
+  // 이 조건(params)으로 한 번 더 조회해, 응답 항목 matchField가 matchValue인 물건의 식별키로 자식을 부른다. 부모의 기본 점검 응답은 쓰지 않는다
+  parentLookup?: { params: Readonly<Record<string, string>>; matchField: string; matchValue: string };
 };
 
 // 명세(등록부)가 "이 목록의 식별키로 부른다"고 연결해 둔 부모 → 자식 관계. 자식의 필수 입력은 아래 항목뿐이고, 부모는 자식의 inputSourceCandidates에 들어 있다.
@@ -22,6 +25,14 @@ export const CROSS_API_RELATIONS: readonly CrossApiRelation[] = [
   { parentKey: "SVC-API-003/getCarCltrList", childKey: "SVC-API-006/getCarDtlInf", fields: ["cltrMngNo"] },
   { parentKey: "SVC-API-002/getMvastCltrList", childKey: "SVC-API-007/getCltrBidInf", fields: ["cltrMngNo", "pbctCdtnNo"] },
   { parentKey: "SVC-API-013/getCltrBidRsltList", childKey: "SVC-API-014/getCltrBidRsltDtl", fields: ["cltrMngNo"] },
+  // 동산 목록(002) 중 용도 중분류가 유가증권(11200)인 물건의 cltrMngNo → 유가증권 상세정보(009). 사용자 확인(2026-11-04)과 실호출(002를 cltrUsgMclsCtgrId=11200으로 조회 →
+  // 그 cltrMngNo로 009 조회, 코드 00·1건·식별키 일치)로 확인했다. 용도 중분류 11200은 사용자 수집 코드의 용도코드표(onbid_usage_codes_structured.json)의 '유가증권'이다
+  {
+    parentKey: "SVC-API-002/getMvastCltrList",
+    childKey: "SVC-API-009/getSctDtlInf",
+    fields: ["cltrMngNo"],
+    parentLookup: { params: { cltrUsgMclsCtgrId: "11200" }, matchField: "cltrUsgMclsCtgrId", matchValue: "11200" },
+  },
 ];
 
 // 식별키 값으로 쓸 수 있는 모양 (요청 주소에 그대로 넣으므로 이상한 글자는 거른다)
@@ -38,6 +49,10 @@ export function relationProblems(relation: CrossApiRelation, registry: ApiRegist
   for (const field of relation.fields) {
     if (!parent.responseFields.some((f) => f.name === field)) problems.push(`부모 응답에 ${field} 항목이 없습니다.`);
     if (!child.responseFields.some((f) => f.name === field)) problems.push(`자식 응답에 ${field} 항목이 없습니다.`);
+  }
+  if (relation.parentLookup) {
+    if (!parent.responseFields.some((f) => f.name === relation.parentLookup!.matchField)) problems.push(`부모 응답에 ${relation.parentLookup.matchField} 항목이 없습니다.`);
+    if (parent.probe.input === null) problems.push("부모 오퍼레이션의 점검 입력이 없어 부모 조회를 만들 수 없습니다.");
   }
   const required = child.requiredParams.map((p) => p.name).sort().join(",");
   if (required !== [...relation.fields].sort().join(",")) problems.push(`자식의 필수 입력(${required})이 관계의 항목(${relation.fields.join(",")})과 다릅니다.`);

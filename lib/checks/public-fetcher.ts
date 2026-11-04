@@ -40,6 +40,8 @@ export type ExtraOperation = {
   params: Record<string, string>;
   linkFields?: readonly string[]; // 응답에서 식별키 값을 뽑아 둘 항목 (교차 참조의 부모·자식)
   inputNames?: readonly string[]; // 엔진이 다른 오퍼레이션의 응답에서 얻어 넘겨주는 필수 입력 이름 (교차 참조의 자식)
+  // 부모 목록을 조건으로 한 번 더 조회해 식별키를 얻는 자식 (유가증권 상세처럼 일부 물건에만 있는 경우). 부모 조회 1번 + 자식 1번 = 호출 2번
+  lookup?: { endpoint: string; url: string; params: Record<string, string>; field: string; matchField: string; matchValue: string };
 };
 
 export type PublicFetcherOptions = {
@@ -228,8 +230,22 @@ export function createPublicFetcher(options: PublicFetcherOptions): Fetcher {
       if (value === undefined || !LINK_VALUE_PATTERN.test(value)) throw new Error(`'${extra.endpoint}'에 필요한 입력값(${name})이 없습니다.`);
       given[name] = value;
     }
+    // 부모 목록 조회: 조건(params)으로 부른 응답에서 matchField가 matchValue인 물건의 식별키를 얻는다. 얻지 못하면 자식을 부르지 않는다(검증 불가, 장애로 단정하지 않음)
+    let lookupCheck: ApiCheckRecord | undefined;
+    const lookup = extra.lookup;
+    if (lookup) {
+      const found = await call(lookup.endpoint, lookup.url, { pageNo: "1", numOfRows: "1", resultType: "json", ...lookup.params });
+      lookupCheck = found.check;
+      const hit = found.check.outcome === "success" ? found.items.find((item) => String(item[lookup.matchField]) === lookup.matchValue && LINK_VALUE_PATTERN.test(String(item[lookup.field] ?? ""))) : undefined;
+      if (!hit) throw new Error(`'${extra.endpoint}'에 필요한 입력값(${lookup.field})을 부모 조회에서 얻지 못했습니다.`);
+      given[lookup.field] = String(hit[lookup.field]);
+    }
     const { check, items } = await call(extra.endpoint, extra.url, { pageNo: "1", numOfRows: "1", resultType: "json", ...extra.params, ...given });
-    const result: ApiFetchResult = { ...check, recordCount: check.outcome === "success" ? items.length : check.recordCount, records: [], httpCalls: 1 };
+    const result: ApiFetchResult = { ...check, recordCount: check.outcome === "success" ? items.length : check.recordCount, records: [], httpCalls: lookupCheck ? 2 : 1 };
+    if (lookup && lookupCheck) {
+      result.subChecks = [lookupCheck, check]; // 호출 1번마다 api_checks 한 줄 (부모 조회는 부모 오퍼레이션 이름으로 남는다)
+      result.lookupParentValues = { [lookup.field]: [given[lookup.field]] };
+    }
     if (extra.linkFields && check.outcome === "success") {
       result.linkValues = Object.fromEntries(
         extra.linkFields.map((field) => [field, items.slice(0, 5).map((item) => item[field]).filter((v): v is string | number => typeof v === "string" || typeof v === "number").map(String)]),

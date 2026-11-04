@@ -17,14 +17,14 @@ const rejects = (mutate: (r: ReturnType<typeof clone>) => void) => {
 
 describe("등록부 내용 (2026-10-29 확정)", () => {
   it("관리 목표 26종을 모두 등록했다(16번 활용가이드 SVC-API-009 유가증권 상세정보 추가, 2026-11-04). 미확정은 없다", () => {
-    expect(registryCoverage()).toEqual({ target: 26, registered: 26, unconfirmed: 0, operations: 29, liveVerifiedOperations: 27 });
+    expect(registryCoverage()).toEqual({ target: 26, registered: 26, unconfirmed: 0, operations: 29, liveVerifiedOperations: 28 });
     expect(API_REGISTRY.unresolved).toHaveLength(0);
     // 16번 활용가이드는 SVC-API-009(유가증권 상세정보)다. 서비스 ID는 001~027 중 008이 없어 26개다(명세서에도 008에 해당하는 문서가 없음)
     expect(findOperation("SVC-API-009/getSctDtlInf")?.operation.requiredParams.map((p) => p.name)).toEqual(["cltrMngNo"]);
     expect(findOperation("SVC-API-009/getSctDtlInf")?.operation.url).toBe("https://apis.data.go.kr/B010003/OnbidSctDtlInfSrvc/getSctDtlInf");
   });
 
-  it("실호출로 확인한 오퍼레이션은 27개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 25개(2026-11-03)", () => {
+  it("실호출로 확인한 오퍼레이션은 28개다: 부동산 목록·상세(2026-10-29)와 사용자가 실행한 25개(2026-11-03), 유가증권 상세정보(2026-11-04)", () => {
     expect(liveVerifiedOperations().map((o) => o.key).sort()).toEqual([
       "SVC-API-001/getRlstCltrList",
       "SVC-API-002/getMvastCltrList",
@@ -33,6 +33,7 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
       "SVC-API-005/getMvastDtlInf",
       "SVC-API-006/getCarDtlInf",
       "SVC-API-007/getCltrBidInf",
+      "SVC-API-009/getSctDtlInf",
       "SVC-API-010/getItrsCltrRnkClg",
       "SVC-API-011/getInqRnkClg",
       "SVC-API-012/get50PctDecrCltr",
@@ -56,13 +57,13 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
     ]);
   });
 
-  it("나머지 2개 오퍼레이션(공유일반재산: 실호출 결과 0건이라 무데이터 허용 / 유가증권 상세정보: 점검 입력 미정)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
+  it("나머지 1개 오퍼레이션(공유일반재산, 실호출 결과 0건이라 무데이터 허용)은 명세만 확인했고, 승인·쿼터는 사용자가 확인했지만(2026-11-03) 점검 입력은 정하지 않아 점검 전 상태가 UNVERIFIED:NO_VALID_INPUT이다", () => {
     const others = allOperations().filter((o) => o.operation.verification.state === "SPEC_ONLY");
-    expect(others.map((o) => o.key).sort()).toEqual(["SVC-API-009/getSctDtlInf", "SVC-API-022/getPbownGnrPrptInf"]);
+    expect(others.map((o) => o.key)).toEqual(["SVC-API-022/getPbownGnrPrptInf"]);
     for (const { operation, key } of others) {
       expect(operation.approval, key).toBe("APPROVED");
       // 공유일반재산은 2026-11-04 9가지 입력에서 모두 0건이라 사용자 결정으로 0건을 정상 무데이터로 처리, 유가증권 상세정보는 무데이터 정책 미정
-      expect(operation.noDataPolicy, key).toBe(key === "SVC-API-022/getPbownGnrPrptInf" ? "ALLOWED" : "UNDEFINED");
+      expect(operation.noDataPolicy, key).toBe("ALLOWED");
       if (operation.probe.input === null) {
         // 점검 입력의 근거가 없는 것은 비워 두고 검증 불가로 둔다 (지어내지 않는다)
         expect(operation.availabilityBeforeProbe, key).toBe("UNVERIFIED:NO_VALID_INPUT");
@@ -112,7 +113,8 @@ describe("등록부 내용 (2026-10-29 확정)", () => {
   it("사용자가 확인한 일일 쿼터(100,000회)가 25종 모든 오퍼레이션에 근거와 함께 들어 있다", () => {
     for (const { operation, key } of allOperations()) {
       expect(operation.quota, key).toMatchObject({ dailyLimit: 100000 });
-      expect(operation.quota?.source, key).toContain("사용자 확인 2026-11-03");
+      // 유가증권 상세정보(SVC-API-009)는 25종 일괄 승인에 없어 2026-11-04에 활용신청 후 승인됐다
+      expect(operation.quota?.source, key).toContain(key === "SVC-API-009/getSctDtlInf" ? "사용자 확인 2026-11-04" : "사용자 확인 2026-11-03");
     }
   });
 
