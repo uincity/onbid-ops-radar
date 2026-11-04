@@ -121,7 +121,8 @@ export function classifyL2(obs: L2Observation, cfg: ClassifyConfig = DEFAULT_CLA
 
 // ---------- L3 내용 ----------
 export type ContentRules = { mustContain: readonly string[]; mustNotContain: readonly string[]; blockedPhrases: readonly string[]; minBytes: number };
-export type L3Observation = { kind: "content"; body: string; bytes: number } | { kind: "skipped" };
+// bundleFailures: 확인한 JS 번들 중 받지 못했거나(200 아님·오류·HTML에 주소 없음) 비어 있던 개수 (W03)
+export type L3Observation = { kind: "content"; body: string; bytes: number; bundleFailures?: number } | { kind: "skipped" };
 
 export function classifyL3(obs: L3Observation, rules: ContentRules): ProbeResult {
   const r = base("L3_CONTENT", true);
@@ -132,6 +133,8 @@ export function classifyL3(obs: L3Observation, rules: ContentRules): ProbeResult
   if (rules.blockedPhrases.some((p) => lower.includes(p.toLowerCase()))) return out(r, "UNVERIFIED", "BLOCK_PHRASE", extra); // 차단 페이지: 사이트 장애가 아닐 수 있다
   if (rules.mustContain.some((m) => !obs.body.includes(m))) return out(r, "FAIL", "MARKER_MISSING", extra);
   if (obs.bytes < rules.minBytes) return out(r, "FAIL", "TOO_SMALL", extra); // 하한 이상이면 통과 (minBytes 바이트는 통과, 한 바이트 모자라면 실패)
+  // JS 번들이 받아지지 않으면 화면이 깨진 것이다. 닫힌 사유 목록에 번들 전용 사유가 없어 "필수 요소 누락"(MARKER_MISSING)으로 기록한다
+  if ((obs.bundleFailures ?? 0) > 0) return out(r, "FAIL", "MARKER_MISSING", extra);
   return out(r, "PASS_DATA", null, extra);
 }
 
@@ -148,7 +151,7 @@ export function representativeVerdict(results: readonly ProbeResult[]): WebVerdi
 }
 
 const upstream = (layer: WebLayer): ProbeResult => out(base(layer, true), "NOT_RUN", "UPSTREAM_FAILED");
-const blocksNext = (v: WebVerdict) => v === "FAIL" || v === "UNVERIFIED" || v === "NOT_RUN"; // 앞 층이 이 판정이면 뒤 층은 하지 않는다 (저하는 계속 진행)
+export const blocksNext = (v: WebVerdict) => v === "FAIL" || v === "UNVERIFIED" || v === "NOT_RUN"; // 앞 층이 이 판정이면 뒤 층은 하지 않는다 (저하는 계속 진행)
 
 export type WebRunObservation = { l1: L1Observation; l2: L2Observation; l3: L3Observation };
 export type WebRunVerdict = {

@@ -8,7 +8,7 @@
       "cert": { "host": "www.onbid.co.kr", "port": 443 },
       "primary": { "url": "https://www.onbid.co.kr/op/meminf/lgnmng/prtllgn/PrtlLgnController/main.do" },
       "content": {
-        "mustContain": ["<title>온비드</title>", "물건검색", "공고검색", "이용안내", "로그인", "/js/op_main.js"],
+        "mustContain": ["<title>온비드</title>", "조건검색", "공고검색", "회원가입", "로그인", "/js/op_main.js"],
         "mustNotContain": ["시스템 점검", "서비스 점검", "점검 중", "일시 중단", "이용이 불가"],
         "blockedPhrases": ["Access Denied", "Forbidden", "Request blocked"],
         "minBytes": 300000,
