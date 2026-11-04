@@ -1,5 +1,7 @@
 # OnBid Ops Radar 개발 계획서 (PLAN)
 
+> **후속 확장:** 홈페이지 가용성 모니터링·알림은 [docs/plan-homepage-monitoring.md](docs/plan-homepage-monitoring.md)에서 관리합니다(작업 번호 W00~W24). 이 문서의 1~39번 번호는 바꾸지 않습니다.
+
 > **기능 이름(PDCA):** onbid-ops-radar
 > **기준 문서:** [PRD.md](PRD.md) · [CLAUDE.md](CLAUDE.md)
 > **작성일:** 2026-10-29 · **단계:** Do(구현 중) · **상태:** 진행 중 — 1~30번·33번 완료(5번은 사용자 작업), 31·32·34~39번 남음
