@@ -1,0 +1,34 @@
+{
+  "version": 1,
+  "note": "홈페이지 모니터링 대상 등록부(초안 값은 docs/web-monitor-research.md 3장). 손으로 고칠 때는 lib/web-monitor/schema.ts 검증을 통과해야 한다. 첫 주 관찰 뒤 하한·문구를 조정한다.",
+  "targets": [
+    {
+      "key": "onbid-home",
+      "label": "온비드 홈페이지",
+      "cert": { "host": "www.onbid.co.kr", "port": 443 },
+      "primary": { "url": "https://www.onbid.co.kr/op/meminf/lgnmng/prtllgn/PrtlLgnController/main.do" },
+      "content": {
+        "mustContain": ["<title>온비드</title>", "조건검색", "공고검색", "회원가입", "로그인", "/js/op_main.js"],
+        "mustNotContain": ["시스템 점검", "서비스 점검", "점검 중", "일시 중단", "이용이 불가"],
+        "blockedPhrases": ["Access Denied", "Forbidden", "Request blocked"],
+        "minBytes": 300000,
+        "bundlePaths": ["/js/op_main.js"]
+      },
+      "aux": [
+        {
+          "key": "entry-stub",
+          "kind": "stub",
+          "label": "진입 스텁",
+          "url": "https://www.onbid.co.kr/",
+          "expectedRedirectPath": "/op/meminf/lgnmng/prtllgn/PrtlLgnController/main.do"
+        },
+        {
+          "key": "queue-config",
+          "kind": "json",
+          "label": "대기열 설정 파일",
+          "url": "https://wait.onbid.co.kr/assets/nf-setting/1/nf-setting.json"
+        }
+      ]
+    }
+  ]
+}
