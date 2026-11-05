@@ -139,7 +139,8 @@ describe("차단", () => {
     const { run } = input({ store, trigger: "scheduled", slotAt: scheduledSlotAt(NOW0) });
     const r = await runWebCheck(run);
     expect(r.targets[0].status).toBe("blocked");
-    expect(store.queue).toEqual([{ targetKey: "onbid-home", kind: "replace", originRunId: r.targets[0].runId, status: "pending" }]);
+    expect(store.queue).toHaveLength(1);
+    expect(store.queue[0]).toMatchObject({ targetKey: "onbid-home", kind: "replace", originRunId: r.targets[0].runId, status: "pending", attempts: 0 });
   });
 
   it("같은 정시 칸을 두 번 부르면 두 번째는 blocked (요청 없음, 대체 예약 없음)", async () => {

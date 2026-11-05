@@ -17,6 +17,8 @@ export const CRON_JOBS = [
   { name: "onbid-schedule-missed", group: "openapi", kind: "sql", schedule: `${missedMinute} ${missedHour} * * *`, sql: "select public.mark_schedule_missed()", label: "누락 감지: 매일 KST 08:30" },
   // 매시 :07 (UTC와 KST의 분이 같다). 정시 칸은 앱이 호출 시각에서 계산한다
   { name: "onbid-web-check", group: "web", kind: "post", schedule: "7 * * * *", path: "/api/cron/web-check", label: "홈페이지 정시 점검: 매시 :07" },
+  // 매분 실행하지만 DB 함수가 "예정 시각이 지난 재확인·대체 실행 줄이 있을 때만" 앱(/api/cron/web-retry)을 부른다. 빈 큐에서는 앱 호출이 없다
+  { name: "onbid-web-retry", group: "web", kind: "sql", schedule: "* * * * *", sql: "select public.web_enqueue_due_retries()", label: "홈페이지 재확인 확인: 매분(예정된 줄이 있을 때만 앱 호출)" },
 ];
 
 const lit = (value) => `'${String(value).replaceAll("'", "''")}'`; // SQL 문자열 값
