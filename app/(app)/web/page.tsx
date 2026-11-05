@@ -24,7 +24,7 @@ export default function WebPage() {
 
 async function WebContent() {
   // 로그인과 역할을 이 화면에서 직접 다시 확인한다
-  await requireUser();
+  const user = await requireUser();
   const now = new Date(); // requireUser 뒤라 요청 시점의 시각이다
   const target = WEB_TARGETS.targets[0];
   const source = await getWebViewSource();
@@ -37,7 +37,7 @@ async function WebContent() {
           시험용 목 데이터입니다. 실제 점검 기록이 아닙니다.
         </p>
       ) : null}
-      <WebOverviewView overview={overview} now={now} />
+      <WebOverviewView overview={overview} now={now} isAdmin={user.role === "admin"} />
     </>
   );
 }

@@ -7,6 +7,7 @@ import type { WebOverview } from "@/lib/web-monitor/view-source";
 import { AuxSection } from "./aux-section";
 import { BannerList } from "./banner-list";
 import { HourStrip } from "./hour-strip";
+import { MaintenanceSection } from "./maintenance-section";
 import { NotificationList } from "./notification-list";
 import { RunsTable } from "./runs-table";
 import { StatusCard } from "./status-card";
@@ -14,8 +15,8 @@ import { SectionError } from "./tone";
 
 const HISTORY_LIMIT = 50;
 
-export function WebOverviewView({ overview, now }: { overview: WebOverview; now: Date }) {
-  const { settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident } = overview;
+export function WebOverviewView({ overview, now, isAdmin }: { overview: WebOverview; now: Date; isAdmin: boolean }) {
+  const { settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident, windows } = overview;
   const banners = bannersFrom({ settings, lastGoodFinishedAt, notifications }, now, true);
 
   const enabled = settings.ok ? settings.data.enabled : true;
@@ -49,6 +50,7 @@ export function WebOverviewView({ overview, now }: { overview: WebOverview; now:
       ) : (
         <SectionError what="알림 기록" />
       )}
+      {windows.ok ? <MaintenanceSection windows={windows.data} now={now} isAdmin={isAdmin} maxHours={null} /> : <SectionError what="계획 점검 창" />}
     </div>
   );
 }

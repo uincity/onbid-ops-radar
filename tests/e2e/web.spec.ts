@@ -129,6 +129,59 @@ test.describe("홈페이지 모니터링 /web", () => {
     }
   });
 
+  // ----- W15 계획 점검 창 (목 저장소) -----
+  // datetime-local 값(KST 벽시계)을 지금으로부터 days일 뒤 hour시로 만든다
+  const kstLocal = (days: number, hour: number) => new Date(Date.now() + 9 * 3_600_000 + days * 86_400_000).toISOString().slice(0, 10) + `T${String(hour).padStart(2, "0")}:00`;
+
+  test("계획 점검 창: 운영 담당자는 목록만 보고 등록 폼·취소 버튼은 없다", async ({ page }) => {
+    await openWeb(page, OPERATOR);
+    const section = page.getByTestId("web-windows");
+    await expect(section).toBeVisible();
+    await expect(page.getByTestId("web-window").first()).toBeVisible(); // 목 저장소가 심어 둔 예정된 창
+    await expect(section).toContainText("팀장만 할 수 있습니다");
+    await expect(page.getByTestId("web-window-form")).toHaveCount(0);
+    await expect(page.getByTestId("web-window-cancel")).toHaveCount(0);
+  });
+
+  test("계획 점검 창: 팀장이 등록하고(목록에 KST로 보임), 겹치면 거부되고, 취소하면 취소됨으로 바뀐다", async ({ page }) => {
+    await openWeb(page, ADMIN);
+    const form = page.getByTestId("web-window-form");
+    await expect(form).toBeVisible();
+
+    const start = kstLocal(40, 23);
+    const end = kstLocal(41, 2);
+    await page.getByTestId("web-window-start").fill(start);
+    await page.getByTestId("web-window-end").fill(end);
+    await page.getByTestId("web-window-reason").fill("화면 시험 창");
+    await page.getByTestId("web-window-submit").click();
+    await expect(page.getByTestId("web-window-message")).toContainText("등록했습니다");
+
+    const mine = page.getByTestId("web-window").filter({ hasText: "화면 시험 창" });
+    await expect(mine).toHaveCount(1);
+    await expect(mine).toHaveAttribute("data-state", "upcoming");
+    await expect(mine).toContainText(`${start.slice(0, 10)} 23:00 ~ ${end.slice(0, 10)} 02:00`); // 입력한 KST 그대로 보인다(9시간이 밀리지 않는다)
+
+    // 같은 시간대를 다시 등록하면 겹침으로 거부
+    await page.getByTestId("web-window-start").fill(kstLocal(40, 22));
+    await page.getByTestId("web-window-end").fill(kstLocal(41, 1));
+    await page.getByTestId("web-window-reason").fill("겹치는 창");
+    await page.getByTestId("web-window-submit").click();
+    await expect(page.getByTestId("web-window-message")).toContainText("이미 등록된 점검 창");
+    await expect(page.getByTestId("web-window").filter({ hasText: "겹치는 창" })).toHaveCount(0);
+
+    // 종료가 시작보다 이르면 거부
+    await page.getByTestId("web-window-start").fill(kstLocal(50, 10));
+    await page.getByTestId("web-window-end").fill(kstLocal(50, 9));
+    await page.getByTestId("web-window-reason").fill("거꾸로 된 창");
+    await page.getByTestId("web-window-submit").click();
+    await expect(page.getByTestId("web-window-message")).toContainText("점검 시간 또는 사유를 확인해 주세요");
+
+    // 취소: 줄은 남고 상태가 '취소됨'이 되며, 취소 버튼은 사라진다
+    await mine.getByTestId("web-window-cancel").click();
+    await expect(page.getByTestId("web-window").filter({ hasText: "화면 시험 창" })).toHaveAttribute("data-state", "cancelled");
+    await expect(page.getByTestId("web-window").filter({ hasText: "화면 시험 창" }).getByTestId("web-window-cancel")).toHaveCount(0);
+  });
+
   test("로그인하지 않으면 /web과 상세는 로그인 화면으로 간다", async ({ page }) => {
     for (const path of ["/web", "/web/runs/5000"]) {
       await page.goto(path);

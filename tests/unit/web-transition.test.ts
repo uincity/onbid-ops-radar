@@ -143,6 +143,8 @@ describe("applyRunDecision", () => {
     const flaky: WebTransitionStore = {
       loadState: (k) => (loads++, mem.loadState(k)),
       enqueueConfirm: (i) => mem.enqueueConfirm(i),
+      inMaintenance: (k, a) => mem.inMaintenance(k, a),
+      markPlanned: (r) => mem.markPlanned(r),
       recordTransition: async (i) => (conflicts-- > 0 ? { result: "CONFLICT", version: 9 } : mem.recordTransition(i)),
     };
     expect(await applyRunDecision({ report, trigger: "scheduled", startedAt: new Date(T0), settings, store: flaky })).toMatchObject({ action: "applied" });
@@ -153,5 +155,72 @@ describe("applyRunDecision", () => {
     loads = 0;
     expect(await applyRunDecision({ report: report2, trigger: "scheduled", startedAt: new Date(T0), settings, store: always })).toEqual({ action: "conflict" });
     expect(loads).toBe(MAX_TRANSITION_ATTEMPTS);
+  });
+
+  // ----- W15: 저장소의 계획 점검 창을 기본으로 본다 -----
+  describe("계획 점검 창 (저장소)", () => {
+    const WIN_START = new Date(T0 - 60 * 60_000).toISOString();
+    const WIN_END = new Date(T0 + 60 * 60_000).toISOString();
+    const isPlanned = (store: ReturnType<typeof createMemoryWebStore>, runId: number) => store.runs.find((r) => r.id === runId)?.plannedMaintenance;
+
+    it("창 안의 실패: 재확인·알림 없이 planned, 실행 줄에 계획 점검 표시가 남는다", async () => {
+      const store = createMemoryWebStore({ now: () => T0 });
+      store.addWindow({ targetKey: "onbid-home", startsAt: WIN_START, endsAt: WIN_END });
+      const report = await finishedRun(store, "FAIL");
+      expect(await apply(store, report)).toMatchObject({ action: "planned", claimedKeys: [] });
+      expect(store.queue).toHaveLength(0);
+      expect(store.notifications).toHaveLength(0);
+      expect(store.detections).toHaveLength(0);
+      expect(isPlanned(store, report.runId)).toBe(true);
+    });
+
+    it("창 안의 정상 점검도 계획 점검으로 표시한다", async () => {
+      const store = createMemoryWebStore({ now: () => T0 });
+      store.addWindow({ targetKey: "onbid-home", startsAt: WIN_START, endsAt: WIN_END });
+      const report = await finishedRun(store, "PASS_DATA");
+      expect(await apply(store, report)).toMatchObject({ action: "applied" });
+      expect(isPlanned(store, report.runId)).toBe(true);
+    });
+
+    it("창 밖이면 표시하지 않고 정시 실패는 재확인을 예약한다", async () => {
+      const store = createMemoryWebStore({ now: () => T0 });
+      const report = await finishedRun(store, "FAIL");
+      expect(await apply(store, report)).toMatchObject({ action: "deferred", confirmQueued: true });
+      expect(isPlanned(store, report.runId)).toBeFalsy();
+    });
+
+    it("경계: 시작 시각 정확히는 창 안, 종료 시각 정확히는 창 밖", async () => {
+      const atStart = createMemoryWebStore({ now: () => T0 });
+      atStart.addWindow({ targetKey: "onbid-home", startsAt: new Date(T0).toISOString(), endsAt: WIN_END });
+      expect(await apply(atStart, await finishedRun(atStart, "FAIL"))).toMatchObject({ action: "planned" });
+
+      const atEnd = createMemoryWebStore({ now: () => T0 });
+      atEnd.addWindow({ targetKey: "onbid-home", startsAt: WIN_START, endsAt: new Date(T0).toISOString() });
+      expect(await apply(atEnd, await finishedRun(atEnd, "FAIL"))).toMatchObject({ action: "deferred" });
+    });
+
+    it("시작 전에 취소된 창과 다른 대상의 창은 영향이 없다", async () => {
+      const cancelled = createMemoryWebStore({ now: () => T0 });
+      cancelled.addWindow({ targetKey: "onbid-home", startsAt: WIN_START, endsAt: WIN_END, cancelledAt: new Date(T0 - 2 * 60 * 60_000).toISOString() });
+      expect(await apply(cancelled, await finishedRun(cancelled, "FAIL"))).toMatchObject({ action: "deferred" });
+
+      const other = createMemoryWebStore({ now: () => T0 });
+      other.addWindow({ targetKey: "other-site", startsAt: WIN_START, endsAt: WIN_END });
+      expect(await apply(other, await finishedRun(other, "FAIL"))).toMatchObject({ action: "deferred" });
+    });
+
+    it("진행 중에 취소돼 종료 시각이 당겨진 창은 그 시각 전까지만 창 안이다", async () => {
+      const store = createMemoryWebStore({ now: () => T0 });
+      const pulled = new Date(T0 - 10 * 60_000).toISOString(); // 점검 10분 전에 끝난 창
+      store.addWindow({ targetKey: "onbid-home", startsAt: WIN_START, endsAt: pulled, cancelledAt: pulled });
+      expect(await apply(store, await finishedRun(store, "FAIL"))).toMatchObject({ action: "deferred" });
+    });
+
+    it("수동 점검 실행에는 계획 점검 표시를 하지 않는다", async () => {
+      const store = createMemoryWebStore({ now: () => T0 });
+      const started = await store.startRun({ targetKey: "onbid-home", trigger: "manual", slotAt: null, originRunId: null, triggeredBy: "00000000-0000-4000-8000-000000000000" });
+      await store.finishRun({ runId: started.runId, status: "succeeded", overallVerdict: "PASS_DATA", requestCount: 5 });
+      expect(await store.markPlanned(started.runId)).toBe(false);
+    });
   });
 });

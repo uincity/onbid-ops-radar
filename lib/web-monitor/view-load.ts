@@ -5,6 +5,8 @@ import { createClient } from "@/lib/supabase/server";
 import type { WebViewSource } from "./view-source";
 import { createMockViewSource } from "./view-mock";
 import { createSupabaseViewSource } from "./view-supabase";
+import { createMockWindowWriter } from "./window-mock";
+import { createSupabaseWindowWriter, type WebWindowWriter } from "./window-store";
 
 export function isMockStore(): boolean {
   return process.env.WEB_MONITOR_STORE === "mock";
@@ -19,4 +21,13 @@ export async function getWebViewSource(): Promise<WebViewSource> {
     return createMockViewSource();
   }
   return createSupabaseViewSource(await createClient());
+}
+
+/** 계획 점검 창 등록·취소 저장소. 서버 액션이 로그인·팀장 확인을 마친 뒤에만 부른다. 운영은 로그인 사용자 연결(DB 함수가 팀장을 다시 확인한다) */
+export async function getWebWindowWriter(): Promise<WebWindowWriter> {
+  if (isMockStore()) {
+    if (process.env.VERCEL_ENV === "production" || process.env.NODE_ENV === "production") throw new Error("WEB_MONITOR_STORE=mock은 운영 배포에서 쓸 수 없습니다.");
+    return createMockWindowWriter();
+  }
+  return createSupabaseWindowWriter(await createClient());
 }

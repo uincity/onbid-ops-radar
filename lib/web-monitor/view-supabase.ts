@@ -7,9 +7,11 @@ import {
   type NotificationDbRow, type RunRow, type Section, type StateRow, type WebBannerInputs, type WebOverview, type WebRunDetail, type WebViewSource,
 } from "./view-source";
 import { loadWebSettings } from "./settings-load";
+import { toWindow, WINDOW_COLUMNS, type WindowDbRow } from "./window-store";
 
 const RUN_LIMIT = 100;
 const NOTIFICATION_DAYS = 7;
+const WINDOW_LIMIT = 30;
 
 async function section<T>(load: () => Promise<T>): Promise<Section<T>> {
   try {
@@ -62,7 +64,7 @@ export function createSupabaseViewSource(supabase: SupabaseClient): WebViewSourc
     },
 
     async loadOverview(now, targetKey, targetLabel) {
-      const [settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident] = await Promise.all([
+      const [settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident, windows] = await Promise.all([
         loadSettingsSection(),
         section(async () => {
           const { data, error } = await supabase.from("web_target_state").select("current_verdict, since, incident_no, incident_open, open_anomaly_id").eq("target_key", targetKey).maybeSingle();
@@ -87,8 +89,13 @@ export function createSupabaseViewSource(supabase: SupabaseClient): WebViewSourc
           if (error) throw new Error("이상징후 조회 실패");
           return mapAnomaliesByIncident((data ?? []) as { id: number; evidence: Record<string, unknown> | null }[]);
         }),
+        section(async () => {
+          const { data, error } = await supabase.from("web_maintenance_windows").select(WINDOW_COLUMNS).eq("target_key", targetKey).order("starts_at", { ascending: false }).limit(WINDOW_LIMIT);
+          if (error) throw new Error("계획 점검 창 조회 실패");
+          return ((data ?? []) as WindowDbRow[]).map(toWindow);
+        }),
       ]);
-      return { targetKey, targetLabel, settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident } satisfies WebOverview;
+      return { targetKey, targetLabel, settings, state, runs, lastGoodFinishedAt, notifications, anomalyByIncident, windows } satisfies WebOverview;
     },
 
     async loadRun(id): Promise<WebRunDetail | null> {

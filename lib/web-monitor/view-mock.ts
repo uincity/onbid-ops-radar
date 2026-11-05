@@ -4,6 +4,7 @@
 //   알림: 장애 감지(발송됨) · 복구(3회 모두 실패 → 경고 띠) · 인증서(발송됨).
 import { base, out, type ProbeResult, type WebVerdict } from "./classify";
 import { HOUR_MS, type WebNotificationRow, type WebProbeView, type WebRunView } from "./view";
+import { mockWindows } from "./window-mock";
 import type { WebBannerInputs, WebOverview, WebRunDetail, WebViewSource } from "./view-source";
 
 const MIN = 60_000;
@@ -82,6 +83,7 @@ export function createMockViewSource(): WebViewSource {
         lastGoodFinishedAt: { ok: true, data: d.good?.finishedAt ?? null },
         notifications: { ok: true, data: d.notifications },
         anomalyByIncident: { ok: true, data: { 1: 123 } },
+        windows: { ok: true, data: mockWindows(now, targetKey) },
       };
     },
     async loadRun(id): Promise<WebRunDetail | null> {

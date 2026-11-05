@@ -2,6 +2,7 @@
 // 화면은 DB를 직접 모르고 이 약속(WebViewSource)만 안다. 운영에서는 로그인 사용자 권한(RLS)으로 읽는 Supabase 구현(view-supabase.ts)을, 화면 시험에서는
 // 메모리 목 구현(view-mock.ts, WEB_MONITOR_STORE=mock)을 쓴다. 조회가 일부 실패해도 화면 전체가 깨지지 않도록 칸(section)별로 성공·실패를 따로 돌려준다.
 import type { WebLayer, WebReason, WebVerdict } from "./classify";
+import type { MaintenanceWindow } from "./maintenance";
 import type { WebNotificationRow, WebProbeView, WebRunView, WebStateView } from "./view";
 
 export type Section<T> = { ok: true; data: T } | { ok: false };
@@ -15,6 +16,7 @@ export type WebOverview = {
   lastGoodFinishedAt: Section<string | null>; // 정시·재확인으로 정상 종료한 마지막 실행의 종료 시각
   notifications: Section<WebNotificationRow[]>; // 최근 7일의 알림 줄(대기·시도)
   anomalyByIncident: Section<Record<number, number>>; // 사건 번호 → 이상징후 번호
+  windows: Section<MaintenanceWindow[]>; // 계획 점검 창(시작 늦은 순, 취소된 창 포함) (W15)
 };
 
 export type WebBannerInputs = {
