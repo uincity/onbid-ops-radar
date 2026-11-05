@@ -3,14 +3,20 @@
 // 네트워크·시각·DB를 쓰지 않는다: 같은 입력이면 항상 같은 판정이다(시각은 now를 밖에서 받는다).
 // 사유(reason)는 DB의 닫힌 허용 목록(설계서 §6.1 web_probe_results)만 쓴다. 응답 본문·예외 원문은 결과에 담지 않는다.
 
-export type WebVerdict = "PASS_DATA" | "PASS_NO_DATA" | "DEGRADED" | "FAIL" | "UNVERIFIED" | "NOT_RUN";
+// 판정 6가지 / 사유 / 층 이름: DB(web_check_runs·web_probe_results)의 허용 목록과 같아야 한다 (tests/unit/web-db-drift.test.ts가 확인)
+export const WEB_VERDICTS = ["PASS_DATA", "PASS_NO_DATA", "DEGRADED", "FAIL", "UNVERIFIED", "NOT_RUN"] as const;
+export type WebVerdict = (typeof WEB_VERDICTS)[number];
 
-export type WebReason =
-  | "TIMEOUT" | "SLOW_RESPONSE" | "DNS_FAILED" | "TCP_FAILED" | "TLS_FAILED" | "HTTP_5XX" | "HTTP_BLOCKED" | "HTTP_4XX_OTHER" | "HTTP_NOT_FOUND"
-  | "MARKER_MISSING" | "TOO_SMALL" | "MAINTENANCE_DETECTED" | "BLOCK_PHRASE" | "CERT_EXPIRING" | "CERT_INVALID" | "REDIRECT_LIMIT"
-  | "HOST_NOT_ALLOWED" | "STUB_CHANGED" | "UPSTREAM_FAILED" | "BUDGET_SKIP" | "INTERNAL_ERROR";
+export const WEB_REASONS = [
+  "TIMEOUT", "SLOW_RESPONSE", "DNS_FAILED", "TCP_FAILED", "TLS_FAILED", "HTTP_5XX", "HTTP_BLOCKED", "HTTP_4XX_OTHER", "HTTP_NOT_FOUND",
+  "MARKER_MISSING", "TOO_SMALL", "MAINTENANCE_DETECTED", "BLOCK_PHRASE", "CERT_EXPIRING", "CERT_INVALID", "REDIRECT_LIMIT",
+  "HOST_NOT_ALLOWED", "STUB_CHANGED", "FILE_NOT_FOUND", "UPSTREAM_FAILED", "BUDGET_SKIP", "INTERNAL_ERROR",
+] as const; // FILE_NOT_FOUND는 L4(M3)용으로 미리 정해 둔 사유
+export type WebReason = (typeof WEB_REASONS)[number];
 
-export type WebLayer = "L1_CONNECT" | "L2_HTTP" | "L3_CONTENT" | "AUX_STUB" | "AUX_QUEUE"; // AUX_*는 보조 확인(대표 판정 제외, W03a)
+// AUX_*는 보조 확인(대표 판정 제외, W03a), L4_FILES는 M3
+export const WEB_LAYERS = ["L1_CONNECT", "L2_HTTP", "L3_CONTENT", "AUX_STUB", "AUX_QUEUE", "L4_FILES"] as const;
+export type WebLayer = (typeof WEB_LAYERS)[number];
 
 export type ClassifyConfig = {
   timeoutMs: number; // web_http_timeout_ms (기본 10000)
