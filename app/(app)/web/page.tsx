@@ -10,6 +10,9 @@ import { getWebViewSource, isMockStore } from "@/lib/web-monitor/view-load";
 
 export const metadata: Metadata = { title: "홈페이지 모니터링" };
 
+// 이 화면에서 부르는 서버 액션(지금 점검)의 최대 실행 시간: 점검은 최대 웹 설정의 실행 시간(기본 60초, 운영 80초) 안에 끝난다
+export const maxDuration = 90;
+
 export default function WebPage() {
   return (
     <section>

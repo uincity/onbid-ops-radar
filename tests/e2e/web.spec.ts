@@ -182,6 +182,23 @@ test.describe("홈페이지 모니터링 /web", () => {
     await expect(page.getByTestId("web-window").filter({ hasText: "화면 시험 창" }).getByTestId("web-window-cancel")).toHaveCount(0);
   });
 
+  // ----- W17 수동 점검 (목 저장소: 실제 사이트를 부르지 않는다) -----
+  test("지금 점검: 운영 담당자에게는 패널이 없고, 팀장은 눌러서 결과와 '상태에 반영되지 않음' 안내·점검 링크를 본다", async ({ page }) => {
+    await openWeb(page, OPERATOR);
+    await expect(page.getByTestId("web-manual-check")).toHaveCount(0);
+    await signOutThroughButton(page);
+
+    await openWeb(page, ADMIN);
+    const panel = page.getByTestId("web-manual-check");
+    await expect(panel).toBeVisible();
+    await expect(panel).toContainText("현재 상태·알림·이상징후에는 반영되지 않습니다");
+    await page.getByTestId("web-manual-submit").click();
+    await expect(page.getByTestId("web-manual-message")).toContainText("점검을 마쳤습니다");
+    await page.getByTestId("web-manual-run-link").click();
+    await expect(page).toHaveURL(/\/web\/runs\/\d+$/);
+    await expect(page.getByTestId("web-run-summary")).toContainText("수동");
+  });
+
   test("로그인하지 않으면 /web과 상세는 로그인 화면으로 간다", async ({ page }) => {
     for (const path of ["/web", "/web/runs/5000"]) {
       await page.goto(path);
