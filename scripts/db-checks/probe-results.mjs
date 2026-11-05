@@ -35,10 +35,10 @@ export async function run(ctx) {
   report(/SVC-API-/.test(apiDef("api_checks_api_id_check")) && apiDef("api_checks_api_operation_pair_check") !== "", "api_checks: 서비스ID 형식과 '서비스ID·오퍼레이션 ID 함께만' 제약 있음");
   report(/servicekey/i.test(apiDef("api_checks_request_summary_check")), "api_checks: 요청 요약에 인증키가 있으면 저장을 거부하는 제약 있음");
 
-  // 허용 규칙 ID: 이전 4개 + 데이터 품질 4개 + API 상태 7개 = 15개
+  // 허용 규칙 ID: 이전 4개 + 데이터 품질 4개 + API 상태 7개 + 홈페이지 모니터링 2개(W10a) = 17개
   const [anomalyRule] = await query(`select pg_get_constraintdef(oid) as def from pg_constraint where conrelid = 'public.anomalies'::regclass and conname = 'anomalies_rule_id_check'`);
   const ids = [...(anomalyRule?.def ?? "").matchAll(/'([A-Z_]+)'::text/g)].map((m) => m[1]);
-  report(ids.length === 15, "anomalies: 허용 규칙 ID가 15개 (이전 4 + 데이터 품질 4 + API 상태 7)", `${ids.length}개`);
+  report(ids.length === 17, "anomalies: 허용 규칙 ID가 17개 (이전 4 + 데이터 품질 4 + API 상태 7 + 웹 2)", `${ids.length}개`);
   report(["DATE_ORDER", "EMPTY_RESULT", "DQ_SCHEMA", "DQ_CROSS_API_REF", "API_TIMEOUT", "API_QUOTA_EXCEEDED"].every((id) => ids.includes(id)), "anomalies: 이전 규칙 ID가 그대로 있고 새 규칙 ID가 더해짐");
 
   // 이전 행이 보존되었는지: 새 칸이 비어 있는 api_checks 줄은 그대로 읽힌다 (줄 수는 시험 전후 비교가 따로 확인한다)
