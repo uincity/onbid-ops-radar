@@ -7,13 +7,14 @@ const SECRET = "s3cret-VALUE-1234";
 const URL = "https://my-app.example.vercel.app";
 
 describe("작업 목록", () => {
-  it("이름이 겹치지 않고 웹 작업은 매시 :07 점검과 매분 재확인 확인이다", () => {
+  it("이름이 겹치지 않고 웹 작업은 매시 :07 점검, 매분 재확인 확인, 10분 자체 감시다", () => {
     const names = CRON_JOBS.map((j) => j.name);
     expect(new Set(names).size).toBe(names.length);
     const web = CRON_JOBS.filter((j) => j.group === "web");
     expect(web.map((j) => [j.name, j.schedule, j.path ?? j.sql])).toEqual([
       ["onbid-web-check", "7 * * * *", "/api/cron/web-check"],
       ["onbid-web-retry", "* * * * *", "select public.web_enqueue_due_retries()"],
+      ["onbid-web-heartbeat", "*/10 * * * *", "select public.web_monitor_heartbeat()"],
     ]);
   });
 
@@ -34,7 +35,7 @@ describe("등록 범위", () => {
 
   it("--web이면 웹 작업이 더해지고 Vault에서 주소·비밀값을 읽는다(SQL에 값이 직접 들어가지 않는다)", () => {
     const s = statements(true);
-    expect(s).toHaveLength(4);
+    expect(s).toHaveLength(5);
     const web = s.find((x) => x.includes("onbid-web-check"))!;
     expect(web).toContain("'7 * * * *'");
     expect(web).toContain("'/api/cron/web-check'");
@@ -45,7 +46,7 @@ describe("등록 범위", () => {
 
   it("작업 선택 함수도 같은 범위를 돌려준다", () => {
     expect(selectedJobs({ includeWeb: false }).map((j) => j.group)).toEqual(["openapi", "openapi"]);
-    expect(selectedJobs({ includeWeb: true })).toHaveLength(4);
+    expect(selectedJobs({ includeWeb: true })).toHaveLength(5);
   });
 });
 
@@ -56,12 +57,14 @@ describe("해제 범위", () => {
     expect(all).toContain("onbid-schedule-missed");
     expect(all).toContain("onbid-web-check");
     expect(all).toContain("onbid-web-retry");
+    expect(all).toContain("onbid-web-heartbeat");
     const web = buildRemoveStatements({ scope: "web" })[0];
     expect(web).toContain("onbid-web-check");
     expect(web).toContain("onbid-web-retry");
+    expect(web).toContain("onbid-web-heartbeat");
     expect(web).not.toContain("onbid-daily-check");
     expect(web).not.toContain("onbid-schedule-missed");
-    expect(jobsToRemove({ scope: "web" }).map((j) => j.group)).toEqual(["web", "web"]);
+    expect(jobsToRemove({ scope: "web" }).map((j) => j.group)).toEqual(["web", "web", "web"]);
   });
 });
 
