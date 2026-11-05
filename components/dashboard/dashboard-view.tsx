@@ -2,7 +2,7 @@
 // Design Ref: DESIGN §4.3, PRD 5-6 — 좁은 화면에서는 카드가 세로로 쌓인다.
 import Link from "next/link";
 import { RunStatusBadge, SourceBadge } from "@/components/ui/badges";
-import { ALL_RULE_IDS, RULE_LABEL, RUN_STATUS_LABEL, RUN_TRIGGER_LABEL, STATUSES, STATUS_LABEL, labelOf } from "@/lib/anomalies/labels";
+import { DASHBOARD_RULE_IDS, RULE_LABEL, RUN_STATUS_LABEL, RUN_TRIGGER_LABEL, STATUSES, STATUS_LABEL, labelOf } from "@/lib/anomalies/labels";
 import { RUN_STATUSES, type DashboardSummary } from "@/lib/dashboard/summary";
 import type { AvailabilitySummary } from "@/lib/availability/summary";
 import type { ScheduleStatus } from "@/lib/schedule/status";
@@ -15,7 +15,7 @@ const panel = "rounded-xl border border-zinc-200 bg-white p-4 dark:border-zinc-8
 
 export function DashboardView({ summary, availability, schedule, isOperator }: { summary: DashboardSummary; availability: AvailabilitySummary; schedule: ScheduleStatus; isOperator: boolean }) {
   const { today, backlog, newToday, recentRuns } = summary;
-  const maxNew = Math.max(1, ...ALL_RULE_IDS.map((r) => newToday[r].total));
+  const maxNew = Math.max(1, ...DASHBOARD_RULE_IDS.map((r) => newToday[r].total));
 
   return (
     <div className="flex flex-col gap-6">
@@ -103,7 +103,7 @@ export function DashboardView({ summary, availability, schedule, isOperator }: {
             규칙별 신규 이상징후 (오늘)
           </h2>
           <ul className="mt-3 flex flex-col gap-3">
-            {ALL_RULE_IDS.map((rule) => (
+            {DASHBOARD_RULE_IDS.map((rule) => (
               <li key={rule}>
                 <Link href={`/anomalies?rule=${rule}`} className="flex flex-col gap-1 rounded-lg p-1 hover:bg-zinc-50 dark:hover:bg-zinc-900">
                   <span className="flex items-baseline justify-between gap-2 text-sm text-zinc-800 dark:text-zinc-200">

@@ -10,6 +10,7 @@ const TONE = {
   amber: "bg-amber-50 text-amber-900 ring-amber-300 dark:bg-amber-950 dark:text-amber-200 dark:ring-amber-800",
   green: "bg-emerald-50 text-emerald-800 ring-emerald-300 dark:bg-emerald-950 dark:text-emerald-200 dark:ring-emerald-800",
   red: "bg-red-50 text-red-800 ring-red-300 dark:bg-red-950 dark:text-red-200 dark:ring-red-800",
+  teal: "bg-teal-50 text-teal-800 ring-teal-300 dark:bg-teal-950 dark:text-teal-200 dark:ring-teal-800",
   violet: "bg-violet-50 text-violet-800 ring-violet-300 dark:bg-violet-950 dark:text-violet-200 dark:ring-violet-800",
 } as const;
 
@@ -35,7 +36,7 @@ export const VerdictBadge = ({ verdict }: { verdict: string }) => (
 );
 
 export const SourceBadge = ({ source }: { source: string }) => (
-  <Badge tone={source === "DEMO" ? "violet" : "blue"} testId="row-source">
+  <Badge tone={source === "DEMO" ? "violet" : source === "WEB" ? "teal" : "blue"} testId="row-source">
     {source}
   </Badge>
 );

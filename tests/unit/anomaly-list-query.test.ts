@@ -117,3 +117,16 @@ describe("주소 만들기와 빠른 필터", () => {
     expect(activeQuickFilter({ page: 1, status: "resolved" })).toBeNull();
   });
 });
+
+describe("출처 WEB (홈페이지 모니터링, W14)", () => {
+  it("source=WEB을 읽고 DB 조건(eq source)으로 바꾼다", () => {
+    const q = parseListQuery({ source: "WEB" });
+    expect(q.source).toBe("WEB");
+    expect(buildFilterPlan(q, "u1").eq).toContainEqual(["source", "WEB"]);
+  });
+
+  it("규칙 필터에도 홈페이지 규칙을 쓸 수 있고, 모르는 출처는 무시한다", () => {
+    expect(parseListQuery({ rule: "WEB_AVAILABILITY" }).rule).toBe("WEB_AVAILABILITY");
+    expect(parseListQuery({ source: "web" }).source).toBeUndefined();
+  });
+});

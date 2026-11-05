@@ -26,7 +26,7 @@ export type AnomalyRow = {
 
 // ── 출력: 화면용 요약 ──
 // 모든 수치는 출처별로 나눠 담는다 (PRD 5-6: 모든 수치에 출처 구분)
-export type SourceCount = { total: number; DEMO: number; PUBLIC: number };
+export type SourceCount = { total: number; DEMO: number; PUBLIC: number; WEB: number };
 
 export const RUN_STATUSES = ["succeeded", "partial", "failed", "blocked", "running"] as const;
 export type RunStatusKey = (typeof RUN_STATUSES)[number];
@@ -61,7 +61,7 @@ export type DashboardSummary = {
 
 export const RECENT_RUN_LIMIT = 5;
 
-const emptyCount = (): SourceCount => ({ total: 0, DEMO: 0, PUBLIC: 0 });
+const emptyCount = (): SourceCount => ({ total: 0, DEMO: 0, PUBLIC: 0, WEB: 0 });
 const isSource = (v: string): v is Source => (SOURCES as readonly string[]).includes(v);
 const isStatus = (v: string): v is AnomalyStatus => (STATUSES as readonly string[]).includes(v);
 const isRule = (v: string): v is AnyRuleId => (ALL_RULE_IDS as readonly string[]).includes(v);
@@ -75,7 +75,7 @@ function add(count: SourceCount, source: string) {
 
 // 두 개수를 더한 새 개수 (미처리 = 미확인 + 검토 중)
 function sum(a: SourceCount, b: SourceCount): SourceCount {
-  return { total: a.total + b.total, DEMO: a.DEMO + b.DEMO, PUBLIC: a.PUBLIC + b.PUBLIC };
+  return { total: a.total + b.total, DEMO: a.DEMO + b.DEMO, PUBLIC: a.PUBLIC + b.PUBLIC, WEB: a.WEB + b.WEB };
 }
 
 export function summarizeDashboard(input: {

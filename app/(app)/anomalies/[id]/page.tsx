@@ -101,7 +101,8 @@ async function DetailContent({ params }: { params: Params }) {
       </section>
 
       <EvidenceSummary ruleId={a.rule_id} evidence={a.evidence} />
-      <RawValuesTable evidence={a.evidence} />
+      {/* 홈페이지(WEB) 이상징후는 목록·상세 값 비교가 없으므로 원본 데이터 표를 보이지 않는다 */}
+      {a.source === "WEB" ? null : <RawValuesTable evidence={a.evidence} />}
 
       <AnomalyActions
         anomaly={{ id: a.id, status: a.status, verdict: a.verdict, version: a.version, assigneeId: a.assignee_id }}

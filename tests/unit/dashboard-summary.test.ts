@@ -38,7 +38,7 @@ describe("빈 데이터", () => {
     const s = summarize([], []);
     expect(s.isEmpty).toBe(true);
     expect(s.date).toBe("2026-10-29");
-    expect(s.today.runCount).toEqual({ total: 0, DEMO: 0, PUBLIC: 0 });
+    expect(s.today.runCount).toEqual({ total: 0, DEMO: 0, PUBLIC: 0, WEB: 0 });
     expect(s.today.lastRun).toBeNull();
     expect(s.today.lastSuccessAt).toBeNull();
     expect(s.backlog.unresolved.total).toBe(0);
@@ -78,8 +78,8 @@ describe("오늘(KST) 점검 경계", () => {
       ],
       [],
     );
-    expect(s.today.runCount).toEqual({ total: 5, DEMO: 4, PUBLIC: 1 });
-    expect(s.today.byStatus.partial).toEqual({ total: 1, DEMO: 0, PUBLIC: 1 });
+    expect(s.today.runCount).toEqual({ total: 5, DEMO: 4, PUBLIC: 1, WEB: 0 });
+    expect(s.today.byStatus.partial).toEqual({ total: 1, DEMO: 0, PUBLIC: 1, WEB: 0 });
     expect(s.today.byStatus.blocked.total).toBe(1);
     expect(s.today.byStatus.running.total).toBe(1);
   });
@@ -123,7 +123,7 @@ describe("미처리·미배정·내 담당", () => {
         anomaly({ status: "dismissed" }),
       ],
     );
-    expect(s.backlog.unresolved).toEqual({ total: 2, DEMO: 1, PUBLIC: 1 });
+    expect(s.backlog.unresolved).toEqual({ total: 2, DEMO: 1, PUBLIC: 1, WEB: 0 });
     expect(s.backlog.byStatus.open.total).toBe(1);
     expect(s.backlog.byStatus.resolved.total).toBe(1);
     expect(s.backlog.byStatus.dismissed.total).toBe(1);
@@ -153,7 +153,7 @@ describe("미처리·미배정·내 담당", () => {
         anomaly({ assignee_id: null, status: "open" }),
       ],
     );
-    expect(s.backlog.mine).toEqual({ total: 2, DEMO: 1, PUBLIC: 1 });
+    expect(s.backlog.mine).toEqual({ total: 2, DEMO: 1, PUBLIC: 1, WEB: 0 });
   });
 });
 
@@ -170,7 +170,7 @@ describe("규칙별 신규 이상징후 (오늘 first_detected_at)", () => {
       ],
     );
     expect(s.newToday.DATE_ORDER.total).toBe(1);
-    expect(s.newToday.REQUIRED_FIELD).toEqual({ total: 1, DEMO: 0, PUBLIC: 1 });
+    expect(s.newToday.REQUIRED_FIELD).toEqual({ total: 1, DEMO: 0, PUBLIC: 1, WEB: 0 });
     expect(s.newToday.LIST_DETAIL_MISMATCH.total).toBe(0);
     expect(s.newToday.EMPTY_RESULT.total).toBe(1);
   });
@@ -192,5 +192,25 @@ describe("모르는 값", () => {
     expect(s.recentRuns).toEqual([]);
     expect(s.backlog.unresolved.total).toBe(0);
     expect(s.isEmpty).toBe(false);
+  });
+});
+
+describe("출처 WEB (홈페이지 이상징후, W14)", () => {
+  it("미처리·미배정·상태별·오늘 신규 건수가 PUBLIC과 따로 WEB으로 센다 (합계에는 포함)", () => {
+    const s = summarizeDashboard({
+      now: NOW,
+      runs: [],
+      userId: null,
+      anomalies: [
+        anomaly({ source: "PUBLIC", status: "open", rule_id: "API_TIMEOUT", first_detected_at: "2026-10-29T01:00:00Z" }),
+        anomaly({ source: "WEB", status: "open", rule_id: "WEB_AVAILABILITY", first_detected_at: "2026-10-29T01:30:00Z" }),
+        anomaly({ source: "WEB", status: "resolved", rule_id: "WEB_AVAILABILITY", first_detected_at: "2026-10-20T01:30:00Z" }),
+      ],
+    });
+    expect(s.backlog.unresolved).toEqual({ total: 2, DEMO: 0, PUBLIC: 1, WEB: 1 });
+    expect(s.backlog.unassigned).toEqual({ total: 2, DEMO: 0, PUBLIC: 1, WEB: 1 });
+    expect(s.backlog.byStatus.resolved).toEqual({ total: 1, DEMO: 0, PUBLIC: 0, WEB: 1 });
+    expect(s.newToday.WEB_AVAILABILITY).toEqual({ total: 1, DEMO: 0, PUBLIC: 0, WEB: 1 });
+    expect(s.newToday.WEB_FRESHNESS.total).toBe(0);
   });
 });

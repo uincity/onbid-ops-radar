@@ -29,9 +29,18 @@ export const DQ_RULE_IDS = ["DQ_SCHEMA", "DQ_REQUIRED", "DQ_LIST_DETAIL_REF", "D
 // (FAIL 세부 코드 7개 앞에 "API_"를 붙인 것. 같은 값인지 tests/unit/rule-id-drift.test.ts가 확인한다)
 export const API_RULE_IDS = ["API_HTTP_ERROR", "API_TIMEOUT", "API_BUSINESS_ERROR", "API_SCHEMA_ERROR", "API_POSITIVE_DATA_MISSING", "API_AUTH_ERROR", "API_QUOTA_EXCEEDED"] as const;
 
+// 홈페이지 가용성 모니터링 규칙 (출처 WEB 전용). WEB_FRESHNESS는 M3에서 쓰기 시작한다
+export const WEB_RULE_IDS = ["WEB_AVAILABILITY", "WEB_FRESHNESS"] as const;
+
 // DB(anomalies_rule_id_check)가 허용하는 규칙 ID 전체. 둘이 같은지 tests/unit/rule-id-drift.test.ts가 지킨다
-export const ALL_RULE_IDS = [...RULE_IDS, ...DQ_RULE_IDS, ...API_RULE_IDS] as const;
+export const ALL_RULE_IDS = [...RULE_IDS, ...DQ_RULE_IDS, ...API_RULE_IDS, ...WEB_RULE_IDS] as const;
 export type AnyRuleId = (typeof ALL_RULE_IDS)[number];
+
+// 대시보드 "규칙별 신규" 목록: 아직 쓰지 않는 WEB_FRESHNESS(M3에서 켠다)는 항상 0이라 뺀다
+export const DASHBOARD_RULE_IDS = ALL_RULE_IDS.filter((id) => id !== "WEB_FRESHNESS") as readonly AnyRuleId[];
+
+// 일일 점검보고서(OpenAPI 데이터·API)의 "규칙별 신규"에 쓰는 규칙: 홈페이지(WEB) 규칙은 보고서의 이상징후 표에 섞지 않는다 (DESIGN 4.7)
+export const REPORT_RULE_IDS = ALL_RULE_IDS.filter((id) => !(WEB_RULE_IDS as readonly string[]).includes(id)) as readonly AnyRuleId[];
 
 export const RULE_LABEL: Record<AnyRuleId, string> = {
   DATE_ORDER: "날짜 정합성",
@@ -49,13 +58,16 @@ export const RULE_LABEL: Record<AnyRuleId, string> = {
   API_POSITIVE_DATA_MISSING: "API 기대한 실데이터 없음",
   API_AUTH_ERROR: "API 서비스키·권한 문제",
   API_QUOTA_EXCEEDED: "API 호출 한도 초과",
+  WEB_AVAILABILITY: "홈페이지 가용성",
+  WEB_FRESHNESS: "홈페이지 신선도",
 };
 
-export const SOURCES = ["DEMO", "PUBLIC"] as const;
+// 이상징후의 출처. DEMO·PUBLIC은 OpenAPI 점검, WEB은 홈페이지 가용성 모니터링 (점검 실행의 출처는 lib/settings/schema.ts의 SOURCES로 DEMO·PUBLIC뿐이다)
+export const SOURCES = ["DEMO", "PUBLIC", "WEB"] as const;
 export type Source = (typeof SOURCES)[number];
 
 // 화면(출처 배지·건수·필터)에 보여 주는 출처. 실제 점검 이력만 쓰는 단계라 DEMO는 보여 주지 않는다. (데이터·서버의 DEMO 지원은 그대로 둔다)
-export const VISIBLE_SOURCES = ["PUBLIC"] as const;
+export const VISIBLE_SOURCES = ["PUBLIC", "WEB"] as const;
 
 export const EVENT_TYPE_LABEL: Record<string, string> = {
   created: "최초 탐지",
@@ -63,6 +75,7 @@ export const EVENT_TYPE_LABEL: Record<string, string> = {
   assigned: "담당자 배정",
   status_changed: "처리상태 변경",
   verdict_changed: "판정 변경",
+  recovered: "복구 확인됨",
 };
 
 export const RUN_STATUS_LABEL: Record<string, string> = {

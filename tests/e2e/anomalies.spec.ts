@@ -30,6 +30,24 @@ test.describe("이상징후 목록", () => {
   });
 });
 
+test.describe("이상징후 목록 - 출처 WEB (W14)", () => {
+  test("출처 필터에 PUBLIC과 WEB이 있고 DEMO는 없으며, 규칙 필터에 '홈페이지 가용성'이 있다", async ({ page }) => {
+    await signInThroughForm(page, OPERATOR, "/anomalies");
+    const source = page.locator('select[name="source"]');
+    await expect(source.locator("option")).toHaveText(["전체", "PUBLIC", "WEB"]);
+    await expect(page.locator('select[name="rule"]').locator("option", { hasText: "홈페이지 가용성" })).toHaveCount(1);
+  });
+
+  test("?source=WEB은 오류 없이 열리고, 표가 있으면 모든 줄의 출처가 WEB이다", async ({ page }) => {
+    await signInThroughForm(page, OPERATOR, "/anomalies?source=WEB");
+    await expect(page.getByRole("heading", { name: "이상징후", level: 1 })).toBeVisible();
+    await expect(page.locator('select[name="source"]')).toHaveValue("WEB");
+    await expect(page.getByTestId("anomaly-table").or(page.getByTestId("anomaly-empty"))).toBeVisible();
+    const badges = await page.getByTestId("anomaly-row").getByTestId("row-source").allTextContents();
+    for (const b of badges) expect(b.trim()).toBe("WEB");
+  });
+});
+
 test.describe("이상징후 상세", () => {
   test("존재하지 않는 번호는 404 안내가 보인다", async ({ page }) => {
     await signInThroughForm(page, OPERATOR, "/anomalies/999999999");

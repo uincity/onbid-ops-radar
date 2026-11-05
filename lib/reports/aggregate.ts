@@ -1,7 +1,7 @@
 // 일일 점검보고서 집계: DB에서 읽은 행 배열 → 보고서 모델 (순수 함수, PRD 5-4)
 // 집계 범위는 KST 하루 [00:00, 끝)이고, 끝은 "다음 날 00:00" 또는 "생성 시각 중 빠른 쪽"이다. 끝 시각은 포함하지 않는다.
 // 입력 행에 이미 DB가 범위를 걸었더라도, 여기서 한 번 더 범위를 걸러 경계(00:00 포함, 24:00 제외)를 확실히 지킨다.
-import { ALL_RULE_IDS, STATUSES } from "@/lib/anomalies/labels";
+import { REPORT_RULE_IDS, STATUSES } from "@/lib/anomalies/labels";
 import { kstDayRange } from "@/lib/time";
 import { UNRESOLVED_LIMIT, type ReportModel, type UnresolvedRow } from "./model";
 
@@ -95,7 +95,7 @@ export function aggregateReport(input: AggregateInput): ReportModel {
 
   // 이상징후
   const fresh = input.newAnomalies.filter((a) => inRange(a.first_detected_at));
-  const newByRule: Record<string, number> = Object.fromEntries(ALL_RULE_IDS.map((id) => [id, 0]));
+  const newByRule: Record<string, number> = Object.fromEntries(REPORT_RULE_IDS.map((id) => [id, 0]));
   for (const a of fresh) newByRule[a.rule_id] = (newByRule[a.rule_id] ?? 0) + 1;
 
   const closed = input.closedEvents.filter((e) => inRange(e.created_at));

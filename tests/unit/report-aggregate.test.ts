@@ -1,5 +1,5 @@
 // 일일 점검보고서 집계 시험 (PLAN 30번, PRD 5-4): KST 하루 경계, 빈 날, 미처리 50건 경계, 평균 응답시간, 출처 구분
-import { ALL_RULE_IDS } from "@/lib/anomalies/labels";
+import { REPORT_RULE_IDS } from "@/lib/anomalies/labels";
 import { describe, expect, it } from "vitest";
 import { aggregateReport, type AggregateInput } from "@/lib/reports/aggregate";
 import { UNRESOLVED_LIMIT, parseReportModel, reportFileName } from "@/lib/reports/model";
@@ -51,7 +51,7 @@ describe("빈 날", () => {
     expect(m.anomalies.newCount).toBe(0);
     expect(m.unresolved).toMatchObject({ total: 0, omitted: 0, rows: [] });
     expect(Object.values(m.validation.newByRule).every((n) => n === 0)).toBe(true);
-    expect(Object.keys(m.validation.newByRule)).toEqual([...ALL_RULE_IDS]); // 이전 4개 + DQ 4개 + API 7개 (R05)
+    expect(Object.keys(m.validation.newByRule)).toEqual([...REPORT_RULE_IDS]); // 이전 4개 + DQ 4개 + API 7개 (R05). 홈페이지(WEB) 규칙은 보고서 표에 섞지 않는다
   });
 
   it("결과는 저장 모양 검사를 통과한다", () => {
