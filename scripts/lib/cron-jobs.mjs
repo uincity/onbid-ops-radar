@@ -19,6 +19,8 @@ export const CRON_JOBS = [
   { name: "onbid-web-check", group: "web", kind: "post", schedule: "7 * * * *", path: "/api/cron/web-check", label: "홈페이지 정시 점검: 매시 :07" },
   // 매분 실행하지만 DB 함수가 "예정 시각이 지난 재확인·대체 실행 줄이 있을 때만" 앱(/api/cron/web-retry)을 부른다. 빈 큐에서는 앱 호출이 없다
   { name: "onbid-web-retry", group: "web", kind: "sql", schedule: "* * * * *", sql: "select public.web_enqueue_due_retries()", label: "홈페이지 재확인 확인: 매분(예정된 줄이 있을 때만 앱 호출)" },
+  // 앱과 독립인 자체 감시(W16): 10분마다 DB 함수가 정시 점검이 멈췄는지 보고, 멈췄으면 pg_net으로 텔레그램을 직접 부른다
+  { name: "onbid-web-heartbeat", group: "web", kind: "sql", schedule: "*/10 * * * *", sql: "select public.web_monitor_heartbeat()", label: "홈페이지 점검 자체 감시: 10분마다(정지 알림은 앱 없이 직접 발송)" },
 ];
 
 const lit = (value) => `'${String(value).replaceAll("'", "''")}'`; // SQL 문자열 값
