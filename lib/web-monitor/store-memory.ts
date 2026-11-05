@@ -5,6 +5,7 @@
 import type { ProbeResult, WebVerdict } from "./classify";
 import type { TransitionDecision, WebStateForDecision } from "./decide";
 import type { FinishWebRunInput, StartWebRunInput, StartWebRunResult, WebCheckStore } from "./store";
+import type { NotifyStore, RecordAttemptInput, UnsentNotification } from "./notify/types";
 import type { ClaimedRetry, RetryOriginRun, RetryOutcome, WebRetryStore, WebTransitionResult, WebTransitionStore } from "./transition-store";
 
 export type MemoryRun = {
@@ -32,11 +33,12 @@ export type MemoryQueueRow = {
   claimedAtMs: number | null;
   attempts: number;
 };
-export type MemoryNotification = { key: string; kind: string; incidentNo: number | null; payload: Record<string, unknown> };
+export type MemoryNotification = { key: string; kind: string; targetKey: string; incidentNo: number | null; payload: Record<string, unknown>; createdAtMs: number };
 
 export type MemoryWebStore = WebCheckStore &
   WebTransitionStore &
-  WebRetryStore & {
+  WebRetryStore &
+  NotifyStore & {
     readonly runs: MemoryRun[];
     readonly probes: { runId: number; targetKey: string; probe: ProbeResult }[];
     readonly queue: MemoryQueueRow[];
@@ -44,6 +46,8 @@ export type MemoryWebStore = WebCheckStore &
     readonly notifications: MemoryNotification[];
     readonly detections: { targetKey: string; valueHash: string; anomalyId: number }[];
     readonly recoveries: { anomalyId: number; incidentNo: number; note: string }[];
+    /** 시험용: 알림 시도 기록(추가 전용 줄) */
+    readonly attempts: RecordAttemptInput[];
     /** 시험용: 대상의 열린 이상징후를 담당자가 닫은 것처럼 만든다 */
     closeAnomaly(anomalyId: number): void;
   };
@@ -62,6 +66,8 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
   const recoveries: MemoryWebStore["recoveries"] = [];
   const anomalies: { id: number; targetKey: string; open: boolean }[] = [];
   const notificationKeys = new Set<string>();
+  const attempts: RecordAttemptInput[] = [];
+  const leases = new Map<string, number>(); // 키 → 임대 끝 시각(ms)
   let nextId = 1;
   let nextQueueId = 1;
   let nextAnomalyId = 1;
@@ -95,6 +101,7 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
     notifications,
     detections,
     recoveries,
+    attempts,
     closeAnomaly(anomalyId) {
       const a = anomalies.find((x) => x.id === anomalyId);
       if (a) a.open = false;
@@ -196,7 +203,7 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
       for (const n of d.notifications) {
         if (notificationKeys.has(n.key)) continue;
         notificationKeys.add(n.key);
-        notifications.push({ key: n.key, kind: n.kind, incidentNo: n.incident_no, payload: n.payload });
+        notifications.push({ key: n.key, kind: n.kind, targetKey: input.targetKey, incidentNo: n.incident_no, payload: n.payload, createdAtMs: now() });
         claimed.push(n.key);
       }
       let confirmed = false;
@@ -239,6 +246,43 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
         row.dueAtMs = now() + 60_000;
       } else row.status = outcome === "done" ? "done" : "cancelled";
       return true;
+    },
+
+    // ----- W12 알림 발송 -----
+    async listUnsent(opts): Promise<UnsentNotification[]> {
+      return notifications
+        .filter((n) => !["stale", "resumed"].includes(n.kind))
+        .filter((n) => n.createdAtMs <= now() - opts.olderThanMinutes * 60_000)
+        .filter((n) => !opts.keys || opts.keys.includes(n.key))
+        .filter((n) => {
+          const mine = attempts.filter((a) => a.key === n.key);
+          return !mine.some((a) => a.status === "sent") && Math.max(0, ...mine.map((a) => a.attempt)) < 5;
+        })
+        .sort((a, b) => a.createdAtMs - b.createdAtMs)
+        .slice(0, opts.limit)
+        .map((n) => ({ key: n.key, kind: n.kind, targetKey: n.targetKey, incidentNo: n.incidentNo, payload: n.payload, attempts: Math.max(0, ...attempts.filter((a) => a.key === n.key).map((a) => a.attempt)), createdAt: new Date(n.createdAtMs) }));
+    },
+
+    async lease(key, seconds) {
+      const mine = attempts.filter((a) => a.key === key);
+      if (!notificationKeys.has(key) || mine.some((a) => a.status === "sent") || Math.max(0, ...mine.map((a) => a.attempt)) >= 5) return false;
+      const until = leases.get(key);
+      if (until !== undefined && until >= now()) return false;
+      leases.set(key, now() + seconds * 1000);
+      return true;
+    },
+
+    async recordAttempt(input) {
+      const mine = attempts.filter((a) => a.key === input.key);
+      if (!notificationKeys.has(input.key)) throw new Error("선점되지 않은 알림 키입니다");
+      if (mine.some((a) => a.status === "sent")) throw new Error("이미 발송된 알림에는 시도를 더할 수 없습니다");
+      if (input.attempt !== Math.max(0, ...mine.map((a) => a.attempt)) + 1) throw new Error("시도 번호는 마지막 시도 다음 번호여야 합니다");
+      attempts.push({ ...input });
+    },
+
+    async latestAnomalyId(targetKey) {
+      const mine = anomalies.filter((a) => a.targetKey === targetKey);
+      return mine.length > 0 ? mine[mine.length - 1].id : null;
     },
 
     async getRun(runId): Promise<RetryOriginRun | null> {

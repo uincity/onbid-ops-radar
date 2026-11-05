@@ -5,7 +5,7 @@ export const title = "웹 재확인 대기 줄 함수 (enqueue_web_confirm · cl
 
 export async function run(ctx) {
   const { report, query } = ctx;
-  const names = ["enqueue_web_confirm", "claim_due_web_retry", "finish_web_retry", "web_retry_housekeeping", "web_enqueue_due_retries"];
+  const names = ["enqueue_web_confirm", "claim_due_web_retry", "finish_web_retry", "web_retry_housekeeping", "web_enqueue_due_retries", "list_unsent_web_notifications", "lease_web_notification"]; // 뒤 둘은 W12(알림 발송)
   const fns = await query(
     `select p.proname, p.prosecdef, p.proconfig,
             has_function_privilege('anon', p.oid, 'EXECUTE') as anon_ok,
@@ -14,9 +14,13 @@ export async function run(ctx) {
        from pg_proc p join pg_namespace n on n.oid = p.pronamespace
       where n.nspname = 'public' and p.proname in (${names.map((n) => `'${n}'`).join(", ")})`,
   );
-  report(fns.length === names.length, "재확인 대기 줄 함수 5개가 있음", `${fns.length}개`);
-  report(fns.every((f) => !f.anon_ok && !f.auth_ok && f.service_ok), "다섯 함수는 서버 관리용 키만 실행할 수 있음 (비로그인·로그인 사용자는 불가)");
-  report(fns.every((f) => f.prosecdef && (f.proconfig ?? []).some((c) => /search_path=""/.test(c))), "다섯 함수는 소유자 권한으로 실행되고 search_path가 비어 있음");
+  report(fns.length === names.length, "재확인 대기 줄·알림 발송 함수 7개가 있음", `${fns.length}개`);
+  report(fns.every((f) => !f.anon_ok && !f.auth_ok && f.service_ok), "일곱 함수는 서버 관리용 키만 실행할 수 있음 (비로그인·로그인 사용자는 불가)");
+  report(fns.every((f) => f.prosecdef && (f.proconfig ?? []).some((c) => /search_path=""/.test(c))), "일곱 함수는 소유자 권한으로 실행되고 search_path가 비어 있음");
+
+  // 알림 발송 임대 표(W12): RLS가 켜져 있고 로그인 사용자는 읽기만 가능해야 한다
+  const [lease] = await query(`select c.relrowsecurity as rls from pg_class c where c.oid = 'public.web_notification_leases'::regclass`);
+  report(lease?.rls === true, "web_notification_leases: RLS(출입 규칙) 켜짐 (발송 임대 표)");
 
   // 대상별 대기/처리 중 줄은 1개 (부분 유니크 인덱스, W04)와 예정 시각 인덱스가 그대로 있어야 이 함수들이 안전하다
   const idx = await query(`select indexname from pg_indexes where schemaname = 'public' and tablename = 'web_retry_queue'`);

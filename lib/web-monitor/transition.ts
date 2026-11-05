@@ -11,7 +11,7 @@ import type { WebTransitionStore } from "./transition-store";
 export const MAX_TRANSITION_ATTEMPTS = 3;
 
 export type ApplyAction = "deferred" | "applied" | "planned" | "skipped" | "conflict";
-export type ApplyOutcome = { action: ApplyAction; confirmQueued?: boolean; reason?: string };
+export type ApplyOutcome = { action: ApplyAction; confirmQueued?: boolean; reason?: string; claimedKeys?: string[] }; // claimedKeys: 이번 전환에서 선점한 알림 키(바로 발송할 대상)
 
 // 보조 확인의 이름: 판정 줄에는 층만 있어서 층 이름으로 정한다(알림 키 aux:{대상}:{이름}:{시작 실행}에 들어가므로 바꾸지 않는다)
 const AUX_KEY: Record<string, string> = { AUX_STUB: "aux-stub", AUX_QUEUE: "aux-queue" };
@@ -76,7 +76,7 @@ export async function applyRunDecision(input: ApplyInput): Promise<ApplyOutcome>
     }
 
     const saved = await store.recordTransition({ runId: report.runId, targetKey: report.targetKey, expectedVersion: state ? state.version : null, decision: result.decision });
-    if (saved.result === "OK") return { action: result.kind === "planned" ? "planned" : "applied" };
+    if (saved.result === "OK") return { action: result.kind === "planned" ? "planned" : "applied", claimedKeys: saved.claimed };
     // CONFLICT: 그사이 다른 실행이 상태를 바꿨다 → 상태를 다시 읽어 판단을 다시 한다
   }
   return { action: "conflict" };

@@ -28,6 +28,7 @@
     "check:env": "node --env-file=.env scripts/check-env.mjs",
     "setup:env": "node --env-file=.env scripts/setup-env.mjs",
     "setup:cron": "node --env-file=.env scripts/setup-cron.mjs",
+    "setup:telegram": "node --env-file=.env scripts/setup-telegram.mjs",
     "setup:supabase": "node --env-file=.env scripts/setup-supabase-project.mjs",
     "check:supabase": "node --env-file=.env scripts/check-supabase-link.mjs"
   },

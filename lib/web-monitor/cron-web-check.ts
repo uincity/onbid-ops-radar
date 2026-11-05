@@ -6,6 +6,7 @@ import { bearerToken, sameSecret } from "@/lib/schedule/cron-check";
 import type { WebRunInput, WebRunReport } from "./runner";
 import { applyRunDecision, type ApplyOutcome } from "./transition";
 import type { WebTransitionStore } from "./transition-store";
+import type { DeliverSummary } from "./notify/deliver";
 import { scheduledSlotAt } from "./slot";
 import type { WebTarget } from "./schema";
 import type { WebSettings } from "./settings";
@@ -20,7 +21,8 @@ export type WebCronResponse = {
 export type WebCronDeps = {
   secret: () => string | undefined; // 서버에 설정된 CRON_SECRET
   // 설정을 못 읽거나 규칙에 어긋나면 던진다. transitionStore가 있으면 점검 뒤에 상태 전환(재확인 예약 포함)까지 이어서 한다
-  prepare: () => Promise<{ settings: WebSettings; store: WebCheckStore; transitionStore?: WebTransitionStore }>;
+  // notify가 있으면 상태 전환에서 선점한 알림을 바로 발송한다(실패해도 점검 응답에는 영향이 없고, 15분 뒤 회수 경로가 다시 보낸다)
+  prepare: () => Promise<{ settings: WebSettings; store: WebCheckStore; transitionStore?: WebTransitionStore; notify?: { deliver: (opts: { keys: readonly string[] }) => Promise<DeliverSummary> } }>;
   targets: () => readonly WebTarget[];
   transport: WebTransport;
   clock: ProbeClock;
@@ -63,17 +65,26 @@ export async function runScheduledWebCheck(authorization: string | null, deps: W
     });
     // 점검 결과를 상태 전환에 연결한다(정시 실패면 확인 재시도 예약). 여기서 오류가 나도 점검 기록은 이미 남아 있으므로 응답은 "처리됨"이다
     const runs: { target: string; status: string; follow?: string }[] = [];
+    const claimedKeys: string[] = [];
     for (const t of report.targets) {
       let follow: string | undefined;
       if (prepared.transitionStore) {
         try {
           const out: ApplyOutcome = await applyRunDecision({ report: t, trigger: "scheduled", startedAt, settings: prepared.settings, store: prepared.transitionStore });
           follow = out.action;
+          claimedKeys.push(...(out.claimedKeys ?? []));
         } catch {
           follow = "error";
         }
       }
       runs.push(follow ? { target: t.targetKey, status: t.status, follow } : { target: t.targetKey, status: t.status });
+    }
+    if (prepared.notify && claimedKeys.length > 0) {
+      try {
+        await prepared.notify.deliver({ keys: claimedKeys });
+      } catch {
+        // 발송 오류는 점검 응답에 영향이 없다. 시도 기록이 없는 알림은 회수 경로가 다시 보낸다
+      }
     }
     // 막히거나 일부만 끝나도 "요청은 처리됨"이다. 결과는 web_check_runs에 남는다
     return reply(200, "홈페이지 정시 점검 요청을 처리했습니다.", { runs });
