@@ -6,6 +6,7 @@ import { nodeTransport } from "@/lib/web-monitor/probes/node-transport";
 import { allWebTargets } from "@/lib/web-monitor/registry";
 import { runWebCheck } from "@/lib/web-monitor/runner";
 import { loadWebSettings } from "@/lib/web-monitor/settings-load";
+import { createNotifyRuntime } from "@/lib/web-monitor/notify/runtime";
 import { createSupabaseWebStore } from "@/lib/web-monitor/store";
 import { createSupabaseWebTransitionStore } from "@/lib/web-monitor/transition-store";
 import { createAdminClient } from "@/lib/supabase/admin";
@@ -18,7 +19,8 @@ export async function POST(request: Request) {
     secret: () => process.env.CRON_SECRET,
     prepare: async () => {
       const admin = createAdminClient();
-      return { settings: await loadWebSettings(admin), store: createSupabaseWebStore(admin), transitionStore: createSupabaseWebTransitionStore(admin) };
+      const settings = await loadWebSettings(admin);
+      return { settings, store: createSupabaseWebStore(admin), transitionStore: createSupabaseWebTransitionStore(admin), notify: createNotifyRuntime(admin, settings) };
     },
     targets: () => allWebTargets(),
     transport: nodeTransport,

@@ -60,7 +60,7 @@ describe("applyRunDecision", () => {
   it("정상 판정은 상태 줄을 만들고 원래 실행의 확정 판정을 채운다", async () => {
     const store = createMemoryWebStore({ now: () => T0 });
     const report = await finishedRun(store, "PASS_DATA");
-    expect(await apply(store, report)).toEqual({ action: "applied" });
+    expect(await apply(store, report)).toMatchObject({ action: "applied", claimedKeys: [] });
     expect(store.states.get("onbid-home")).toMatchObject({ current_verdict: "PASS_DATA", incident_open: false, version: 1 });
     expect(store.runs.find((r) => r.id === report.runId)).toMatchObject({ confirmedVerdict: "PASS_DATA", flap: false });
   });
@@ -90,7 +90,7 @@ describe("applyRunDecision", () => {
     const first = await finishedRun(store, "FAIL");
     await apply(store, first);
     const retry = await finishedRun(store, "FAIL", { trigger: "retry", originRunId: first.runId });
-    expect(await apply(store, retry, { trigger: "retry", originRunId: first.runId, startedAt: new Date(T0 + 120_000) })).toEqual({ action: "applied" });
+    expect(await apply(store, retry, { trigger: "retry", originRunId: first.runId, startedAt: new Date(T0 + 120_000) })).toMatchObject({ action: "applied", claimedKeys: ["down:1"] });
     expect(store.notifications.map((n) => n.key)).toEqual(["down:1"]);
     expect(store.states.get("onbid-home")).toMatchObject({ incident_open: true, incident_no: 1, current_verdict: "FAIL" });
     expect(store.detections).toHaveLength(1);
@@ -130,7 +130,7 @@ describe("applyRunDecision", () => {
   it("계획 점검 창 안의 실패는 재확인을 예약하지 않고 planned로 기록한다", async () => {
     const store = createMemoryWebStore({ now: () => T0 });
     const report = await finishedRun(store, "FAIL");
-    expect(await apply(store, report, { isInWindow: async () => true })).toEqual({ action: "planned" });
+    expect(await apply(store, report, { isInWindow: async () => true })).toMatchObject({ action: "planned", claimedKeys: [] });
     expect(store.queue).toHaveLength(0);
     expect(store.notifications).toHaveLength(0);
   });
@@ -145,7 +145,7 @@ describe("applyRunDecision", () => {
       enqueueConfirm: (i) => mem.enqueueConfirm(i),
       recordTransition: async (i) => (conflicts-- > 0 ? { result: "CONFLICT", version: 9 } : mem.recordTransition(i)),
     };
-    expect(await applyRunDecision({ report, trigger: "scheduled", startedAt: new Date(T0), settings, store: flaky })).toEqual({ action: "applied" });
+    expect(await applyRunDecision({ report, trigger: "scheduled", startedAt: new Date(T0), settings, store: flaky })).toMatchObject({ action: "applied" });
     expect(loads).toBe(2);
 
     const always: WebTransitionStore = { ...flaky, recordTransition: async () => ({ result: "CONFLICT", version: 9 }) };
