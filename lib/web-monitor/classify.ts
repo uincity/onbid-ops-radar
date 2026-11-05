@@ -8,9 +8,9 @@ export type WebVerdict = "PASS_DATA" | "PASS_NO_DATA" | "DEGRADED" | "FAIL" | "U
 export type WebReason =
   | "TIMEOUT" | "SLOW_RESPONSE" | "DNS_FAILED" | "TCP_FAILED" | "TLS_FAILED" | "HTTP_5XX" | "HTTP_BLOCKED" | "HTTP_4XX_OTHER" | "HTTP_NOT_FOUND"
   | "MARKER_MISSING" | "TOO_SMALL" | "MAINTENANCE_DETECTED" | "BLOCK_PHRASE" | "CERT_EXPIRING" | "CERT_INVALID" | "REDIRECT_LIMIT"
-  | "HOST_NOT_ALLOWED" | "UPSTREAM_FAILED" | "BUDGET_SKIP" | "INTERNAL_ERROR";
+  | "HOST_NOT_ALLOWED" | "STUB_CHANGED" | "UPSTREAM_FAILED" | "BUDGET_SKIP" | "INTERNAL_ERROR";
 
-export type WebLayer = "L1_CONNECT" | "L2_HTTP" | "L3_CONTENT";
+export type WebLayer = "L1_CONNECT" | "L2_HTTP" | "L3_CONTENT" | "AUX_STUB" | "AUX_QUEUE"; // AUX_*는 보조 확인(대표 판정 제외, W03a)
 
 export type ClassifyConfig = {
   timeoutMs: number; // web_http_timeout_ms (기본 10000)
@@ -31,8 +31,8 @@ export type ProbeResult = {
   certDaysLeft: number | null;
 };
 
-const base = (layer: WebLayer, countsTowardOverall: boolean): ProbeResult => ({ layer, countsTowardOverall, verdict: "PASS_DATA", reason: null, httpStatus: null, durationMs: null, finalUrl: null, certDaysLeft: null });
-const out = (r: ProbeResult, verdict: WebVerdict, reason: WebReason | null, extra: Partial<ProbeResult> = {}): ProbeResult => ({ ...r, ...extra, verdict, reason });
+export const base = (layer: WebLayer, countsTowardOverall: boolean): ProbeResult => ({ layer, countsTowardOverall, verdict: "PASS_DATA", reason: null, httpStatus: null, durationMs: null, finalUrl: null, certDaysLeft: null });
+export const out = (r: ProbeResult, verdict: WebVerdict, reason: WebReason | null, extra: Partial<ProbeResult> = {}): ProbeResult => ({ ...r, ...extra, verdict, reason });
 
 // ---------- L1 접속 ----------
 export type L1Observation =
