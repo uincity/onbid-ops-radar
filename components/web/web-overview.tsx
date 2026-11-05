@@ -7,6 +7,7 @@ import type { WebOverview } from "@/lib/web-monitor/view-source";
 import { AuxSection } from "./aux-section";
 import { BannerList } from "./banner-list";
 import { HourStrip } from "./hour-strip";
+import { ManualCheckPanel } from "./manual-check-panel";
 import { MaintenanceSection } from "./maintenance-section";
 import { NotificationList } from "./notification-list";
 import { RunsTable } from "./runs-table";
@@ -41,6 +42,8 @@ export function WebOverviewView({ overview, now, isAdmin }: { overview: WebOverv
       ) : (
         <SectionError what="현재 상태" />
       )}
+
+      {isAdmin ? <ManualCheckPanel /> : null}
 
       {runs.ok ? <HourStrip cells={buildStrip(runList, now)} /> : <SectionError what="최근 24시간 점검 결과" />}
       {runs.ok ? <AuxSection latestRun={latestReal} /> : null}
