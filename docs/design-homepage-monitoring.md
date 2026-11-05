@@ -92,7 +92,7 @@
 
 ## 3. 기술 선택
 
-**Next.js 16 (App Router)를 기본으로 하고**, 이번 확장에서는 새 라이브러리를 설치하지 않는다. 아래는 쓰는 것, 새로 쓰기 시작하는 것, 검토했지만 쓰지 않는 것이다.
+**Next.js 16 (App Router)를 기본으로 하고**, 이번 확장에서는 새 라이브러리를 설치하지 않는다(구현 확인: W01~W08에서 새 패키지를 설치하지 않았다). 아래는 쓰는 것, 새로 쓰기 시작하는 것, 검토했지만 쓰지 않는 것이다.
 
 ### 3.1 기존 그대로 쓰는 것
 | 도구 | 쉬운 설명 (한 줄) | 쓰는 곳 |
@@ -555,16 +555,19 @@ web_notification_keys ──< web_notifications
 data/registry/web-targets.json        웹 대상 등록부(Zod 검증)
 lib/web-monitor/
   schema.ts            등록부 Zod 스키마
-  settings.ts          웹 전용 설정 읽기(기존 loadSettings와 분리)
+  registry.ts          등록부 읽기·검증(WEB_TARGETS)
+  settings.ts          웹 전용 설정 검증·기본값 (순수)  ·  settings-load.ts  DB(web_settings) 읽기(서버 전용, 기존 loadSettings와 분리)
   allowed-hosts.ts     https·허용 호스트 검사
   probes/connect.ts    L1  ·  probes/http.ts  L2  ·  probes/content.ts  L3
-  probes/aux.ts        보조 확인(진입 스텁, 대기열)  ·  probes/files.ts  L4(M3)
-  classify.ts          프로브 판정과 대표 판정 (순수)
+  probes/aux-probe.ts  보조 확인(진입 스텁, 대기열; aux는 Windows 예약 이름이라 파일명을 바꿈)  ·  probes/files.ts  L4(M3)
+  probes/types.ts · primary.ts · target.ts · node-transport.ts  공통 타입·대표 점검·대상 1개 점검·Node 접속 구현
+  classify.ts          프로브 판정과 대표 판정 (순수)  ·  classify-aux.ts  보조 확인 판정 (순수)
+  slot.ts              정시 칸(UTC 정각) 계산 (순수)
+  cron-web-check.ts    정시 점검 입구의 핵심 흐름(인증·꺼짐·설정 오류 처리)
   decide.ts            상태 전환·알림 결정 (순수)
   maintenance.ts       계획 점검 창 판정 (순수)
   runner.ts            점검 1회 실행(격리·시간 예산)
-  store.ts             DB 저장·조회(서버 관리용 연결). `WEB_MONITOR_STORE=mock`이면 메모리 목 저장소(화면 시험용)
-  settings.ts          웹 설정 읽기(web_settings 테이블 전용)
+  store.ts             DB 저장·조회(서버 관리용 연결). `WEB_MONITOR_STORE=mock`이면 메모리 목 저장소(화면 시험용)  ·  store-memory.ts  메모리 가짜 저장소
   notify/types.ts  telegram.ts  messages.ts
   summary.ts           일별·보고서 집계 (순수)
 app/api/cron/web-check/route.ts · web-retry/route.ts
@@ -572,7 +575,7 @@ app/(app)/web/page.tsx · actions.ts · runs/[id]/page.tsx
 components/web/        status-card · hour-strip · runs-table · notification-list · window-form
 supabase/migrations/…  테이블·함수·제약 (크론 작업은 마이그레이션이 아니라 아래 스크립트가 등록)
 supabase/tests/database/…  새 pgTAP 시험
-scripts/setup-cron.mjs  크론 작업 등록(매시·매분·10분·하루)과 텔레그램 비밀값(Vault) 등록, 출력의 비밀값 가림
+scripts/setup-cron.mjs  크론 작업 등록(매시·매분·10분·하루)과 텔레그램 비밀값(Vault) 등록, 출력의 비밀값 가림  ·  scripts/lib/cron-jobs.mjs  작업 목록·SQL·가림(순수)
 vercel.json             함수 지역 `regions: ["icn1"]`
 tests/unit/web-*.test.ts · tests/e2e/web.spec.ts
 docs/web-monitor-*.md  조사·운영·관찰 문서
@@ -599,7 +602,7 @@ docs/web-monitor-*.md  조사·운영·관찰 문서
 | S0 | W00-1 | `vercel.json` 서울 리전과 진단 경로 | 배포 후 지역·접속 결과 기록 |
 | S1 | W01, W02, W03, W03a | 등록부, 판정, 프로브 | `npm run test:unit`(목 서버) |
 | S2 | **W05 → W04** | 웹 설정 테이블·읽기, 점검 실행·결과·상태·재확인 큐 테이블과 시작·종료 함수(W04가 W05의 `web_stale_running_seconds`를 읽으므로 **W05를 먼저**) | `db:push`, `check:db`, `test:db`, 기존 설정 읽기 무변경 확인 |
-| S3 | W06, W07, W08 | 실행기, 입구, 매시 스케줄 | 연속 24회 실행 기록 |
+| S3 | W06, W07, W08 | 실행기, 입구, 매시 스케줄 | 코드·단위 시험 완료. **연속 24회 실행 기록은 배포 후 `setup:cron --web --apply`로 등록한 뒤 확인하는 운영 확인으로 남음** |
 | S4a | **W10a** | 알림 키·알림 줄 테이블, `claim_notification`·`record_notification_attempt`·`record_web_transition`·`record_recovery_event`·이상징후 출처·규칙·사건 종류 허용 | `test:db` |
 | S4b | W10, W11, W12 | 상태 전환(decide), 재확인·대체 실행 큐와 매분 작업, 텔레그램·`log` Notifier, **텔레그램 비밀값(Vault) 등록과 가림** | 시나리오 시험, 실제 알림 1건 |
 | S5 | W13, W14, W15 | `/web`·`/web/runs/[id]`·경고 띠 화면, 이상징후 화면(출처 `WEB`) 연동, 계획 점검 창 | `test:e2e`(목 저장소), `test:db` |
