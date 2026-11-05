@@ -7,6 +7,7 @@ import { allWebTargets } from "@/lib/web-monitor/registry";
 import { runWebCheck } from "@/lib/web-monitor/runner";
 import { loadWebSettings } from "@/lib/web-monitor/settings-load";
 import { createSupabaseWebStore } from "@/lib/web-monitor/store";
+import { createSupabaseWebTransitionStore } from "@/lib/web-monitor/transition-store";
 import { createAdminClient } from "@/lib/supabase/admin";
 
 // 점검은 최대 60초(웹 설정 기본값)다. 응답을 기다리는 쪽(pg_net)보다 짧게 둔다.
@@ -17,7 +18,7 @@ export async function POST(request: Request) {
     secret: () => process.env.CRON_SECRET,
     prepare: async () => {
       const admin = createAdminClient();
-      return { settings: await loadWebSettings(admin), store: createSupabaseWebStore(admin) };
+      return { settings: await loadWebSettings(admin), store: createSupabaseWebStore(admin), transitionStore: createSupabaseWebTransitionStore(admin) };
     },
     targets: () => allWebTargets(),
     transport: nodeTransport,

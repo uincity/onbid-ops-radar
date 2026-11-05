@@ -4,6 +4,8 @@
 // 응답에는 내부 정보(주소, 토큰, 예외 문구, 설정값)를 담지 않는다(SEC-11). 판단은 DB의 web_check_runs 기록으로 한다.
 import { bearerToken, sameSecret } from "@/lib/schedule/cron-check";
 import type { WebRunInput, WebRunReport } from "./runner";
+import { applyRunDecision, type ApplyOutcome } from "./transition";
+import type { WebTransitionStore } from "./transition-store";
 import { scheduledSlotAt } from "./slot";
 import type { WebTarget } from "./schema";
 import type { WebSettings } from "./settings";
@@ -12,12 +14,13 @@ import type { ProbeClock, WebTransport } from "./probes/types";
 
 export type WebCronResponse = {
   httpStatus: number;
-  body: { ok: boolean; message: string; skipped?: "disabled"; runs?: { target: string; status: string }[] };
+  body: { ok: boolean; message: string; skipped?: "disabled"; runs?: { target: string; status: string; follow?: string }[] };
 };
 
 export type WebCronDeps = {
   secret: () => string | undefined; // 서버에 설정된 CRON_SECRET
-  prepare: () => Promise<{ settings: WebSettings; store: WebCheckStore }>; // 설정을 못 읽거나 규칙에 어긋나면 던진다
+  // 설정을 못 읽거나 규칙에 어긋나면 던진다. transitionStore가 있으면 점검 뒤에 상태 전환(재확인 예약 포함)까지 이어서 한다
+  prepare: () => Promise<{ settings: WebSettings; store: WebCheckStore; transitionStore?: WebTransitionStore }>;
   targets: () => readonly WebTarget[];
   transport: WebTransport;
   clock: ProbeClock;
@@ -48,6 +51,7 @@ export async function runScheduledWebCheck(authorization: string | null, deps: W
 
   // ③ 실행. 어떤 예외가 나도 내부 오류 문구는 응답에 내지 않는다
   try {
+    const startedAt = new Date(deps.clock.now());
     const report = await deps.runWebCheck({
       trigger: "scheduled",
       slotAt: scheduledSlotAt(deps.clock.now()),
@@ -57,8 +61,22 @@ export async function runScheduledWebCheck(authorization: string | null, deps: W
       transport: deps.transport,
       clock: deps.clock,
     });
+    // 점검 결과를 상태 전환에 연결한다(정시 실패면 확인 재시도 예약). 여기서 오류가 나도 점검 기록은 이미 남아 있으므로 응답은 "처리됨"이다
+    const runs: { target: string; status: string; follow?: string }[] = [];
+    for (const t of report.targets) {
+      let follow: string | undefined;
+      if (prepared.transitionStore) {
+        try {
+          const out: ApplyOutcome = await applyRunDecision({ report: t, trigger: "scheduled", startedAt, settings: prepared.settings, store: prepared.transitionStore });
+          follow = out.action;
+        } catch {
+          follow = "error";
+        }
+      }
+      runs.push(follow ? { target: t.targetKey, status: t.status, follow } : { target: t.targetKey, status: t.status });
+    }
     // 막히거나 일부만 끝나도 "요청은 처리됨"이다. 결과는 web_check_runs에 남는다
-    return reply(200, "홈페이지 정시 점검 요청을 처리했습니다.", { runs: report.targets.map((t) => ({ target: t.targetKey, status: t.status })) });
+    return reply(200, "홈페이지 정시 점검 요청을 처리했습니다.", { runs });
   } catch {
     return reply(500, "홈페이지 정시 점검 중 오류가 생겼습니다.");
   }
