@@ -115,8 +115,8 @@ select throws_ok($$insert into public.web_retry_queue (target_key, kind, due_at)
 select throws_ok($$update public.web_retry_queue set status = 'claimed' where target_key = 'onbid-home'$$, '23514', null, '처리 중인데 선점 시각이 없으면 거부');
 
 -- ---------------------------------------------------------------- 대상 상태 구조
-select lives_ok($$insert into public.web_target_state (target_key, current_verdict, since) values ('onbid-home', 'PASS_DATA', now())$$, '대상 상태 줄 추가');
-select throws_ok($$update public.web_target_state set incident_open = true where target_key = 'onbid-home'$$, '23514', null, '열린 사건에 사건 번호(1 이상)가 없으면 거부');
+select lives_ok($$insert into public.web_target_state (target_key, current_verdict, since) values ('pgtap-state', 'PASS_DATA', now())$$, '대상 상태 줄 추가');
+select throws_ok($$update public.web_target_state set incident_open = true where target_key = 'pgtap-state'$$, '23514', null, '열린 사건에 사건 번호(1 이상)가 없으면 거부');
 
 select * from finish();
 rollback;
