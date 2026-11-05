@@ -74,6 +74,10 @@
 | PUBLIC 조회기를 실제 온비드 OpenAPI에 붙여 보는 시험 (`tests/unit/public-live.test.ts`, 호출 2번, DB에는 쓰지 않음, `DATA_GO_KR_SERVICE_KEY` 필요) | `npm run test:public-live` |
 | 온비드 서비스 등록부 다시 만들기 (명세서 .docx → `data/registry/api-registry.json`·`docs/api-registry.md`, 읽기 전용, Python 필요, 손으로 고치지 않음) | `python scripts/build-api-registry.py "<명세서 폴더>"` |
 | 화면 자동 테스트 Playwright (`tests/e2e/*.spec.ts`, 개발 서버를 3100번 포트로 자동 실행, Edge 사용, 시작 때 시험 전용 계정을 자동 준비하고 끝나면 정지, `.env`의 서버 관리용 키 필요) | `npm run test:e2e` |
+| 홈페이지 점검 입구·실행기·판정 단위 시험 (`tests/unit/web-*.test.ts`, `cron-jobs.test.ts`, 네트워크·DB 없음) | `npx vitest run tests/unit/web-*.test.ts tests/unit/cron-jobs.test.ts` |
+| 홈페이지 점검 실행기를 실제 DB에 돌려 보는 시험 (`tests/unit/web-runner-live.test.ts`, 시험용 대상 키만 쓰고 끝나면 지움, 서버 관리용 키 필요) | `LIVE_DB=1 node --env-file=.env node_modules/vitest/vitest.mjs run tests/unit/web-runner-live.test.ts` |
+| 홈페이지 점검 프로브를 실제 온비드에 붙여 보는 시험 (`tests/unit/web-probes-live.test.ts`, 읽기 전용 GET 몇 번) | `WEB_LIVE=1 node --env-file=.env node_modules/vitest/vitest.mjs run tests/unit/web-probes-live.test.ts` |
+| 홈페이지 점검 스케줄 등록 (`--web`을 붙여야 매시 :07 작업이 등록됨, 기본은 미리 보기, `--apply`로 반영, `--remove-web`은 웹만 해제, `--remove`는 전부 해제. 사용법은 [docs/web-monitor-guide.md](docs/web-monitor-guide.md)) | `npm run setup:cron -- --app-url https://주소 --web [--apply]` |
 
 DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는 방식으로만 바꿉니다(대시보드에서 직접 고치지 않음). DB를 바꾼 작업은 `npm run check:db`와 `npm run test:db`를 모두 통과해야 합니다. 새 테이블이나 DB 함수를 만들면 해당 pgTAP 테스트 파일도 함께 추가합니다. 화면(로그인·권한이 걸린 화면)을 바꾼 작업은 `npm run test:e2e`도 통과해야 하고, 로그인이 필요한 화면 확인에는 시험 전용 계정(`e2e-admin@example.com`·`e2e-operator@example.com`, 시험 시작 때 `tests/e2e/global-setup.ts`가 준비하고 비밀번호는 매번 새로 무작위로 만들어 환경변수에만 둠)을 Playwright로 입력합니다(비밀번호를 채팅·로그에 출력하지 않음). `npm run test:e2e`는 로그인을 약 20번 하므로 Supabase 제한(5분에 약 30회) 때문에 5분 안에 연달아 두 번 돌리면 실패할 수 있습니다. 규칙·계산 같은 순수한 코드를 바꾼 작업은 `npm run test:unit`도 통과해야 하고, 새 규칙에는 경계값(한 칸 안·밖)을 포함한 단위 테스트를 함께 만듭니다.
 
@@ -109,6 +113,8 @@ DB 구조는 `supabase/migrations/`에 마이그레이션 파일을 추가하는
 - **처리상태:** `open` → `investigating` → `resolved`/`dismissed`, 종결 건의 재개(`investigating`)만 허용합니다. 나머지 전이는 거부합니다(PRD 5-3).
 - **감사이력:** 이벤트는 추가만 하고 수정·삭제하지 않습니다. 업무 데이터 변경과 이력 기록은 같은 DB 트랜잭션에서 저장합니다.
 - **설정값:** 타임아웃 10초, 호출 상한 20/100회, 실행시간 60초(기본값, 운영 DB는 2026-11-04에 서비스 27종 점검이 60초를 넘겨 80초로 조정) 등은 코드에 흩어 두지 않고 한곳(PRD 5-5)에서 관리합니다. 코드는 숫자를 직접 쓰지 않고 `lib/settings`의 `loadSettings()`로 읽은 `Settings`를 씁니다. 설정을 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 `SettingsError`로 멈춥니다. 설정값 규칙(DB와 코드)을 바꾸면 두 곳을 함께 고치고 `tests/unit/settings-drift.test.ts`가 통과해야 합니다.
+- **홈페이지 점검 설정:** 웹 점검 설정은 기존 `settings`가 아니라 별도 테이블 `web_settings`에 있고 `lib/web-monitor/settings-load.ts`의 `loadWebSettings()`로 읽습니다. 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 점검하지 않습니다. 규칙(DB와 코드)을 바꾸면 두 곳을 함께 고치고 `tests/unit/web-settings-drift.test.ts`가 통과해야 합니다.
+- **홈페이지 점검 기록:** `web_probe_results`의 사유는 닫힌 목록(22개)입니다. 새 사유는 코드 목록(`lib/web-monitor/classify.ts`)·DB 제약(새 마이그레이션)·`tests/unit/web-db-drift.test.ts`를 함께 고칩니다. 응답 본문·예외 원문은 저장하지 않습니다.
 - **시각 계산:** KST 날짜·하루 범위·예약 시각 계산은 `lib/time.ts`를 씁니다. `new Date()`로 직접 날짜를 잘라 쓰지 않습니다(서버 시각은 UTC이므로 날짜가 하루 어긋날 수 있음).
 - **시간대:** 집계와 표시는 KST 기준입니다. Supabase Cron은 UTC이므로 예약 점검 시각 KST 08:00은 전날 UTC 23:00으로 설정합니다(2026-11-03 사용자 요청으로 PRD 5-5의 09:00에서 변경. PRD와 다르며 코드의 기준은 `lib/time.ts`의 `SCHEDULED_RUN_KST`).
 
