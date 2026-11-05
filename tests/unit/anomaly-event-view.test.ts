@@ -87,3 +87,19 @@ describe("toEventView", () => {
     expect(toEventView(row({ event_type: "mystery", from_value: null, to_value: null }), names).changeText).toBeNull();
   });
 });
+
+describe("recovered (홈페이지 복구 확인됨)", () => {
+  const rec = (over: Partial<EventRow> = {}) =>
+    row({ actor_type: "system", actor_id: null, actor_role: null, event_type: "recovered", from_value: null, to_value: "3", ...over });
+
+  it("시스템이 남긴 '복구 확인됨'이고 사건 번호와 함께 처리상태는 그대로라고 알려 준다", () => {
+    const v = toEventView(rec(), names);
+    expect(v.actorText).toBe("시스템");
+    expect(v.typeLabel).toBe("복구 확인됨");
+    expect(v.changeText).toBe("사건 3번 복구 확인 (처리상태는 그대로)");
+  });
+
+  it("사건 번호가 없어도 멈추지 않는다", () => {
+    expect(toEventView(rec({ to_value: null }), names).changeText).toBe("복구 확인 (처리상태는 그대로)");
+  });
+});

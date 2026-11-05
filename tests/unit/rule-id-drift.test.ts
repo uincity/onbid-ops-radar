@@ -4,22 +4,35 @@
 import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { ALL_RULE_IDS, API_RULE_IDS, DQ_RULE_IDS, RULE_IDS, RULE_LABEL } from "@/lib/anomalies/labels";
+import { ALL_RULE_IDS, API_RULE_IDS, DQ_RULE_IDS, REPORT_RULE_IDS, RULE_IDS, RULE_LABEL, SOURCES, WEB_RULE_IDS } from "@/lib/anomalies/labels";
 import { DEGRADED_REASONS, FAIL_CODES, NOT_RUN_REASONS, PROBE_STATUSES, UNVERIFIED_REASONS } from "@/lib/checks/probe/status";
 
 const migrations = path.join(process.cwd(), "supabase", "migrations");
 const sql = readFileSync(path.join(migrations, "20261029060000_create_probe_results.sql"), "utf8");
 // 상태·사유 짝 제약은 보완 마이그레이션(사유가 비어 있는 경우를 막음)에서 다시 만들었으므로 마지막 정의를 본다
 const fixSql = readFileSync(path.join(migrations, "20261029060100_fix_probe_results_reason_check.sql"), "utf8");
+// 규칙 ID·출처 허용 목록은 홈페이지 모니터링 마이그레이션(W10a)에서 다시 만들었으므로 마지막 정의를 본다
+const webSql = readFileSync(path.join(migrations, "20261105120000_create_web_notifications_and_transition.sql"), "utf8");
 const quoted = (text: string) => [...text.matchAll(/'([A-Za-z_]+)'/g)].map((m) => m[1]);
 
 describe("anomalies 허용 규칙 ID: 마이그레이션 ↔ labels.ts", () => {
-  const block = /alter table public\.anomalies add constraint anomalies_rule_id_check\s+check \(rule_id in \(([\s\S]*?)\)\);/.exec(sql)?.[1] ?? "";
+  const block = /alter table public\.anomalies add constraint anomalies_rule_id_check\s+check \(rule_id in \(([\s\S]*?)\)\);/.exec(webSql)?.[1] ?? "";
 
-  it("DB의 허용 목록 15개가 코드의 ALL_RULE_IDS와 같다", () => {
+  it("DB의 허용 목록 17개가 코드의 ALL_RULE_IDS와 같다", () => {
     const dbIds = quoted(block.replace(/--[^\n]*/g, ""));
     expect([...dbIds].sort()).toEqual([...ALL_RULE_IDS].sort());
-    expect(dbIds).toHaveLength(15);
+    expect(dbIds).toHaveLength(17);
+  });
+
+  it("홈페이지 규칙 2개가 있고, 보고서 규칙 목록(15개)에는 들어가지 않는다", () => {
+    expect([...WEB_RULE_IDS]).toEqual(["WEB_AVAILABILITY", "WEB_FRESHNESS"]);
+    expect(REPORT_RULE_IDS).toHaveLength(15);
+    for (const id of WEB_RULE_IDS) expect(REPORT_RULE_IDS).not.toContain(id);
+  });
+
+  it("anomalies 출처 허용 값(DEMO·PUBLIC·WEB)이 코드의 SOURCES와 같다", () => {
+    const m = /add constraint anomalies_source_check\s+check \(source in \(([^)]*)\)\)/.exec(webSql)?.[1] ?? "";
+    expect(quoted(m)).toEqual([...SOURCES]);
   });
 
   it("이전 규칙 4개는 그대로이고, 새 규칙 ID는 DQ 4개 + API 7개다", () => {
@@ -94,5 +107,14 @@ describe("보존형 마이그레이션 (PRD D-1): 지우거나 초기화하는 �
     const block = /alter table public\.api_checks\s+add column([\s\S]*?);/.exec(code)?.[1] ?? "";
     expect(block).toContain("api_id");
     expect(block).not.toMatch(/not null/i);
+  });
+});
+
+describe("화면용 규칙 목록 (W14)", () => {
+  it("대시보드 목록은 전체에서 아직 쓰지 않는 WEB_FRESHNESS만 뺀 16개다", async () => {
+    const { DASHBOARD_RULE_IDS } = await import("@/lib/anomalies/labels");
+    expect(DASHBOARD_RULE_IDS).toHaveLength(16);
+    expect(DASHBOARD_RULE_IDS).toContain("WEB_AVAILABILITY");
+    expect(DASHBOARD_RULE_IDS).not.toContain("WEB_FRESHNESS");
   });
 });

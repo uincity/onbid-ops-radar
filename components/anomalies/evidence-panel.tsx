@@ -1,6 +1,8 @@
 // 이상징후 상세의 "탐지 근거"와 "원본 데이터" 표시 (evidence 모양은 lib/checks/evidence.ts 참고)
 // evidence는 DB의 JSON이라 모양이 틀려도 화면이 깨지지 않게, 읽을 때마다 타입을 확인한다.
+import Link from "next/link";
 import { RULE_LABEL, labelOf } from "@/lib/anomalies/labels";
+import { webEvidenceView } from "@/lib/anomalies/web-evidence";
 
 type Obj = Record<string, unknown>;
 const isObj = (v: unknown): v is Obj => typeof v === "object" && v !== null && !Array.isArray(v);
@@ -99,9 +101,30 @@ function emptyLines(evidence: Obj): React.ReactNode[] {
   ];
 }
 
+// 홈페이지(WEB) 이상징후: 사건 요약 + 관련 점검 링크
+function webLines(evidence: unknown): React.ReactNode[] {
+  const view = webEvidenceView(evidence);
+  const out: React.ReactNode[] = view.lines.map((l) => (
+    <Line key={l.label}>
+      <strong>{l.label}</strong>: {l.value}
+    </Line>
+  ));
+  if (view.runId !== null) {
+    out.push(
+      <Line key="run">
+        <strong>관련 점검</strong>:{" "}
+        <Link href={`/web/runs/${view.runId}`} className="font-medium text-blue-700 underline underline-offset-2 dark:text-blue-300" data-testid="web-evidence-run">
+          홈페이지 점검 #{view.runId} 보기
+        </Link>
+      </Line>,
+    );
+  }
+  return out;
+}
+
 export function EvidenceSummary({ ruleId, evidence }: { ruleId: string; evidence: unknown }) {
   const ev = isObj(evidence) ? evidence : {};
-  const lines =
+  const lines = ruleId === "WEB_AVAILABILITY" || ruleId === "WEB_FRESHNESS" ? webLines(evidence) :
     ruleId === "DATE_ORDER"
       ? dateOrderLines(ev)
       : ruleId === "REQUIRED_FIELD"

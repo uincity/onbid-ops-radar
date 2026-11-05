@@ -32,8 +32,8 @@ test.describe("통합 대시보드", () => {
     await page.getByTestId("availability-details").locator("summary").click();
     await expect(page.getByTestId("availability-row").first()).toBeVisible();
     expect(await page.getByTestId("availability-row").count()).toBeGreaterThanOrEqual(28);
-    // 규칙별 신규: 이전 4개 + 품질 4개 + API 7개
-    await expect(page.getByTestId("new-by-rule").getByRole("listitem")).toHaveCount(15);
+    // 규칙별 신규: 이전 4개 + 품질 4개 + API 7개 + 홈페이지 가용성 1개 (홈페이지 신선도는 M3에서 켠다)
+    await expect(page.getByTestId("new-by-rule").getByRole("listitem")).toHaveCount(16);
   });
 
   test("팀장: 제목·요약 카드·최근 실행 영역이 보이고 내 담당 카드는 없다", async ({ page }) => {
@@ -67,5 +67,7 @@ test.describe("통합 대시보드", () => {
     const card = page.getByTestId("card-unresolved");
     await expect(card.getByText("DEMO", { exact: true })).toHaveCount(0);
     await expect(card.getByText("PUBLIC", { exact: true })).toBeVisible();
+    // 홈페이지(WEB) 이상징후는 PUBLIC과 따로 센다 (W14)
+    await expect(card.getByText("WEB", { exact: true })).toBeVisible();
   });
 });

@@ -32,6 +32,8 @@ export default defineConfig({
     ? undefined
     : {
         command: `npx next dev -p ${PORT}`,
+        // 홈페이지 모니터링 화면 시험이 운영 DB에 쓰지 않도록 메모리 목 저장소를, 알림은 실제로 보내지 않는 log 모드를 쓴다 (설계서 10장)
+        env: { WEB_MONITOR_STORE: "mock", WEB_NOTIFY_MODE: "log" },
         url: `http://localhost:${PORT}/login`,
         reuseExistingServer: true,
         timeout: 180_000,

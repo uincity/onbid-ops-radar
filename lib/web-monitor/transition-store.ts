@@ -15,6 +15,10 @@ export interface WebTransitionStore {
   recordTransition(input: { runId: number; targetKey: string; expectedVersion: number | null; decision: TransitionDecision }): Promise<WebTransitionResult>;
   /** 확인 재시도 예약. 대상에 대기/처리 중 줄이 이미 있으면 null */
   enqueueConfirm(input: { targetKey: string; originRunId: number; delaySec: number }): Promise<number | null>;
+  /** 이 시각이 대상의 취소되지 않은 계획 점검 창 [시작, 종료) 안인가 (W15) */
+  inMaintenance(targetKey: string, at: Date): Promise<boolean>;
+  /** 창 안에서 끝난 정시·재확인 실행에 계획 점검 표시 (W15). 표시했으면 true */
+  markPlanned(runId: number): Promise<boolean>;
 }
 
 export type RetryKind = "confirm" | "replace";
@@ -69,6 +73,18 @@ export function createSupabaseWebTransitionStore(supabase: SupabaseClient): WebT
       const { data, error } = await supabase.rpc("enqueue_web_confirm", { p_target: input.targetKey, p_origin_run_id: input.originRunId, p_delay_sec: input.delaySec });
       if (error) return fail("웹 확인 재시도를 예약하지 못했습니다");
       return data == null ? null : Number(data);
+    },
+
+    async inMaintenance(targetKey, at) {
+      const { data, error } = await supabase.rpc("web_in_maintenance", { p_target: targetKey, p_at: at.toISOString() });
+      if (error) return fail("계획 점검 창을 확인하지 못했습니다");
+      return data === true;
+    },
+
+    async markPlanned(runId) {
+      const { data, error } = await supabase.rpc("mark_web_run_planned", { p_run_id: runId });
+      if (error) return fail("계획 점검 표시를 저장하지 못했습니다");
+      return data === true;
     },
   };
 }

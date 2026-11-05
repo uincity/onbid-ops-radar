@@ -3,6 +3,7 @@
 //   W06 점검 기록: 실행 중은 하나만, 이미 실행 중이면 blocked(정시면 대체 실행 대기 줄 예약), 같은 정시 칸 중복은 blocked(예약 없음), 종료는 running인 줄만.
 //   W11 상태·재시도: 상태 버전 충돌(CONFLICT), 알림 키 중복 제거, 확인 재시도 예약(대상별 1개)·원자적 선점·멈춘 줄 복구·만료·다시 시도(최대 3번).
 import type { ProbeResult, WebVerdict } from "./classify";
+import { isInsideWindow, type MaintenanceWindow } from "./maintenance";
 import type { TransitionDecision, WebStateForDecision } from "./decide";
 import type { FinishWebRunInput, StartWebRunInput, StartWebRunResult, WebCheckStore } from "./store";
 import type { NotifyStore, RecordAttemptInput, UnsentNotification } from "./notify/types";
@@ -50,6 +51,9 @@ export type MemoryWebStore = WebCheckStore &
     readonly attempts: RecordAttemptInput[];
     /** 시험용: 대상의 열린 이상징후를 담당자가 닫은 것처럼 만든다 */
     closeAnomaly(anomalyId: number): void;
+    /** 시험용: 계획 점검 창을 검사 없이 등록한다 */
+    readonly windows: MaintenanceWindow[];
+    addWindow(w: { targetKey: string; startsAt: string; endsAt: string; cancelledAt?: string | null }): void;
   };
 
 const STALE_CLAIM_MS = 5 * 60_000;
@@ -68,6 +72,7 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
   const notificationKeys = new Set<string>();
   const attempts: RecordAttemptInput[] = [];
   const leases = new Map<string, number>(); // 키 → 임대 끝 시각(ms)
+  const windows: MaintenanceWindow[] = [];
   let nextId = 1;
   let nextQueueId = 1;
   let nextAnomalyId = 1;
@@ -105,6 +110,10 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
     closeAnomaly(anomalyId) {
       const a = anomalies.find((x) => x.id === anomalyId);
       if (a) a.open = false;
+    },
+    windows,
+    addWindow(w) {
+      windows.push({ id: windows.length + 1, targetKey: w.targetKey, startsAt: w.startsAt, endsAt: w.endsAt, reason: "시험", createdAt: new Date(now()).toISOString(), cancelledAt: w.cancelledAt ?? null });
     },
 
     // ----- W06 점검 기록 -----
@@ -224,6 +233,18 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
       const row: MemoryQueueRow = { id: nextQueueId++, targetKey: input.targetKey, kind: "confirm", originRunId: input.originRunId, status: "pending", dueAtMs: now() + input.delaySec * 1000, claimedAtMs: null, attempts: 0 };
       queue.push(row);
       return row.id;
+    },
+
+    // ----- W15 계획 점검 창 -----
+    async inMaintenance(targetKey, at) {
+      return isInsideWindow(windows, targetKey, at);
+    },
+
+    async markPlanned(runId) {
+      const run = runs.find((r) => r.id === runId);
+      if (!run || run.trigger === "manual" || (run.status !== "succeeded" && run.status !== "partial")) return false;
+      run.plannedMaintenance = true;
+      return true;
     },
 
     // ----- W11 대기 줄 -----

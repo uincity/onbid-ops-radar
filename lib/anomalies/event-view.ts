@@ -63,6 +63,9 @@ export function changeText(row: Pick<EventRow, "event_type" | "from_value" | "to
       return `${labelOf(STATUS_LABEL, from)} → ${labelOf(STATUS_LABEL, to)}`;
     case "verdict_changed":
       return `${labelOf(VERDICT_LABEL, from)} → ${labelOf(VERDICT_LABEL, to)}`;
+    case "recovered":
+      // 홈페이지(WEB) 이상징후: 사건이 끝났다는 시스템 기록. to_value는 사건 번호이고 처리상태는 바뀌지 않는다(종결은 담당자가 한다)
+      return to ? `사건 ${to}번 복구 확인 (처리상태는 그대로)` : "복구 확인 (처리상태는 그대로)";
     default:
       // 모르는 이벤트 종류: 값이 있으면 그대로 보여 준다
       return from == null && to == null ? null : `${from ?? "-"} → ${to ?? "-"}`;

@@ -35,7 +35,7 @@ export type ApplyInput = {
   startedAt: Date; // 이번 실행의 시작 시각(창 판정·경과 시간 기준)
   settings: WebSettings;
   store: WebTransitionStore;
-  isInWindow?: (targetKey: string, startedAt: Date) => Promise<boolean>; // 계획 점검 창(W15 전에는 항상 창 밖)
+  isInWindow?: (targetKey: string, startedAt: Date) => Promise<boolean>; // 시험용 덮어쓰기. 없으면 저장소의 계획 점검 창(W15)을 본다
 };
 
 export async function applyRunDecision(input: ApplyInput): Promise<ApplyOutcome> {
@@ -44,7 +44,8 @@ export async function applyRunDecision(input: ApplyInput): Promise<ApplyOutcome>
   if ((report.status !== "succeeded" && report.status !== "partial") || report.overall === null) return { action: "skipped", reason: "not_completed" };
   if (report.storeError) return { action: "skipped", reason: "store_error" };
 
-  const inWindow = input.isInWindow ? await input.isInWindow(report.targetKey, input.startedAt) : false;
+  // 점검의 started_at이 계획 점검 창 [시작, 종료) 안인가 (설계서 5.3 처리표)
+  const inWindow = input.isInWindow ? await input.isInWindow(report.targetKey, input.startedAt) : await store.inMaintenance(report.targetKey, input.startedAt);
   const obs = observationFromProbes(report.probes);
 
   for (let attempt = 0; attempt < MAX_TRANSITION_ATTEMPTS; attempt++) {
@@ -76,7 +77,11 @@ export async function applyRunDecision(input: ApplyInput): Promise<ApplyOutcome>
     }
 
     const saved = await store.recordTransition({ runId: report.runId, targetKey: report.targetKey, expectedVersion: state ? state.version : null, decision: result.decision });
-    if (saved.result === "OK") return { action: result.kind === "planned" ? "planned" : "applied", claimedKeys: saved.claimed };
+    if (saved.result === "OK") {
+      // 창 안에서 끝난 점검은 실행 줄에 계획 점검 표시를 남긴다(띠의 빗금 칸, 가용률 분모 제외). 표시 실패가 전환 저장을 되돌리지는 않는다
+      if (inWindow) await store.markPlanned(report.runId).catch(() => false);
+      return { action: result.kind === "planned" ? "planned" : "applied", claimedKeys: saved.claimed };
+    }
     // CONFLICT: 그사이 다른 실행이 상태를 바꿨다 → 상태를 다시 읽어 판단을 다시 한다
   }
   return { action: "conflict" };

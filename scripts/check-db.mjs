@@ -15,8 +15,9 @@ import * as webSettings from "./db-checks/web-settings.mjs";
 import * as webCheckRuns from "./db-checks/web-check-runs.mjs";
 import * as webNotifications from "./db-checks/web-notifications.mjs";
 import * as webRetry from "./db-checks/web-retry.mjs";
+import * as webMaintenance from "./db-checks/web-maintenance.mjs";
 
-const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports, probeResults, webSettings, webCheckRuns, webNotifications, webRetry];
+const modules = [profiles, checkRuns, collectedItems, anomalies, anomalyEvents, settings, reports, probeResults, webSettings, webCheckRuns, webNotifications, webRetry, webMaintenance];
 const ctx = createChecker();
 
 // 시험을 시작하기 전의 줄 수를 기록해 둔다. 시험이 끝난 뒤 줄 수가 같은지(저장된 줄이 없는지) 비교하기 위해서다.

@@ -1,5 +1,5 @@
 // Design Ref: DESIGN §4.2 공통 화면 틀 — 위쪽 막대
-//   앱 이름 · 메뉴 4개 · 데이터 출처 배지(DEMO/PUBLIC) · 사용자 이름과 역할 · 로그아웃
+//   앱 이름 · 메뉴 5개 · 데이터 출처 배지(DEMO/PUBLIC) · 사용자 이름과 역할 · 로그아웃
 // 로그인 정보(쿠키)를 읽으므로 이 컴포넌트는 <Suspense> 안에서 쓴다. (Cache Components)
 import Link from "next/link";
 import { connection } from "next/server";
@@ -14,6 +14,7 @@ const NAV_ITEMS: NavItem[] = [
   { href: "/", label: "대시보드" },
   { href: "/anomalies", label: "이상징후" },
   { href: "/runs", label: "점검 이력" },
+  { href: "/web", label: "홈페이지" },
   { href: "/reports", label: "보고서" },
 ];
 
