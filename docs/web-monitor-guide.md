@@ -81,7 +81,7 @@ pg_cron (매시 :07)  →  POST /api/cron/web-check  →  runWebCheck
 |---|---|
 | 점검을 잠시 멈춤 | `web_settings`의 `web_monitor_enabled`를 `false`로 (입구가 200 `skipped: disabled`로 답하고 요청·기록을 하지 않음) |
 | 스케줄 등록 미리 보기 | `npm run setup:cron -- --app-url https://배포주소 --web` |
-| 스케줄 등록 | 위 명령에 `--apply` 추가 (OpenAPI 작업 2개 + 웹 작업 `onbid-web-check`) |
+| 스케줄 등록 | 위 명령에 `--apply` 추가 (OpenAPI 작업 2개 + 웹 작업 3개: `onbid-web-check`, `onbid-web-retry`, `onbid-web-heartbeat`) |
 | 웹 스케줄만 해제 | `npm run setup:cron -- --remove-web --apply` |
 | 모든 Cron 해제 | `npm run setup:cron -- --remove --apply` |
 
@@ -106,4 +106,4 @@ pg_cron (매시 :07)  →  POST /api/cron/web-check  →  runWebCheck
 - **정시 칸**은 호출 시각의 UTC 정각입니다(`:07`이든 `:59`든 같은 칸). 같은 칸 중복은 DB가 막습니다.
 - **웹 점검의 `running`은 OpenAPI 점검과 별개**입니다. 서로 막지 않습니다.
 - **점검은 시간 예산**(`web_run_time_limit_seconds`)을 대상들이 나눠 씁니다. 모자라면 남은 층이 `BUDGET_SKIP`(미점검)이 되고 실행 상태는 `partial`입니다.
-- 이 단계(M1)에는 알림·사건·상태 전환·화면이 **아직 없습니다**(M2).
+- 알림·사건·상태 전환·`/web` 화면·계획 점검 창·수동 점검·자체 감시는 M2에서 더해졌습니다. 운영(봇 만들기, 비밀값 두 곳 등록, 토큰 교체, 롤백, 정지 알림 대응)은 [web-monitor-ops.md](web-monitor-ops.md)를 봅니다.
