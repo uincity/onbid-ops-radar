@@ -1,5 +1,5 @@
 // 로그인 뒤 공통 화면 틀 시험 (PLAN 작업 15번)
-// Design Ref: DESIGN §4.2(공통 화면 틀: 앱 이름·메뉴 4개·출처 배지·사용자·로그아웃, 좁은 화면에서는 메뉴가 접힘)
+// Design Ref: DESIGN §4.2(공통 화면 틀: 앱 이름·메뉴 5개·출처 배지·사용자·로그아웃, 좁은 화면에서는 메뉴가 접힘)
 import { createClient } from "@supabase/supabase-js";
 import { expect, test } from "@playwright/test";
 import { ADMIN, OPERATOR, requireTestAccounts, signInThroughForm, signOutThroughButton } from "./helpers";
@@ -20,11 +20,12 @@ const MENUS = [
   { label: "대시보드", href: "/", title: "대시보드" },
   { label: "이상징후", href: "/anomalies", title: "이상징후" },
   { label: "점검 이력", href: "/runs", title: "점검 이력" },
+  { label: "홈페이지", href: "/web", title: "홈페이지 모니터링" },
   { label: "보고서", href: "/reports", title: "보고서" },
 ];
 
 test.describe("공통 화면 틀 (넓은 화면)", () => {
-  test("운영 담당자: 앱 이름·메뉴 4개·출처 배지·사용자·로그아웃이 보인다", async ({ page }) => {
+  test("운영 담당자: 앱 이름·메뉴 5개·출처 배지·사용자·로그아웃이 보인다", async ({ page }) => {
     await signInThroughForm(page, OPERATOR);
 
     await expect(page.getByRole("banner").getByRole("link", { name: "OnBid Ops Radar" })).toBeVisible();

@@ -12,7 +12,7 @@ export const escapeHtml = (value: unknown): string =>
     .replaceAll(">", "&gt;")
     .replaceAll('"', "&quot;");
 
-const REASON_LABEL: Record<WebReason, string> = {
+export const REASON_LABEL: Record<WebReason, string> = {
   TIMEOUT: "응답 시간 초과",
   SLOW_RESPONSE: "응답 느림",
   DNS_FAILED: "주소 조회(DNS) 실패",
@@ -36,7 +36,7 @@ const REASON_LABEL: Record<WebReason, string> = {
   BUDGET_SKIP: "시간 부족으로 점검 못 함",
   INTERNAL_ERROR: "점검기 내부 오류",
 };
-const VERDICT_LABEL: Record<string, string> = { FAIL: "실패", DEGRADED: "저하", UNVERIFIED: "검증 불가", NOT_RUN: "미점검", PASS_DATA: "정상", PASS_NO_DATA: "정상(데이터 없음)" };
+export const VERDICT_LABEL: Record<string, string> = { FAIL: "실패", DEGRADED: "저하", UNVERIFIED: "검증 불가", NOT_RUN: "미점검", PASS_DATA: "정상", PASS_NO_DATA: "정상(데이터 없음)" };
 const AUX_LABEL: Record<string, string> = { "aux-stub": "진입 스텁", "aux-queue": "대기열 설정" };
 
 export function formatMinutes(minutes: number): string {
