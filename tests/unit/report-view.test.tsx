@@ -3,6 +3,7 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import { ReportView } from "@/components/reports/report-view";
 import { aggregateReport } from "@/lib/reports/aggregate";
+import { buildWebReport, unavailableWebReport } from "@/lib/reports/web-section";
 import { buildExecutionSection, buildQualitySection } from "@/lib/reports/quality";
 
 const base = aggregateReport({ reportDate: "2026-10-29", source: "PUBLIC", generatedAt: new Date("2026-10-29T03:00:00Z"), coversUntil: new Date("2026-10-29T03:00:00Z"), baselineAt: null, runs: [], apiChecks: [], logs: [], collectedCount: 0, newAnomalies: [], closedEvents: [], statusCounts: {}, unresolved: [] });
@@ -31,5 +32,18 @@ describe("ReportView (미리보기)", () => {
     const html = renderToStaticMarkup(<ReportView model={base} />);
     expect(html).toContain("6. 점검 메모");
     expect(html).not.toContain("실행 품질");
+  });
+  it("홈페이지 절이 있으면 9절, 실행 품질은 10절로 밀린다 (한계 문구·가용률 포함)", () => {
+    const web = buildWebReport({ rows: [{ target_key: "onbid-main", pass_data: 22, pass_no_data: 0, degraded: 1, fail: 1, unverified: 0, not_run: 0, planned_count: 0, unplanned_count: 0, flap_count: 2, confirmed_down_count: 1, down_seconds: 3600, avg_ms: 1180, max_ms: 3420 }], labelOf: () => "온비드 홈페이지", anomalies: [{ id: 7, status: "open", rule_id: "WEB_AVAILABILITY" }] });
+    const html = renderToStaticMarkup(<ReportView model={{ ...base, availability, quality, execution, web }} />);
+    expect(html).toContain("9. 홈페이지 모니터링");
+    expect(html).toContain("10. 실행 품질");
+    expect(html).toContain("단일 지점, 1시간 간격 외부 관측");
+    expect(html).toContain("91.7% (22 / 24)");
+    expect(html).toContain("#7 (");
+  });
+  it("홈페이지 집계를 못 읽은 보고서도 절 안내만 그려진다", () => {
+    const html = renderToStaticMarkup(<ReportView model={{ ...base, web: unavailableWebReport() }} />);
+    expect(html).toContain('data-testid="report-web-unavailable"');
   });
 });

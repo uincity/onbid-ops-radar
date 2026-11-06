@@ -44,7 +44,7 @@ export async function generateReportAction(_prev: GenerateReportState, formData:
   try {
     const supabase = await createClient();
     model = await Promise.race([
-      generateReportModel(supabase, { date, source, now }),
+      generateReportModel(supabase, { date, source, now, webAdmin: source === "PUBLIC" ? createAdminClient() : undefined }),
       new Promise<never>((_, reject) => {
         timer = setTimeout(() => reject(new ReportError("보고서 생성이 60초를 넘어 중단했습니다. 잠시 뒤 다시 시도해 주세요.")), TIME_LIMIT_MS);
       }),

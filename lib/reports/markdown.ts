@@ -4,6 +4,7 @@ import { FAIL_CODE_LABEL, PROBE_STATUS_LABEL, PROBE_STATUSES } from "@/lib/check
 import { REASON_LABEL } from "@/lib/availability/summary";
 import { formatKst } from "@/lib/time";
 import type { ReportModel } from "./model";
+import { downText, judgedCount } from "./web-section";
 
 // 표 칸 안에 들어가도 표가 깨지지 않게 한다: 역슬래시·세로줄(|)을 막고, 줄바꿈은 공백으로, 꺾쇠는 문자로 바꾼다
 export function escapeMarkdownCell(text: string): string {
@@ -95,6 +96,29 @@ function renderExecution(e: NonNullable<ReportModel["execution"]>, no: number): 
   out.push(`- 마지막으로 끝난 점검 실행: ${e.lastFinishedAt ? kst(e.lastFinishedAt) : "없음"} (서비스 전체 점검 완료 시각이며 API별 마지막 성공 시각과 다릅니다)`);
   out.push(`- 마지막으로 정상 완료된 점검 실행: ${e.lastSucceededAt ? kst(e.lastSucceededAt) : "없음"}`);
   out.push("- 차단·일부 완료·미점검의 횟수와 사유는 위 2절(점검 실행 요약)과 6절(점검 메모)을 보세요.", "");
+  return out;
+}
+
+// 홈페이지 모니터링 절 (PUBLIC 보고서, W23). 정시 점검의 확정 판정만 센다. 가용률 식을 글로 적어 숫자를 검산할 수 있게 한다
+function renderWeb(w: NonNullable<ReportModel["web"]>, no: number): string[] {
+  const out: string[] = [`## ${no}. 홈페이지 모니터링`, ""];
+  out.push("> 단일 지점, 1시간 간격 외부 관측입니다. 모든 이용자의 상태를 뜻하지 않으며, 정시 점검의 확정 판정만 셉니다. 수동 점검은 포함하지 않습니다.", "");
+  if (w.unavailable) {
+    out.push("홈페이지 점검 집계를 불러오지 못했습니다. 이 절의 숫자는 없습니다. 다시 생성하면 읽을 수 있습니다.", "");
+    return out;
+  }
+  if (w.targets.length === 0) {
+    out.push("해당 날짜의 홈페이지 정시 점검 기록이 없습니다.", "");
+  }
+  for (const t of w.targets) {
+    const rate = t.avail.den > 0 ? `${((t.avail.num / t.avail.den) * 100).toFixed(1)}% (${num(t.avail.num)} / ${num(t.avail.den)})` : `비율 없음 (${num(t.avail.num)} / ${num(t.avail.den)})`;
+    out.push(`### ${escapeMarkdownCell(t.label)}`, "");
+    out.push(`- 판정 분포(정시 ${num(judgedCount(t))}회): 정상 ${num(t.passData)} · 정상(데이터 없음) ${num(t.passNoData)} · 성능 저하 ${num(t.degraded)} · 실패 ${num(t.fail)} · 확인 불가 ${num(t.unverified)} · 미점검 ${num(t.notRun)} · 계획 점검 ${num(t.planned)} · 미등록 점검 ${num(t.unplanned)}`);
+    out.push(`- 확정 장애 ${num(t.confirmedDown)}건 (총 지속 ${downText(t.downSeconds)}, 정시 칸 수 기준 추정) · 일시 실패 ${num(t.flap)}회`);
+    out.push(`- 응답 시간: 평균 ${ms(t.avgMs)} · 최대 ${ms(t.maxMs)}`);
+    out.push(`- 가용률: ${rate} = 정상 계열 ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 성능 저하는 정상 계열이 아닙니다.`, "");
+  }
+  out.push(`- 홈페이지 이상징후: ${w.anomalies.length === 0 ? "없음" : w.anomalies.map((a) => `#${a.id} (${escapeMarkdownCell(labelOf(STATUS_LABEL, a.status))})`).join(", ")}`, "");
   return out;
 }
 
@@ -199,7 +223,9 @@ export function renderReportMarkdown(m: ReportModel): string {
 
   if (m.availability) out.push(...renderAvailability(m.availability));
   if (m.quality) out.push(...renderQuality(m.quality));
-  if (m.execution) out.push(...renderExecution(m.execution, m.availability ? 9 : 7));
+  const webNo = m.availability ? 9 : 7;
+  if (m.web) out.push(...renderWeb(m.web, webNo));
+  if (m.execution) out.push(...renderExecution(m.execution, webNo + (m.web ? 1 : 0)));
 
   return `${out.join("\n").trimEnd()}\n`;
 }
