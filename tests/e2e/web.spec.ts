@@ -129,6 +129,39 @@ test.describe("홈페이지 모니터링 /web", () => {
     }
   });
 
+  // ----- W22 대시보드 홈페이지 카드 (목 저장소) -----
+  test("대시보드 홈페이지 카드: 상태·24칸 띠·응답·인증서·한계 문구가 보이고, 누르면 /web으로 간다. 기존 카드는 그대로다", async ({ page }) => {
+    await openWeb(page, OPERATOR); // 목 저장소 확인(없으면 건너뜀)
+    await page.goto("/");
+    await expect(page.getByRole("heading", { level: 1, name: "대시보드" })).toBeVisible();
+    const card = page.getByTestId("web-card");
+    await expect(card).toBeVisible();
+    await expect(page.getByTestId("web-card-verdict")).toHaveText("정상");
+    await expect(page.getByTestId("web-card-last")).toContainText("마지막 점검");
+    await expect(page.getByTestId("web-card-cell")).toHaveCount(24);
+    await expect(page.getByTestId("web-card-ms")).toContainText("ms");
+    await expect(page.getByTestId("web-card-cert")).toContainText("38일");
+    await expect(page.getByTestId("web-card-monitor")).toContainText("정상 작동");
+    await expect(page.getByTestId("web-card-note")).toContainText("단일 지점, 1시간 간격 외부 관측");
+    // 색만으로 뜻을 전하지 않는다: 칸마다 읽을 글자가 있다
+    await expect(page.getByTestId("web-card-cell").first()).toHaveAttribute("aria-label", /시/);
+    // 기존 카드는 그대로
+    await expect(page.getByTestId("card-unresolved")).toBeVisible();
+    // 카드를 누르면 /web
+    await card.click();
+    await expect(page).toHaveURL(/\/web$/);
+    await expect(page.getByRole("heading", { level: 1, name: "홈페이지 모니터링" })).toBeVisible();
+  });
+
+  test("대시보드 홈페이지 카드: 좁은 화면(모바일)에서도 가로로 넘치지 않는다", async ({ page }) => {
+    await page.setViewportSize({ width: 375, height: 812 });
+    await openWeb(page, OPERATOR);
+    await page.goto("/");
+    await expect(page.getByTestId("web-card")).toBeVisible();
+    const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
   // ----- W15 계획 점검 창 (목 저장소) -----
   // datetime-local 값(KST 벽시계)을 지금으로부터 days일 뒤 hour시로 만든다
   const kstLocal = (days: number, hour: number) => new Date(Date.now() + 9 * 3_600_000 + days * 86_400_000).toISOString().slice(0, 10) + `T${String(hour).padStart(2, "0")}:00`;
