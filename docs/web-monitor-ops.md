@@ -10,13 +10,14 @@
 Supabase Cron ─ 매시 :07      → POST /api/cron/web-check   점검 → 상태 전환 → 알림 발송
               ─ 매분          → web_enqueue_due_retries()   재확인 예정·미발송 알림이 있을 때만 /api/cron/web-retry 호출
               ─ 10분마다      → web_monitor_heartbeat()     점검이 멈췄는지 감시 → 정지·재개 알림을 DB가 텔레그램으로 직접 발송 (앱 없이)
+              ─ 매일 KST 03:30 → web_retention_cleanup()     90일 지난 점검 기록을 일별 요약으로 남기고 삭제 (cron 실행 기록은 14일 초과분 정리)
 ```
 
 | 구성 | 어디에 있나 | 비밀값 |
 |---|---|---|
 | 점검·상태 전환·알림(앱) | Vercel 배포 (`/api/cron/web-check`, `/api/cron/web-retry`) | `CRON_SECRET`, `TELEGRAM_BOT_TOKEN`, `TELEGRAM_CHAT_ID` (Vercel 환경변수) |
 | 자체 감시(DB) | Supabase 함수 `web_monitor_heartbeat()` | Vault: `onbid_telegram_token`, `onbid_telegram_chat_id` |
-| 스케줄 | Supabase Cron 작업 3개 (`onbid-web-check`, `onbid-web-retry`, `onbid-web-heartbeat`) | Vault: `onbid_cron_secret`, `onbid_app_url` |
+| 스케줄 | Supabase Cron 작업 4개 (`onbid-web-check`, `onbid-web-retry`, `onbid-web-heartbeat`, `onbid-web-retention`) | Vault: `onbid_cron_secret`, `onbid_app_url` |
 | 계획 점검 창·수동 점검 | `/web` 화면 (팀장 전용) | — |
 
 **텔레그램 비밀값은 두 곳(Supabase Vault + Vercel 환경변수)에만** 둡니다. 앱이 죽어도 정지 알림이 나가도록 DB도 직접 보내기 때문입니다. `NEXT_PUBLIC_`을 붙이지 않고, 화면·로그·커밋·채팅에 남기지 않습니다.
@@ -54,7 +55,7 @@ Supabase Cron ─ 매시 :07      → POST /api/cron/web-check   점검 → 상�
 
 | 날짜 | 한 일 | 확인한 사람 | 결과 |
 |---|---|---|---|
-| 2026-11-05 | 시험 메시지 발송과 두 곳 등록 | 사용자 | 수신 확인(대화 기록 기준, 직접 적어 주세요) |
+| 2026-11-05 | 시험 메시지 발송과 두 곳 등록 | 사용자 | 시험 메시지 정상 수신 (2026-11-06 사용자 확인) |
 | | | | |
 
 ## 4. 토큰 교체 (두 곳을 함께)
@@ -85,7 +86,7 @@ Supabase Cron ─ 매시 :07      → POST /api/cron/web-check   점검 → 상�
 | 1 | 알림이 너무 많음·오탐이 의심됨 | 계획 점검 창을 등록(`/web`, 팀장) | 창 안의 점검은 알림·가용률·이상징후에서 제외. 점검은 계속 기록 |
 | 2 | 텔레그램만 멈추고 싶음 | Vercel의 `WEB_NOTIFY_MODE`를 지우고(또는 `log`) 다시 배포 | 앱이 알림을 보내지 않고 기록만(`log`). **DB 자체 감시의 정지 알림은 계속 나감** — 그것도 멈추려면 3단계 |
 | 3 | **점검 전체를 멈춤** | `web_settings`의 `web_monitor_enabled`를 `false`로 | 정시 점검·재확인·자체 감시가 모두 아무것도 하지 않음(요청도 기록도 없음). 입구는 200 `skipped: disabled`로 답해 스케줄러가 실패로 보지 않음 |
-| 4 | 스케줄 자체를 내림 | `npm run setup:cron -- --remove-web --apply` | 웹 작업 3개 해제(OpenAPI 작업은 그대로). `--remove`는 OpenAPI 작업까지 전부 해제 |
+| 4 | 스케줄 자체를 내림 | `npm run setup:cron -- --remove-web --apply` | 웹 작업 4개 해제(OpenAPI 작업은 그대로). `--remove`는 OpenAPI 작업까지 전부 해제 |
 | 5 | 코드를 이전 배포로 되돌림 | Vercel에서 이전 배포로 되돌리기(Instant Rollback) | 앱만 되돌아감. **DB 객체와 쌓인 기록은 그대로** |
 
 켜기: 3단계는 `web_monitor_enabled`를 `true`로 되돌립니다. **다시 켠 시각이 자체 감시의 기준이 되므로**, 켠 직후 첫 정시 점검 전에는 정지 알림이 울리지 않습니다(130분 기준). 4단계는 `setup:cron --web --apply`로 다시 등록합니다.
@@ -129,7 +130,7 @@ update public.web_settings set value = 'true'::jsonb  where key = 'web_monitor_e
 
 ### 정지 알림 대응
 1. `/web` 맨 위 경고 띠와 "마지막 정상 점검" 시각을 봅니다.
-2. Supabase Cron 작업이 살아 있는지: `select jobname, schedule, active from cron.job where jobname like 'onbid-web-%';` (3개, `active = true`)
+2. Supabase Cron 작업이 살아 있는지: `select jobname, schedule, active from cron.job where jobname like 'onbid-web-%';` (4개, `active = true`)
 3. 최근 실행 결과: `select start_time, status, return_message from cron.job_run_details order by start_time desc limit 10;`
 4. Vercel 배포가 정상인지, `CRON_SECRET`·`onbid_app_url`이 맞는지 확인합니다. 의심되면 `npm run setup:cron -- --app-url https://onbid-ops-radar.vercel.app --web --apply`로 다시 등록합니다.
 5. 점검을 일부러 꺼 둔 것이면(`web_monitor_enabled=false`) 정지 알림은 나가지 않습니다.
@@ -157,6 +158,13 @@ select public.web_monitor_heartbeat();
 | 토큰 교체·담당자 변경 때 | 4장의 교체 절차, 알림 시험 수신 기록 갱신 |
 | 6개월(권장) | 봇 토큰 교체 검토, 비밀값 두 곳이 같은 봇인지 `--check`로 확인 |
 | 운영 첫 1주 | 임계값(`web_http_slow_ms` 등) 조정, 야간·주말·입찰 마감 시간대 응답 시간 확인 → `docs/web-monitor-observation.md`에 기록 |
+
+### 점검 기록 보존 (하루 1회)
+- 정시 점검 기록은 `web_result_retention_days`(기본 **90일**) 동안 `web_check_runs`·`web_probe_results`에 남습니다. 그보다 오래된 **KST 하루 전체**는 `web_retention_cleanup()`이 일별 요약(`web_daily_summary`: 판정별 횟수, 계획·미등록 점검, 일시 실패, 확정 실패, 평균·최대 응답 시간)으로 남긴 뒤 삭제합니다. 요약은 지우지 않습니다.
+- 알림 키·알림 시도 기록·이상징후 이력은 추가 전용이라 **삭제되지 않습니다.**
+- 같은 작업이 `cron.job_run_details`의 14일 넘은 줄도 정리합니다(권한이 없으면 건너뜀).
+- 보존 일수를 줄이면 다음 정리 때 그만큼 더 지워지고 **되돌릴 수 없습니다.** 줄이기 전에 요약이 기대한 값인지 `select * from public.web_summarize_day(date '2026-11-05');` 로 확인하세요.
+- 가용률 = 정상 계열 ÷ (판정 횟수 − 검증 불가 − 미점검 − 계획 점검 − 미등록 점검). 저하는 정상 계열이 아닙니다. 확정 실패 시간(`down_seconds`)은 정시 간격 1시간 단위의 근사입니다.
 
 ## 9. 지켜야 할 규칙
 
