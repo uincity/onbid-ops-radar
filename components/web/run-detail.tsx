@@ -3,6 +3,7 @@ import Link from "next/link";
 import { REASON_LABEL } from "@/lib/web-monitor/notify/messages";
 import { kstDateTime, LAYER_LABEL, RUN_STATUS_LABEL, TRIGGER_LABEL, VERDICT_VIEW, type WebRunView } from "@/lib/web-monitor/view";
 import type { WebRunDetail } from "@/lib/web-monitor/view-source";
+import { LayersHelp } from "./layers-help";
 import { panel, sectionTitle, ToneBadge } from "./tone";
 
 const th = "whitespace-nowrap px-3 py-2 font-medium";
@@ -81,6 +82,7 @@ export function RunDetailView({ detail }: { detail: WebRunDetail }) {
       <section aria-labelledby="run-layers-title" className={panel} data-testid="web-run-layers">
         <h2 id="run-layers-title" className={sectionTitle}>
           층별 결과
+          <LayersHelp />
         </h2>
         {run.probes.length === 0 ? (
           <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">이 점검에는 층별 결과가 없습니다{run.status === "blocked" ? " (다른 점검이 실행 중이라 건너뜀)" : ""}.</p>

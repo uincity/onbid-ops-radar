@@ -114,6 +114,19 @@ test.describe("홈페이지 모니터링 /web", () => {
     await expect(layers).toContainText("반영 안 됨"); // 보조 확인·인증서 제외
     await expect(layers).toContainText("응답 본문은 저장하지 않으므로");
 
+    // 층별 결과 제목 옆 "?" → 설명 팝업(5개 층 설명 문서)이 열리고 닫힌다
+    const dialog = page.getByTestId("web-layers-help-dialog");
+    await expect(dialog).toBeHidden();
+    await layers.getByTestId("web-layers-help-open").click();
+    await expect(dialog).toBeVisible();
+    await expect(dialog.locator("iframe")).toHaveAttribute("src", "/help/web-layers.html");
+    await expect(dialog.frameLocator("iframe").getByRole("heading", { level: 1 })).toContainText("이렇게 점검하고 있습니다");
+    await page.keyboard.press("Escape");
+    await expect(dialog).toBeHidden();
+    await layers.getByTestId("web-layers-help-open").click();
+    await page.getByTestId("web-layers-help-close").click();
+    await expect(dialog).toBeHidden();
+
     // 재확인 실행으로 이동하면 '원래 실행' 링크가 보인다
     await page.getByTestId("web-run-followup").getByRole("link").click();
     await expect(page.getByTestId("web-run-origin")).toContainText("원래 실행");
