@@ -21,6 +21,8 @@ export const CRON_JOBS = [
   { name: "onbid-web-retry", group: "web", kind: "sql", schedule: "* * * * *", sql: "select public.web_enqueue_due_retries()", label: "홈페이지 재확인 확인: 매분(예정된 줄이 있을 때만 앱 호출)" },
   // 앱과 독립인 자체 감시(W16): 10분마다 DB 함수가 정시 점검이 멈췄는지 보고, 멈췄으면 pg_net으로 텔레그램을 직접 부른다
   { name: "onbid-web-heartbeat", group: "web", kind: "sql", schedule: "*/10 * * * *", sql: "select public.web_monitor_heartbeat()", label: "홈페이지 점검 자체 감시: 10분마다(정지 알림은 앱 없이 직접 발송)" },
+  // 하루 1회 보존 삭제(W19): KST 03:30 = UTC 18:30. 90일이 지난 날을 요약해 저장한 뒤 점검 기록을 삭제하고 cron 실행 기록(14일 초과)도 정리한다
+  { name: "onbid-web-retention", group: "web", kind: "sql", schedule: "30 18 * * *", sql: "select public.web_retention_cleanup()", label: "홈페이지 점검 기록 보존 삭제: 매일 KST 03:30" },
 ];
 
 const lit = (value) => `'${String(value).replaceAll("'", "''")}'`; // SQL 문자열 값
