@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>홈페이지 모니터링 진행 현황 보고</title>
+<style>
+:root {
+  --paper: #f6f8f8; --card: #ffffff; --ink: #12262b; --muted: #4d6469; --line: #d3dedf;
+  --accent: #0b7a75; --accent-soft: #dcf0ee; --warn: #9a5b00; --warn-soft: #fbefd6;
+  --good: #1d6b3a; --good-soft: #def2e4; --todo: #5b6b70; --todo-soft: #e8eeee;
+  --font: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0d1a1d; --card: #15272b; --ink: #e5f0f0; --muted: #9db4b8; --line: #2a4247;
+    --accent: #4fd1c5; --accent-soft: #143c3b; --warn: #f0b862; --warn-soft: #3a2c12;
+    --good: #7fd69a; --good-soft: #163a25; --todo: #9db4b8; --todo-soft: #1d3135; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0d1a1d; --card: #15272b; --ink: #e5f0f0; --muted: #9db4b8; --line: #2a4247;
+  --accent: #4fd1c5; --accent-soft: #143c3b; --warn: #f0b862; --warn-soft: #3a2c12;
+  --good: #7fd69a; --good-soft: #163a25; --todo: #9db4b8; --todo-soft: #1d3135; color-scheme: dark;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--paper); color: var(--ink); font-family: var(--font); line-height: 1.7; word-break: keep-all; }
+.wrap { max-width: 980px; margin: 0 auto; padding: 32px 16px 64px; display: flex; flex-direction: column; gap: 36px; }
+h1, h2, h3 { margin: 0; line-height: 1.3; text-wrap: balance; }
+h1 { font-size: clamp(1.6rem, 4vw, 2.3rem); font-weight: 900; letter-spacing: -0.02em; }
+h2 { font-size: 1.3rem; font-weight: 700; padding-bottom: 8px; border-bottom: 2px solid var(--accent); }
+h3 { font-size: 1.02rem; font-weight: 700; margin-bottom: 6px; }
+p { margin: 0; }
+.sub { color: var(--muted); font-size: 0.92rem; }
+.lede { font-size: 1.05rem; max-width: 66ch; margin-top: 10px; }
+.meta { display: flex; flex-wrap: wrap; gap: 8px 18px; margin-top: 12px; color: var(--muted); font-size: 0.9rem; }
+section { display: flex; flex-direction: column; gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px 18px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; }
+.tile { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 14px 16px; }
+.tile .num { font-size: 1.9rem; font-weight: 900; color: var(--accent); line-height: 1.2; }
+.tile .lab { color: var(--muted); font-size: 0.85rem; }
+.bar { height: 14px; background: var(--todo-soft); border-radius: 7px; overflow: hidden; border: 1px solid var(--line); }
+.bar > span { display: block; height: 100%; background: var(--accent); }
+.bar.warn > span { background: var(--warn); }
+.row { display: grid; grid-template-columns: 170px 1fr 70px; gap: 12px; align-items: center; font-size: 0.95rem; }
+.row b { font-weight: 700; }
+.row .pct { text-align: right; font-variant-numeric: tabular-nums; color: var(--muted); }
+.tablewrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 12px; background: var(--card); }
+table { border-collapse: collapse; width: 100%; min-width: 640px; font-size: 0.9rem; }
+th, td { text-align: left; padding: 9px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { background: var(--accent-soft); font-weight: 700; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+.tag { display: inline-block; padding: 1px 9px; border-radius: 999px; font-size: 0.8rem; font-weight: 700; white-space: nowrap; border: 1px solid transparent; }
+.tag.done { background: var(--good-soft); color: var(--good); }
+.tag.part { background: var(--warn-soft); color: var(--warn); }
+.tag.todo { background: var(--todo-soft); color: var(--todo); }
+.note { background: var(--warn-soft); color: var(--ink); border-left: 4px solid var(--warn); border-radius: 8px; padding: 12px 16px; font-size: 0.93rem; }
+.note.ok { background: var(--good-soft); border-left-color: var(--good); }
+.cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 14px; }
+ul { margin: 0; padding-left: 1.2em; } li { margin: 3px 0; }
+.flow { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; font-size: 0.9rem; }
+.flow span.step { background: var(--accent-soft); border: 1px solid var(--line); border-radius: 8px; padding: 4px 10px; }
+.flow i { color: var(--muted); font-style: normal; }
+code { font-family: ui-monospace, Consolas, monospace; font-size: 0.86em; background: var(--todo-soft); padding: 1px 5px; border-radius: 4px; }
+@media (max-width: 560px) { .row { grid-template-columns: 1fr; gap: 4px; } .row .pct { text-align: left; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <p class="sub">온비드사업처 디지털혁신팀 · 내부 업무용 웹서비스 · OnBid Ops Radar</p>
+  <h1>홈페이지 가용성 모니터링 진행 현황 보고</h1>
+  <p class="lede">온비드 홈페이지가 외부 이용자 눈에 열리는지를 매시 점검하고, 이상이 보이면 텔레그램으로 알리고 이상징후로 남기는 기능(M0~M2)의 구현을 마쳤습니다. 지금은 <b>1주 운영 관찰</b> 단계로 넘어가는 시점이며, 대시보드·보고서 연동(M3)이 남아 있습니다.</p>
+  <div class="meta">
+    <span>기준일 2026-11-06</span>
+    <span>작업 기간 2026-11-04 ~ 11-06</span>
+    <span>운영 주소 onbid-ops-radar.vercel.app</span>
+    <span>반영 상태 main 4c4b6f3 · 배포 완료</span>
+  </div>
+</header>
+
+<section>
+  <h2>1. 한눈에 보기</h2>
+  <div class="tiles">
+    <div class="tile"><div class="num">83%</div><div class="lab">전체 작업 24 / 29개 완료 (사전 조사 포함)</div></div>
+    <div class="tile"><div class="num">M0·M1·M2</div><div class="lab">구현 완료 · 운영 반영 완료</div></div>
+    <div class="tile"><div class="num">1주</div><div class="lab">운영 관찰 단계 (새 기능 보류)</div></div>
+    <div class="tile"><div class="num">5개</div><div class="lab">M3에 남은 작업 (L4·L5·카드·보고서·문서)</div></div>
+    <div class="tile"><div class="num">4개</div><div class="lab">운영 중인 점검 스케줄러 작업</div></div>
+  </div>
+  <div class="note ok">매시 점검 → 일시 실패 재확인 → 상태 전환 → 텔레그램 알림 → 이상징후 기록 흐름이 운영에 올라가 있고, 팀장 수동 점검과 텔레그램 시험 알림이 실제로 동작하는 것을 확인했습니다. 아직 <b>실제 장애가 난 적이 없어</b> 장애 발생 순간의 전체 경로는 운영에서 직접 보지 못했습니다(6장).</div>
+</section>
+
+<section>
+  <h2>2. 진척도</h2>
+  <div class="card" style="display:flex;flex-direction:column;gap:12px">
+    <div class="row"><b>M0 사전 조사</b><div class="bar"><span style="width:100%"></span></div><span class="pct">2 / 2</span></div>
+    <div class="row"><b>M1 점검 + 스케줄 + 저장</b><div class="bar"><span style="width:100%"></span></div><span class="pct">11 / 11</span></div>
+    <div class="row"><b>M2 알림·이상징후·자체 감시</b><div class="bar"><span style="width:100%"></span></div><span class="pct">11 / 11</span></div>
+    <div class="row"><b>1주 운영 관찰</b><div class="bar warn"><span style="width:0%"></span></div><span class="pct">대기</span></div>
+    <div class="row"><b>M3 L4·L5·대시보드·보고서</b><div class="bar warn"><span style="width:0%"></span></div><span class="pct">0 / 5</span></div>
+    <div class="row"><b>전체</b><div class="bar"><span style="width:83%"></span></div><span class="pct">24 / 29</span></div>
+  </div>
+  <p class="sub">숫자는 계획서(PLAN)의 작업 ID 기준입니다. 1주 관찰은 작업 수에 넣지 않았습니다. 기존 OpenAPI 점검(26개 서비스)은 2026-11-04 보고서 기준으로 운영 중이며 이번 보고 범위 밖입니다.</p>
+</section>
+
+<section>
+  <h2>3. 만든 것: 무엇이 가능해졌나</h2>
+  <div class="card">
+    <div class="flow">
+      <span class="step">매시 :07 정시 점검</span><i>→</i>
+      <span class="step">실패 시 90초 뒤 재확인</span><i>→</i>
+      <span class="step">상태 전환·사건 판단</span><i>→</i>
+      <span class="step">텔레그램 알림</span><i>→</i>
+      <span class="step">이상징후(WEB) 기록</span>
+    </div>
+    <p class="sub" style="margin-top:8px">별도로: 10분마다 점검 프로그램 자체가 멈췄는지 감시(앱 없이 DB가 직접 알림), 하루 1회 보존 삭제와 일별 요약.</p>
+  </div>
+  <div class="cols">
+    <div class="card"><h3>점검과 판정</h3><ul>
+      <li>접속·응답·화면 내용 3단계 점검과 보조 확인(진입 스텁, 대기열)</li>
+      <li>판정 6종, 확인 불가·미점검은 정상으로도 실패로도 세지 않음</li>
+      <li>점검은 GET만, 허용 호스트 2개 밖으로 나가지 않음</li></ul></div>
+    <div class="card"><h3>알림과 사건</h3><ul>
+      <li>장애·저하·지속·복구·인증서·점검 불가·미등록 점검·보조 이상·억제 알림</li>
+      <li>같은 알림 중복 방지, 하루 알림 상한(12건), 실패 시 재발송</li>
+      <li>정시 점검 정지 감지(130분) 후 정지·재개 알림 (앱과 독립)</li></ul></div>
+    <div class="card"><h3>화면과 운영 도구</h3><ul>
+      <li><code>/web</code>: 상태, 24시간 띠, 점검 이력, 알림 기록, 경고 띠</li>
+      <li>팀장: 계획 점검 창 등록·취소, 지금 점검</li>
+      <li>이상징후 화면에 출처 WEB 필터·배지, 복구 확인됨 이력</li></ul></div>
+    <div class="card"><h3>안전장치</h3><ul>
+      <li>꺼짐 스위치와 스케줄 해제, 롤백 절차 문서화</li>
+      <li>알림 키·시도·이력은 추가 전용(삭제 불가)</li>
+      <li>비밀값은 Vault·Vercel 두 곳에만, 출력은 모두 가림</li></ul></div>
+  </div>
+</section>
+
+<section>
+  <h2>4. 마일스톤별 작업 현황</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>구분</th><th>작업</th><th>내용</th><th>상태</th></tr></thead>
+    <tbody>
+      <tr><td>M0</td><td>W00-2·3</td><td>사전 조사(실제 홈페이지 구조·접속 특성)</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td rowspan="4">M1</td><td>W00-1</td><td>서울 리전 실행 확인</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W01~W03a</td><td>등록부·허용 호스트, 판정 규칙, 프로브, 보조 프로브</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W04~W06</td><td>설정 표, 점검 기록 표·DB 함수, 점검 실행기</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W07~W09</td><td>점검 입구, 매시 스케줄 등록, 사용 안내 문서</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td rowspan="6">M2</td><td>W10a·W10</td><td>알림·전환 DB 함수, 상태 전환 로직(순수 함수)</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W11·W12</td><td>확인 재시도, 텔레그램 발송 흐름(재시도·회수)</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W13·W14</td><td><code>/web</code> 화면, 이상징후 WEB 연동</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W15</td><td>계획 점검 창(등록·취소·겹침 거부·알림 제외)</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W16·W17</td><td>자체 감시(정지·재개 알림), 수동 점검</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>W18·W19</td><td>운영 문서, 일별 요약·보존 삭제</td><td><span class="tag done">완료</span></td></tr>
+      <tr><td>관찰</td><td>1주 운영 관찰</td><td>기록 양식 작성 완료, 관찰 자체는 아직 시작 전</td><td><span class="tag part">대기</span></td></tr>
+      <tr><td rowspan="5">M3</td><td>W20</td><td>L4 파일 서버 점검</td><td><span class="tag todo">미착수</span></td></tr>
+      <tr><td>W21</td><td>L5 데이터 신선도(WEB_FRESHNESS)</td><td><span class="tag todo">미착수</span></td></tr>
+      <tr><td>W22</td><td>대시보드 홈페이지 카드</td><td><span class="tag todo">미착수</span></td></tr>
+      <tr><td>W23</td><td>일일 점검보고서 홈페이지 절</td><td><span class="tag todo">미착수</span></td></tr>
+      <tr><td>W24</td><td>문서 최종 갱신, 완료 보고, Gap 분석</td><td><span class="tag todo">미착수</span></td></tr>
+    </tbody></table></div>
+</section>
+
+<section>
+  <h2>5. 품질 확인 결과 (2026-11-06 기준)</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>구분</th><th>결과</th><th>설명</th></tr></thead>
+    <tbody>
+      <tr><td>단위 시험</td><td>1,179개 통과 (18개 건너뜀)</td><td>건너뛴 것은 실제 DB·실제 사이트·텔레그램에 연결하는 시험으로 명령을 따로 실행할 때만 돕니다.</td></tr>
+      <tr><td>DB 구조 확인 <code>check:db</code></td><td>473개 통과, 실패 0</td><td>표·권한·출입 규칙·함수 권한 확인.</td></tr>
+      <tr><td>DB 시험 <code>test:db</code> (pgTAP)</td><td>파일 21개 통과</td><td>이번 기능만 보면 점검 기록·알림·재확인·알림 발송·계획 점검 창·자체 감시·보존 삭제 시험이 들어 있습니다.</td></tr>
+      <tr><td>화면 시험</td><td>전체 63개 통과 (W15 시점), <code>/web</code> 12개 통과 (W17 시점)</td><td>W16·W19 이후 전체 화면 시험은 다시 돌리지 않았습니다(6장).</td></tr>
+      <tr><td>운영 확인</td><td>팀장 수동 점검 성공, 텔레그램 시험 알림 수신</td><td>유형별 시험 알림 17건을 보내 문구를 확인했습니다. 실제 장애에서 나온 알림은 아직 없습니다.</td></tr>
+      <tr><td>스케줄러</td><td>웹 작업 4개 활성</td><td>매시 :07 점검 · 매분 재확인 확인 · 10분 자체 감시 · 매일 KST 03:30 보존 삭제.</td></tr>
+    </tbody></table></div>
+</section>
+
+<section>
+  <h2>6. 아직 확인하지 못한 것과 위험</h2>
+  <div class="tablewrap"><table>
+    <thead><tr><th>항목</th><th>왜 중요한가</th><th>확인 방법</th></tr></thead>
+    <tbody>
+      <tr><td>실제 장애 때의 전체 경로(점검 실패 → 재확인 → 알림 → 이상징후)</td><td>단위·DB 시험과 시험 알림은 통과했지만 운영에서 한 번도 실제로 돈 적이 없습니다.</td><td>1주 관찰 중 자연 발생 기록을 확인. 일부러 장애를 만드는 것은 영구 기록이 남아 권하지 않음.</td></tr>
+      <tr><td>점검 정지 알림의 실제 도착(DB가 직접 보내는 경로)</td><td>문구는 확인했지만 <code>pg_net</code> 경로의 도착과 응답 기록 읽기는 실제 정지 상황이 필요합니다.</td><td>관찰 기간에 정지 상황이 생기면 알림 기록과 <code>web_heartbeat_sends</code> 확인. <code>pg_net</code> 응답 보존 시간·요청 기록의 토큰 잔존 여부도 같이 확인.</td></tr>
+      <tr><td>보존 삭제 첫 실행</td><td>cron 실행 기록 정리 권한이 실제로 되는지 롤백 시험에서만 확인했습니다.</td><td>다음 KST 03:30 이후 <code>web_retention_cleanup()</code> 결과와 <code>cron.job_run_details</code> 확인.</td></tr>
+      <tr><td>점검 안내 화면 예시(<code>maintenance_url_patterns</code>)</td><td>온비드의 실제 점검 안내 문구·경로를 받지 못해 미등록 점검 판정의 정확도가 제한됩니다.</td><td>사용자가 실제 예시(문구·HTTP 상태)를 전달하면 등록부에 반영.</td></tr>
+      <tr><td>전체 화면 시험 재실행</td><td>W16·W19 이후 전체 <code>test:e2e</code>를 다시 돌리지 않았습니다(<code>/web</code>만 확인).</td><td>M3 착수 전 전체 실행.</td></tr>
+      <tr><td>단일 지점·1시간 간격 한계</td><td>짧은 장애는 놓칠 수 있고, 전체 이용자 체감과는 다를 수 있습니다.</td><td>관찰 뒤 점검 주기 10분 검토(계획서 Q3). 화면·문서에 한계 문구를 이미 표시.</td></tr>
+    </tbody></table></div>
+</section>
+
+<section>
+  <h2>7. 향후 남은 작업</h2>
+  <h3>① 1주 운영 관찰 (먼저)</h3>
+  <div class="card">
+    <ul>
+      <li>목적: 오탐·미탐 기록, 임계값 조정, 사무실 브라우저와 결과 대조(해외 IP·방화벽), 야간·주말·입찰 마감 시간대 응답 시간 확인.</li>
+      <li>이 기간에는 <b>새 기능을 만들지 않습니다.</b> 기록은 <code>docs/web-monitor-observation.md</code>(양식 작성 완료, SQL 8개 검증)에 적습니다.</li>
+      <li>결정이 필요한 것: <b>관찰 시작일·종료일</b>, 입찰 마감 시각 확인, 관찰 담당자.</li>
+    </ul>
+  </div>
+  <h3>② M3 (관찰 결과 반영 뒤)</h3>
+  <div class="tablewrap"><table>
+    <thead><tr><th>작업</th><th>내용</th><th>크기</th><th>비고</th></tr></thead>
+    <tbody>
+      <tr><td>W20</td><td>L4 파일 서버 점검: 화면의 파일 주소 1개를 매번 뽑아 GET, 200·이미지 형식·크기 확인</td><td>M</td><td>주소를 못 찾으면 검증 불가. 허용 호스트 검사 유지. 사유 목록은 닫힌 목록(22개)이라 새 사유는 코드·DB·드리프트 시험을 함께 고침.</td></tr>
+      <tr><td>W21</td><td>L5 신선도: PUBLIC 수집 결과의 최신 입찰 시작일시가 평일 업무시간에 기준(24시간)을 넘으면 <code>WEB_FRESHNESS</code> 이상징후(즉시 알림 없음)</td><td>M</td><td>DEMO 데이터는 쓰지 않음. 이 규칙이 켜지면 대시보드 규칙 목록에도 반영 필요.</td></tr>
+      <tr><td>W22</td><td>대시보드 홈페이지 카드: 상태, 24시간 띠, 응답 시간, 인증서 남은 일수, 한계 문구, <code>/web</code> 링크</td><td>L</td><td>모바일 포함 화면 시험. 처리 현황 카드의 WEB 출처별 건수는 이미 반영됨.</td></tr>
+      <tr><td>W23</td><td>일일 점검보고서 홈페이지 절: 판정 분포, 확정 장애 건수, 총 지속 시간, 일시 실패, 가용률(<code>web_summarize_day()</code> 사용)</td><td>L</td><td>기존 이상징후 표에는 WEB을 섞지 않음. 가용률 식과 문구만 앱에서 계산. 집계 함수는 이미 준비됨.</td></tr>
+      <tr><td>W24</td><td>문서 최종 갱신(PRD 부록 G, DESIGN, README), 완료 보고, Gap 분석</td><td>M</td><td>PRD·DESIGN 수정은 사용자 승인 후에만.</td></tr>
+    </tbody></table></div>
+  <div class="note"><b>추천 순서:</b> 관찰(1주) → 전체 화면 시험 재실행 → <b>W20</b> → W21 → W22 → W23 → W24. W22·W23은 W20·W21과 독립이라 눈에 보이는 성과가 먼저 필요하면 앞당길 수 있습니다. 어느 쪽이든 관찰에서 임계값·문구가 바뀌면 그 값을 쓰도록 먼저 반영합니다.</div>
+</section>
+
+<section>
+  <h2>8. 사용자 확인·결정이 필요한 것</h2>
+  <div class="card"><ul>
+    <li><b>1주 관찰의 시작·종료일과 담당자</b> (관찰 양식의 개요란에 기입)</li>
+    <li><b>온비드 점검 안내 화면의 실제 예시</b>(문구, HTTP 상태): 있으면 등록부에 반영</li>
+    <li><b>입찰 마감 시간대</b>: 시간대별 응답 시간 비교 기준</li>
+    <li>M3 착수 시: <b>W20부터 갈지, W22·W23(화면·보고서)을 먼저 할지</b></li>
+  </ul></div>
+</section>
+
+<p class="sub">이 보고서의 숫자는 2026-11-06 시점의 저장소와 운영 DB를 직접 확인한 값입니다. 점검 결과는 우리 점검 요청에 관측된 결과이며 온비드 서버 전체의 상태나 전체 이용자의 체감을 뜻하지 않습니다.</p>
+</div>
+</body>
+</html>
