@@ -10,6 +10,8 @@ import { loadScheduleMissedRecorded } from "@/lib/schedule/queries";
 import { loadSettings } from "@/lib/settings/load";
 import { buildExecutionSection, buildQualitySection } from "./quality";
 import { kstDayRange } from "@/lib/time";
+import { findWebTarget } from "@/lib/web-monitor/registry";
+import { buildWebReport, unavailableWebReport, type WebDayRow, type WebReport } from "./web-section";
 import {
   aggregateReport,
   type ApiCheckRow,
@@ -55,9 +57,9 @@ function firstOf<T>(value: T | T[] | null | undefined): T | null {
 
 export async function generateReportModel(
   supabase: SupabaseClient,
-  options: { date: string; source: "DEMO" | "PUBLIC"; now: Date },
+  options: { date: string; source: "DEMO" | "PUBLIC"; now: Date; webAdmin?: SupabaseClient },
 ): Promise<ReportModel> {
-  const { date, source, now } = options;
+  const { date, source, now, webAdmin } = options;
   const day = kstDayRange(date);
   // 오늘이면 생성 시각까지, 지난 날짜면 그날 끝(다음 날 00:00)까지
   const end = new Date(Math.min(day.end.getTime(), now.getTime()));
@@ -209,6 +211,10 @@ export async function generateReportModel(
     graceMinutes: settings.scheduleMissedGraceMinutes,
   });
 
+  // PUBLIC 보고서: 홈페이지 모니터링 절. 집계 함수가 서버 관리용 키 전용이라 팀장 확인 뒤 호출자가 넘긴 연결(webAdmin)로만 읽는다.
+  // 읽지 못해도 보고서 전체를 막지 않고 이 절만 "불러오지 못함"으로 적는다. 점검·판정 기록은 읽기만 한다.
+  const web = source === "PUBLIC" && webAdmin ? await loadWebSection(supabase, webAdmin, date, startIso, endIso) : undefined;
+
   const build = (limit: number) => {
     const base = aggregateReport({
       reportDate: date,
@@ -228,7 +234,7 @@ export async function generateReportModel(
     });
     // 데이터 품질 규칙 적용 현황 (PUBLIC 보고서만)
     const quality = availabilityRows ? buildQualitySection({ probes: availabilityRows.rows, logs, runIds: new Set(runIds), collectedItems: collectedCount, newByRule: base.validation.newByRule }) : undefined;
-    return { ...base, ...(availability ? { availability } : {}), ...(quality ? { quality } : {}), execution };
+    return { ...base, ...(availability ? { availability } : {}), ...(quality ? { quality } : {}), ...(web ? { web } : {}), execution };
   };
 
   // reports.summary에는 크기 제한이 있으므로, 너무 크면 미처리 목록을 줄여 "외 N건"으로 보여 준다
@@ -239,4 +245,20 @@ export async function generateReportModel(
     model = build(limit);
   }
   return model;
+}
+
+// 홈페이지 절의 숫자: 하루 집계는 DB 함수 하나(web_summarize_day), 그날 첫 탐지된 WEB 이상징후는 로그인 사용자 권한(RLS)으로 읽는다
+async function loadWebSection(supabase: SupabaseClient, webAdmin: SupabaseClient, date: string, startIso: string, endIso: string): Promise<WebReport> {
+  try {
+    const { data, error } = await webAdmin.rpc("web_summarize_day", { p_date: date });
+    if (error) return unavailableWebReport();
+    const anomalies = await fetchAll<{ id: number; status: string; rule_id: string }>(
+      (from, to) =>
+        supabase.from("anomalies").select("id, status, rule_id").eq("source", "WEB").gte("first_detected_at", startIso).lt("first_detected_at", endIso).order("id").range(from, to),
+      "홈페이지 이상징후",
+    );
+    return buildWebReport({ rows: (data ?? []) as WebDayRow[], labelOf: (key) => findWebTarget(key)?.label ?? key, anomalies });
+  } catch {
+    return unavailableWebReport();
+  }
 }

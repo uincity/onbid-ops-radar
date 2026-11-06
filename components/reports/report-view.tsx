@@ -5,6 +5,7 @@ import { REASON_LABEL } from "@/lib/availability/summary";
 import { FAIL_CODE_LABEL, PROBE_STATUS_LABEL, PROBE_STATUSES } from "@/lib/checks/probe/status";
 import { NO_RECORD_MESSAGE } from "@/lib/reports/markdown";
 import type { ReportModel } from "@/lib/reports/model";
+import { downText, judgedCount } from "@/lib/reports/web-section";
 import { formatKst } from "@/lib/time";
 
 const kst = (iso: string) => `${formatKst(new Date(iso))} KST`;
@@ -182,7 +183,8 @@ export function ReportView({ model }: { model: ReportModel }) {
 
       {m.availability ? <AvailabilitySections a={m.availability} /> : null}
       {m.quality ? <QualitySection q={m.quality} no={8} /> : null}
-      {m.execution ? <ExecutionSection e={m.execution} no={m.availability ? 9 : 7} /> : null}
+      {m.web ? <WebSection w={m.web} no={m.availability ? 9 : 7} /> : null}
+      {m.execution ? <ExecutionSection e={m.execution} no={(m.availability ? 9 : 7) + (m.web ? 1 : 0)} /> : null}
     </div>
   );
 }
@@ -264,6 +266,50 @@ function ExecutionSection({ e, no }: { e: NonNullable<ReportModel["execution"]>;
         </p>
         <p className="text-sm text-zinc-700 dark:text-zinc-300">마지막으로 정상 완료된 점검 실행: {e.lastSucceededAt ? kst(e.lastSucceededAt) : "없음"}</p>
         <p className="text-sm text-zinc-700 dark:text-zinc-300">차단·일부 완료·미점검의 횟수와 사유는 위 2절(점검 실행 요약)과 6절(점검 메모)을 보세요.</p>
+      </div>
+    </Section>
+  );
+}
+
+// 홈페이지 모니터링 절 (W23). Markdown 다운로드와 같은 내용을 화면으로 보여 준다
+function WebSection({ w, no }: { w: NonNullable<ReportModel["web"]>; no: number }) {
+  const p = "text-sm text-zinc-700 dark:text-zinc-300";
+  return (
+    <Section title={`${no}. 홈페이지 모니터링`}>
+      <div data-testid="report-web">
+        <p className="text-xs text-zinc-500">단일 지점, 1시간 간격 외부 관측입니다. 모든 이용자의 상태를 뜻하지 않으며, 정시 점검의 확정 판정만 셉니다. 수동 점검은 포함하지 않습니다.</p>
+        {w.unavailable ? (
+          <p className={`mt-2 ${p}`} data-testid="report-web-unavailable">
+            홈페이지 점검 집계를 불러오지 못했습니다. 이 절의 숫자는 없습니다. 다시 생성하면 읽을 수 있습니다.
+          </p>
+        ) : w.targets.length === 0 ? (
+          <p className={`mt-2 ${p}`}>해당 날짜의 홈페이지 정시 점검 기록이 없습니다.</p>
+        ) : (
+          w.targets.map((t) => (
+            <div key={t.key} className="mt-3" data-testid="report-web-target">
+              <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">{t.label}</h3>
+              <ul className="mt-1 list-disc pl-5">
+                <li className={p} data-testid="report-web-dist">
+                  판정 분포(정시 {num(judgedCount(t))}회): 정상 {num(t.passData)} · 정상(데이터 없음) {num(t.passNoData)} · 성능 저하 {num(t.degraded)} · 실패 {num(t.fail)} · 확인 불가 {num(t.unverified)} · 미점검 {num(t.notRun)} · 계획 점검 {num(t.planned)} · 미등록 점검 {num(t.unplanned)}
+                </li>
+                <li className={p} data-testid="report-web-down">
+                  확정 장애 {num(t.confirmedDown)}건 (총 지속 {downText(t.downSeconds)}, 정시 칸 수 기준 추정) · 일시 실패 {num(t.flap)}회
+                </li>
+                <li className={p}>
+                  응답 시간: 평균 {ms(t.avgMs)} · 최대 {ms(t.maxMs)}
+                </li>
+                <li className={p} data-testid="report-web-rate">
+                  가용률: {t.avail.den > 0 ? `${((t.avail.num / t.avail.den) * 100).toFixed(1)}% (${num(t.avail.num)} / ${num(t.avail.den)})` : `비율 없음 (${num(t.avail.num)} / ${num(t.avail.den)})`} = 정상 계열 ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 성능 저하는 정상 계열이 아닙니다.
+                </li>
+              </ul>
+            </div>
+          ))
+        )}
+        {!w.unavailable ? (
+          <p className={`mt-3 ${p}`} data-testid="report-web-anomalies">
+            홈페이지 이상징후: {w.anomalies.length === 0 ? "없음" : w.anomalies.map((a) => `#${a.id} (${labelOf(STATUS_LABEL, a.status)})`).join(", ")}
+          </p>
+        ) : null}
       </div>
     </Section>
   );
