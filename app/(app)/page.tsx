@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 import { DashboardView } from "@/components/dashboard/dashboard-view";
 import { WebBanners } from "@/components/web/web-banners";
+import { WebDashboardCard } from "@/components/web/dashboard-card";
 import { requireUser } from "@/lib/auth/current-user";
 import { loadAvailabilityRows } from "@/lib/availability/queries";
 import { summarizeAvailability } from "@/lib/availability/summary";
@@ -40,6 +41,8 @@ async function DashboardContent() {
     <div className="flex flex-col gap-6">
       {/* 홈페이지 점검 경고 띠(점검 정지·알림 미발송). 조건이 꺼져 있으면 아무것도 그리지 않고, 조회가 실패해도 대시보드는 그대로 보인다 */}
       <WebBanners />
+      {/* 홈페이지 카드(상태·24시간 띠·응답·인증서). 읽기만 하고, 조회가 실패하면 이 카드만 안내 문구로 바뀐다 */}
+      <WebDashboardCard />
       <DashboardView summary={summary} availability={availability} schedule={schedule} isOperator={user.role === "operator"} />
     </div>
   );

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { kstDateTime, STRIP_LABEL, type StripCell, type StripKind } from "@/lib/web-monitor/view";
 import { panel, sectionTitle } from "./tone";
 
-const CELL: Record<StripKind, string> = {
+export const CELL: Record<StripKind, string> = {
   PASS_DATA: "bg-emerald-500 text-white",
   PASS_NO_DATA: "bg-emerald-300 text-emerald-950",
   DEGRADED: "bg-amber-400 text-amber-950",
@@ -16,8 +16,31 @@ const CELL: Record<StripKind, string> = {
   checking: "bg-white text-zinc-700 ring-2 ring-inset ring-zinc-500 dark:bg-zinc-900 dark:text-zinc-200",
   missing: "border border-dashed border-zinc-300 bg-transparent text-zinc-400 dark:border-zinc-600",
 };
-const SYMBOL: Record<StripKind, string> = { PASS_DATA: "■", PASS_NO_DATA: "■", DEGRADED: "▲", FAIL: "✕", UNVERIFIED: "?", NOT_RUN: "□", planned: "▨", unplanned: "◆", checking: "◇", missing: "·" };
+export const SYMBOL: Record<StripKind, string> = { PASS_DATA: "■", PASS_NO_DATA: "■", DEGRADED: "▲", FAIL: "✕", UNVERIFIED: "?", NOT_RUN: "□", planned: "▨", unplanned: "◆", checking: "◇", missing: "·" };
 const LEGEND: StripKind[] = ["PASS_DATA", "DEGRADED", "FAIL", "UNVERIFIED", "planned", "checking", "unplanned"];
+
+/** 대시보드 카드용 작은 띠: 24칸, 누를 수 없는 표시 전용(카드 전체가 /web 링크). 색만으로 뜻을 전하지 않도록 칸마다 기호와 읽을 글자를 둔다 */
+export function MiniStrip({ cells }: { cells: readonly StripCell[] }) {
+  return (
+    <ol className="grid grid-cols-12 gap-0.5 sm:grid-cols-[repeat(24,minmax(0,1fr))]" aria-label="최근 24시간 정시 점검 결과" data-testid="web-card-strip">
+      {cells.map((c) => (
+        <li
+          key={c.slotAt}
+          title={`${c.hour}시 · ${c.detail}`}
+          aria-label={`${c.hour}시 ${c.detail}`}
+          data-testid="web-card-cell"
+          data-kind={c.kind}
+          className={`flex h-6 items-center justify-center rounded-sm text-[10px] leading-none ${CELL[c.kind]}`}
+        >
+          <span aria-hidden="true">
+            {SYMBOL[c.kind]}
+            {c.flap ? "●" : ""}
+          </span>
+        </li>
+      ))}
+    </ol>
+  );
+}
 
 export function HourStrip({ cells }: { cells: readonly StripCell[] }) {
   return (
