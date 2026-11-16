@@ -116,7 +116,13 @@ function renderWeb(w: NonNullable<ReportModel["web"]>, no: number): string[] {
     out.push(`- 판정 분포(정시 ${num(judgedCount(t))}회): 정상 ${num(t.passData)} · 정상(데이터 없음) ${num(t.passNoData)} · 성능 저하 ${num(t.degraded)} · 실패 ${num(t.fail)} · 확인 불가 ${num(t.unverified)} · 미점검 ${num(t.notRun)} · 계획 점검 ${num(t.planned)} · 미등록 점검 ${num(t.unplanned)}`);
     out.push(`- 확정 장애 ${num(t.confirmedDown)}건 (총 지속 ${downText(t.downSeconds)}, 정시 칸 수 기준 추정) · 일시 실패 ${num(t.flap)}회`);
     out.push(`- 응답 시간: 평균 ${ms(t.avgMs)} · 최대 ${ms(t.maxMs)}`);
-    out.push(`- 가용률: ${rate} = 정상 계열 ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 성능 저하는 정상 계열이 아닙니다.`, "");
+    out.push(`- 가용률: ${rate} = 정상 계열 ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 성능 저하는 정상 계열이 아닙니다.`);
+    if (t.critical) {
+      const c = t.critical;
+      const cRate = c.avail.den > 0 ? `${((c.avail.num / c.avail.den) * 100).toFixed(1)}% (${num(c.avail.num)} / ${num(c.avail.den)})` : `비율 없음 (${num(c.avail.num)} / ${num(c.avail.den)})`;
+      out.push(`- 핵심 시간대 가용률(평일 입찰 몰리는 시간, 정시+촉진 점검 ${num(c.judged)}회 중 촉진 ${num(c.criticalRuns)}회): ${cRate}. 위 가용률과 따로 세며 같은 식입니다.`);
+    }
+    out.push("");
   }
   out.push(`- 홈페이지 이상징후: ${w.anomalies.length === 0 ? "없음" : w.anomalies.map((a) => `#${a.id} (${escapeMarkdownCell(labelOf(STATUS_LABEL, a.status))})`).join(", ")}`, "");
   return out;

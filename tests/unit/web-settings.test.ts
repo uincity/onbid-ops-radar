@@ -2,6 +2,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { parseSettings, SettingsError, DEFAULT_SETTING_VALUES, SETTING_KEYS } from "@/lib/settings/schema";
 import {
+  parseCriticalHours,
+  WEB_CRITICAL_INTERVALS,
   DEFAULT_WEB_SETTING_VALUES,
   DEFAULT_WEB_SETTINGS,
   WEB_INT_RANGES,
@@ -28,9 +30,11 @@ const problemsOf = (fn: () => unknown): string[] => {
 };
 
 describe("기본값", () => {
-  it("20개 항목이 모두 있고 규칙에 맞다 (불러오는 순간 검증됨)", () => {
-    expect(WEB_SETTING_KEYS).toHaveLength(20);
+  it("24개 항목이 모두 있고 규칙에 맞다 (불러오는 순간 검증됨)", () => {
+    expect(WEB_SETTING_KEYS).toHaveLength(24);
     expect(DEFAULT_WEB_SETTINGS).toMatchObject({ httpTimeoutMs: 10000, httpSlowMs: 3000, certWarnDays: 14, runTimeLimitSeconds: 60, staleRunningSeconds: 180, monitorEnabled: true });
+    // 핵심 시간대 촉진 점검(W26)은 꺼진 채로 시작하고, 기본 구간은 평일 09~11시·14~18시(끝 미포함), 10분 간격, 지속 알림 60분
+    expect(DEFAULT_WEB_SETTINGS).toMatchObject({ criticalEnabled: false, criticalRanges: [{ from: 9, to: 11 }, { from: 14, to: 18 }], criticalIntervalMin: 10, criticalOngoingMin: 60 });
   });
 });
 
@@ -50,6 +54,22 @@ describe("정수 범위 경계 (모든 항목: 최소·최대는 통과, 한 칸
       expect(ok(null).some((p) => p.startsWith(key))).toBe(true); // null 거부
     });
   }
+  it("web_critical_enabled는 true/false만", () => {
+    expect(problemsOf(() => parseWebSettings(rows({ web_critical_enabled: true })))).toEqual([]);
+    for (const bad of [1, 0, "true", null]) expect(problemsOf(() => parseWebSettings(rows({ web_critical_enabled: bad }))).some((p) => p.startsWith("web_critical_enabled"))).toBe(true);
+  });
+  it("web_critical_interval_min은 60의 약수(5·10·15·20·30)만", () => {
+    for (const ok of WEB_CRITICAL_INTERVALS) expect(problemsOf(() => parseWebSettings(rows({ web_critical_interval_min: ok })))).toEqual([]);
+    for (const bad of [0, 1, 4, 6, 7, 12, 25, 35, 60, 10.5, "10", null]) expect(problemsOf(() => parseWebSettings(rows({ web_critical_interval_min: bad }))).some((p) => p.startsWith("web_critical_interval_min")), String(bad)).toBe(true);
+  });
+  it("web_critical_hours: 구간 목록의 형식·시작<끝·0~24·겹침 금지(맞닿음은 허용)", () => {
+    expect(parseCriticalHours("09-11,14-18")).toEqual([{ from: 9, to: 11 }, { from: 14, to: 18 }]);
+    expect(parseCriticalHours("0-24")).toEqual([{ from: 0, to: 24 }]);
+    expect(parseCriticalHours("9-11,11-13")).toEqual([{ from: 9, to: 11 }, { from: 11, to: 13 }]); // 맞닿음 허용
+    for (const bad of ["", "9", "9-", "9-9", "11-9", "9-25", "09-11,10-12", "09-11;14-18", "09:00-11:00", "a-b", "09-11,", " 09-11"]) expect(parseCriticalHours(bad), bad).toBeNull();
+    expect(problemsOf(() => parseWebSettings(rows({ web_critical_hours: "11-9" }))).some((p) => p.startsWith("web_critical_hours"))).toBe(true);
+    expect(problemsOf(() => parseWebSettings(rows({ web_critical_hours: 9 }))).some((p) => p.startsWith("web_critical_hours"))).toBe(true);
+  });
   it("web_monitor_enabled는 true/false만", () => {
     expect(problemsOf(() => parseWebSettings(rows({ web_monitor_enabled: false })))).toEqual([]);
     for (const bad of [1, 0, "true", null]) expect(problemsOf(() => parseWebSettings(rows({ web_monitor_enabled: bad }))).some((p) => p.startsWith("web_monitor_enabled"))).toBe(true);
@@ -57,6 +77,10 @@ describe("정수 범위 경계 (모든 항목: 최소·최대는 통과, 한 칸
 });
 
 describe("항목 사이의 관계", () => {
+  it("핵심 시간대 지속 알림 간격(분)은 평소 지속 알림 간격(시간×60) 이하여야 한다 (한 칸 안·밖)", () => {
+    expect(findWebRelationProblems({ ...DEFAULT_WEB_SETTINGS, realertAfterHours: 1, criticalOngoingMin: 60 })).toEqual([]);
+    expect(findWebRelationProblems({ ...DEFAULT_WEB_SETTINGS, realertAfterHours: 1, criticalOngoingMin: 61 }).join()).toContain("web_critical_ongoing_min");
+  });
   it("느림 기준은 타임아웃보다 작아야 한다 (한 칸 안·밖)", () => {
     expect(problemsOf(() => parseWebSettings(rows({ web_http_timeout_ms: 5000, web_http_slow_ms: 4999 })))).toEqual([]);
     expect(problemsOf(() => parseWebSettings(rows({ web_http_timeout_ms: 5000, web_http_slow_ms: 5000 }))).join()).toContain("web_http_slow_ms");
@@ -82,7 +106,7 @@ describe("누락·모르는 항목·중복", () => {
   it("항목이 하나라도 없으면 기본값으로 대신하지 않고 멈춘다", () => {
     const p = problemsOf(() => parseWebSettings(rows().filter((r) => r.key !== "web_cert_warn_days")));
     expect(p).toEqual(["항목이 없음: web_cert_warn_days"]);
-    expect(problemsOf(() => parseWebSettings([]))).toHaveLength(20);
+    expect(problemsOf(() => parseWebSettings([]))).toHaveLength(24);
   });
   it("모르는 항목·중복 항목은 거부", () => {
     expect(problemsOf(() => parseWebSettings([...rows(), { key: "web_unknown", value: 1 }]))).toContain("알 수 없는 항목: web_unknown");

@@ -11,6 +11,7 @@ const missedHour = hour + Math.floor((minute + 30) / 60);
 
 // 작업 목록은 모두 여기 상수 배열에서 관리한다.
 //   group "openapi": 기존 OpenAPI 예약 점검 (기본으로 등록)   group "web": 홈페이지 모니터링 (--web을 붙여야 등록)
+//   group "web-critical": 핵심 시간대 촉진 점검(W26) (--web-critical을 붙여야 등록. 설정 web_critical_enabled=false이면 DB 함수가 아무것도 하지 않는다)
 //   kind "post": pg_net으로 앱 경로에 POST   kind "sql": DB 함수를 직접 호출
 export const CRON_JOBS = [
   { name: "onbid-daily-check", group: "openapi", kind: "post", schedule: `${minute} ${hour} * * *`, path: "/api/cron/daily-check", label: "예약 점검 호출: 매일 KST 08:00" },
@@ -23,6 +24,9 @@ export const CRON_JOBS = [
   { name: "onbid-web-heartbeat", group: "web", kind: "sql", schedule: "*/10 * * * *", sql: "select public.web_monitor_heartbeat()", label: "홈페이지 점검 자체 감시: 10분마다(정지 알림은 앱 없이 직접 발송)" },
   // 하루 1회 보존 삭제(W19): KST 03:30 = UTC 18:30. 90일이 지난 날을 요약해 저장한 뒤 점검 기록을 삭제하고 cron 실행 기록(14일 초과)도 정리한다
   { name: "onbid-web-retention", group: "web", kind: "sql", schedule: "30 18 * * *", sql: "select public.web_retention_cleanup()", label: "홈페이지 점검 기록 보존 삭제: 매일 KST 03:30" },
+  // 핵심 시간대 촉진 점검(W26): 5분마다(:02, :07, :12 …) DB 함수가 "켜져 있고 평일 핵심 시간대의 촉진 칸"일 때만 앱(/api/cron/web-check-critical)을 부른다.
+  // 칸은 매시 :07 기준 간격(기본 10분 → :17·:27·:37·:47·:57)이라 :02에서 시작하는 5분 간격이면 설정 가능한 모든 간격(5·10·15·20·30)의 칸에 맞는다
+  { name: "onbid-web-critical", group: "web-critical", kind: "sql", schedule: "2-57/5 * * * *", sql: "select public.web_critical_tick()", label: "홈페이지 핵심 시간대 촉진 점검 확인: 5분마다(켜져 있고 촉진 칸일 때만 앱 호출)" },
 ];
 
 const lit = (value) => `'${String(value).replaceAll("'", "''")}'`; // SQL 문자열 값
@@ -35,17 +39,18 @@ const postSql = (path) => `select net.http_post(
 )`;
 
 // 선택한 범위의 작업: 웹을 포함하지 않으면 기존 작업만(기존 동작 불변)
-export const selectedJobs = ({ includeWeb }) => CRON_JOBS.filter((job) => job.group === "openapi" || includeWeb);
+export const selectedJobs = ({ includeWeb, includeCritical = false }) =>
+  CRON_JOBS.filter((job) => job.group === "openapi" || (job.group === "web" && includeWeb) || (job.group === "web-critical" && includeCritical));
 
 // 해제 범위: all = 모든 작업(기존+웹), web = 웹 작업만
-export const jobsToRemove = ({ scope }) => CRON_JOBS.filter((job) => scope === "all" || job.group === "web");
+export const jobsToRemove = ({ scope }) => CRON_JOBS.filter((job) => scope === "all" || job.group === "web" || job.group === "web-critical");
 
 export function buildRemoveStatements({ scope }) {
   const names = jobsToRemove({ scope }).map((job) => lit(job.name)).join(", ");
   return [`select cron.unschedule(jobname) from cron.job where jobname in (${names})`];
 }
 
-export function buildRegisterStatements({ includeWeb, cronSecret, appUrl }) {
+export function buildRegisterStatements({ includeWeb, includeCritical = false, cronSecret, appUrl }) {
   return [
     `create extension if not exists pg_cron with schema pg_catalog`,
     `create extension if not exists pg_net with schema extensions`,
@@ -54,7 +59,7 @@ export function buildRegisterStatements({ includeWeb, cronSecret, appUrl }) {
     `select vault.update_secret(id, ${lit(cronSecret)}) from vault.secrets where name = ${lit(SECRET_NAME)}`,
     `select vault.create_secret(${lit(appUrl)}, ${lit(URL_NAME)}) where not exists (select 1 from vault.secrets where name = ${lit(URL_NAME)})`,
     `select vault.update_secret(id, ${lit(appUrl)}) from vault.secrets where name = ${lit(URL_NAME)}`,
-    ...selectedJobs({ includeWeb }).map((job) =>
+    ...selectedJobs({ includeWeb, includeCritical }).map((job) =>
       job.kind === "post" ? `select cron.schedule(${lit(job.name)}, ${lit(job.schedule)}, $job$${postSql(job.path)}$job$)` : `select cron.schedule(${lit(job.name)}, ${lit(job.schedule)}, ${lit(job.sql)})`,
     ),
   ];

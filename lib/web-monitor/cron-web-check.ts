@@ -7,6 +7,7 @@ import type { WebRunInput, WebRunReport } from "./runner";
 import { applyRunDecision, type ApplyOutcome } from "./transition";
 import type { WebTransitionStore } from "./transition-store";
 import type { DeliverSummary } from "./notify/deliver";
+import { criticalNowOf } from "./critical";
 import { scheduledSlotAt } from "./slot";
 import type { WebTarget } from "./schema";
 import type { WebSettings } from "./settings";
@@ -15,7 +16,7 @@ import type { ProbeClock, WebTransport } from "./probes/types";
 
 export type WebCronResponse = {
   httpStatus: number;
-  body: { ok: boolean; message: string; skipped?: "disabled"; runs?: { target: string; status: string; follow?: string }[] };
+  body: { ok: boolean; message: string; skipped?: "disabled" | "not-slot"; runs?: { target: string; status: string; follow?: string }[] };
 };
 
 export type WebCronDeps = {
@@ -70,7 +71,7 @@ export async function runScheduledWebCheck(authorization: string | null, deps: W
       let follow: string | undefined;
       if (prepared.transitionStore) {
         try {
-          const out: ApplyOutcome = await applyRunDecision({ report: t, trigger: "scheduled", startedAt, settings: prepared.settings, store: prepared.transitionStore });
+          const out: ApplyOutcome = await applyRunDecision({ report: t, trigger: "scheduled", startedAt, settings: prepared.settings, store: prepared.transitionStore, criticalNow: criticalNowOf(prepared.settings, startedAt) });
           follow = out.action;
           claimedKeys.push(...(out.claimedKeys ?? []));
         } catch {

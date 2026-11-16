@@ -33,13 +33,14 @@ export type WebStateForDecision = WebTargetStateRow;
 
 export type DecideSettings = Pick<
   WebSettings,
-  "realertAfterHours" | "degradedAlertCount" | "unverifiableAlertCount" | "auxAlertCount" | "alertDailyCap" | "unplannedEscalateHours"
+  "realertAfterHours" | "degradedAlertCount" | "unverifiableAlertCount" | "auxAlertCount" | "alertDailyCap" | "unplannedEscalateHours" | "criticalOngoingMin"
 >;
 
 export type DecideInput = {
   targetKey: string;
   runId: number; // 이번 평가의 근거가 된 실행(정시 실행 또는 재확인 실행)
-  trigger: "scheduled" | "retry"; // 수동 점검은 상태를 바꾸지 않으므로 받지 않는다
+  trigger: "scheduled" | "retry" | "critical"; // 수동 점검은 상태를 바꾸지 않으므로 받지 않는다. critical = 핵심 시간대 촉진 점검(W26)
+  criticalNow?: boolean; // 알림을 만드는 지금이 핵심 시간대인가(켜짐 설정일 때만 true로 준다). true면 알림 문구에 강조가 붙고 지속 알림 간격이 짧아진다
   originRunId?: number | null; // 재확인이면 원래 정시 실행
   now: Date; // 이번 실행의 시작 시각(started_at). 창 판정·경과 시간 계산 기준
   verdict: WebVerdict; // 대표 판정 (재확인이면 재확인 실행의 판정)
@@ -69,7 +70,8 @@ export type TransitionDecision = {
 };
 
 export type DecideResult =
-  | { kind: "defer" } // 정시 점검이 실패인데 열린 사건이 없다: 재확인 뒤에 평가한다 (상태·알림 변화 없음)
+  | { kind: "defer" } // 정시·촉진 점검이 실패인데 열린 사건이 없다: 재확인 뒤에 평가한다 (상태·알림 변화 없음)
+  | { kind: "ignore" } // 촉진 점검의 결과 중 상태에 반영하지 않는 것(저하·확인 불가·점검 문구·창 안·정상인데 사건 없음): 기록만 한다
   | { kind: "planned" | "transition"; plannedMaintenance: boolean; decision: TransitionDecision };
 
 // ----- 도우미 -----
@@ -124,6 +126,15 @@ export function decide(input: DecideInput): DecideResult {
   }
   const auxState = s.aux_state as Record<string, { count?: number; start_run_id?: number } | string | undefined>;
 
+  // 0. 촉진 점검(W26)은 "실패 → 재확인 → 장애 확정"과 "정상 → 복구"에만 쓴다(설계서 5.10 3).
+  //    저하·확인 불가·미점검·보조 이상·인증서 임박·점검 문구는 연속 횟수 규칙이 정시 1시간 간격을 가정한 값이라 10분 간격에 쓰면 뜻이 바뀌므로 기록만 한다
+  if (input.trigger === "critical") {
+    const feeds = !input.inWindow && !input.maintenanceDetected && (verdict === "FAIL" || (normal && incidentOpen));
+    if (!feeds) return { kind: "ignore" };
+  }
+  // 알림 문구 강조 표시(핵심 시간대 안에서 만드는 장애·저하·복구·지속 알림의 재료에 넣는다)
+  const hot = input.criticalNow === true ? { critical: true } : {};
+
   // 1. 계획 점검 창 안
   if (input.inWindow && !normal) {
     // 알림·이상징후·가용률 제외, 재확인 안 함. 상태·사건·연속 횟수는 그대로 둔다
@@ -152,7 +163,7 @@ export function decide(input: DecideInput): DecideResult {
   }
 
   // 3. 재확인이 필요한가: 정시 점검 실패 + 열린 사건 없음 (점검 문구·창 안은 위에서 이미 처리됨)
-  if (input.trigger === "scheduled" && verdict === "FAIL" && !incidentOpen && !escalatedMaintenance) {
+  if ((input.trigger === "scheduled" || input.trigger === "critical") && verdict === "FAIL" && !incidentOpen && !escalatedMaintenance) {
     return { kind: "defer" };
   }
 
@@ -171,17 +182,19 @@ export function decide(input: DecideInput): DecideResult {
       // 사건 시작 시각이 들어간다: 오탐으로 종결한 이전 건과 같은 값이 되어 새 장애가 억제되는 일을 막는다
       value_hash: `web:${input.targetKey}:${s.incident_no}:${now.toISOString()}`,
     };
-    candidates.push({ key: `${kind}:${s.incident_no}`, kind, incident_no: s.incident_no, payload: { verdict, reason: input.primaryReason ?? null, run_id: input.runId } });
+    candidates.push({ key: `${kind}:${s.incident_no}`, kind, incident_no: s.incident_no, payload: { verdict, reason: input.primaryReason ?? null, run_id: input.runId, ...hot } });
   };
   const maybeOngoing = () => {
-    if (s.incident_open && s.incident_last_alert_at !== null && minutesBetween(s.incident_last_alert_at, now) >= settings.realertAfterHours * 60) {
+    // 핵심 시간대에는 평소 간격(시간)과 핵심 시간대 간격(분) 중 짧은 쪽을 쓴다
+    const intervalMin = input.criticalNow === true ? Math.min(settings.realertAfterHours * 60, settings.criticalOngoingMin) : settings.realertAfterHours * 60;
+    if (s.incident_open && s.incident_last_alert_at !== null && minutesBetween(s.incident_last_alert_at, now) >= intervalMin) {
       s.ongoing_count += 1;
       s.incident_last_alert_at = now.toISOString();
       candidates.push({
         key: `ongoing:${s.incident_no}:${s.ongoing_count}`,
         kind: "ongoing",
         incident_no: s.incident_no,
-        payload: { verdict, minutes: s.first_failure_at ? minutesBetween(s.first_failure_at, now) : null, n: s.ongoing_count },
+        payload: { verdict, minutes: s.first_failure_at ? minutesBetween(s.first_failure_at, now) : null, n: s.ongoing_count, ...hot },
       });
     }
   };
@@ -203,7 +216,7 @@ export function decide(input: DecideInput): DecideResult {
       const minutes = s.first_failure_at ? minutesBetween(s.first_failure_at, now) : 0;
       // 복구는 창 안에서도 판정대로 처리한다
       out.recovery = { note: `지속 시간 ${formatDuration(minutes)}`, incident_no: s.incident_no };
-      candidates.push({ key: `recovered:${s.incident_no}`, kind: "recovered", incident_no: s.incident_no, payload: { minutes, verdict } });
+      candidates.push({ key: `recovered:${s.incident_no}`, kind: "recovered", incident_no: s.incident_no, payload: { minutes, verdict, ...hot } });
       s.incident_open = false;
       s.ongoing_count = 0;
       s.incident_last_alert_at = null;
@@ -226,7 +239,7 @@ export function decide(input: DecideInput): DecideResult {
       if (s.current_verdict === "DEGRADED") {
         // 저하(사건) → 확정 실패: 같은 사건에서 장애 감지 (키 down:{사건})
         s.incident_last_alert_at = now.toISOString();
-        candidates.push({ key: `down:${s.incident_no}`, kind: "down", incident_no: s.incident_no, payload: { verdict, reason: input.primaryReason ?? null, run_id: input.runId } });
+        candidates.push({ key: `down:${s.incident_no}`, kind: "down", incident_no: s.incident_no, payload: { verdict, reason: input.primaryReason ?? null, run_id: input.runId, ...hot } });
       } else {
         maybeOngoing();
       }
@@ -267,8 +280,8 @@ export function decide(input: DecideInput): DecideResult {
     else setVerdict(verdict);
   }
 
-  // 5. 별도 신호 (대표 판정과 무관): 인증서 임박, 보조 확인 이상. 창 안(정상 판정)에서는 알리지 않는다
-  if (!input.inWindow) {
+  // 5. 별도 신호 (대표 판정과 무관): 인증서 임박, 보조 확인 이상. 창 안(정상 판정)에서는 알리지 않는다. 촉진 점검은 이 신호를 세지 않는다(정시 간격 기준 규칙)
+  if (!input.inWindow && input.trigger !== "critical") {
     if (input.certExpiring) {
       const marker = auxState.__cert;
       if (marker !== kstDate) {

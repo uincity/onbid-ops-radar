@@ -28,7 +28,7 @@ export type WebRunInput = {
   clock: ProbeClock;
   triggeredBy?: string | null; // 수동 점검을 누른 팀장
   originRunId?: number | null; // 재확인이면 원래 실행
-  slotAt?: Date | null; // 정시·대체 실행의 정시 칸 (scheduledSlotAt)
+  slotAt?: Date | null; // 정시·대체 실행의 정시 칸(scheduledSlotAt), 촉진 실행의 촉진 칸(criticalSlotAt)
   maintenanceUrlPatterns?: readonly string[];
   probe?: (target: WebTarget, deps: PrimaryProbeDeps) => Promise<TargetProbeOutcome>; // 시험용으로 바꿔 끼운다
 };
@@ -50,8 +50,8 @@ const internalErrorProbe = (): ProbeResult => out(base("L2_HTTP", true), "UNVERI
 
 export async function runWebCheck(input: WebRunInput): Promise<WebRunReport> {
   const { settings, store, transport, clock } = input;
-  if ((input.trigger === "scheduled") !== (input.slotAt != null)) {
-    throw new RangeError("정시 점검에만 정시 칸 시각(slotAt)을 줄 수 있고, 정시 점검에는 반드시 줘야 합니다.");
+  if ((input.trigger === "scheduled" || input.trigger === "critical") !== (input.slotAt != null)) {
+    throw new RangeError("정시·촉진 점검에만 칸 시각(slotAt)을 줄 수 있고, 이 두 점검에는 반드시 줘야 합니다.");
   }
   const cfg = toClassifyConfig(settings);
   const deadlineMs = clock.now() + settings.runTimeLimitSeconds * 1000; // 이번 점검 전체의 시간 예산(대상들이 나눠 쓴다)

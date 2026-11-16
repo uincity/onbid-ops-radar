@@ -3,7 +3,7 @@
 import { readdirSync, readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
-import { DEFAULT_WEB_SETTING_VALUES, WEB_INT_RANGES, WEB_SETTING_KEYS } from "@/lib/web-monitor/settings";
+import { DEFAULT_WEB_SETTING_VALUES, WEB_CRITICAL_INTERVALS, WEB_INT_RANGES, WEB_SETTING_KEYS } from "@/lib/web-monitor/settings";
 
 const dir = path.join(process.cwd(), "supabase", "migrations");
 const names = readdirSync(dir).filter((n) => n.endsWith(".sql")).sort();
@@ -16,7 +16,7 @@ const keySql = lastWith(/constraint web_settings_key_check/);
 const functionSql = lastWith(/create or replace function public\.web_settings_value_is_valid/);
 
 describe("web_settings 마이그레이션과 lib/web-monitor/settings.ts", () => {
-  it("DB의 항목 이름 20개가 코드와 정확히 같다", () => {
+  it("DB의 항목 이름 24개가 코드와 정확히 같다", () => {
     const block = /check\s*\(\s*key in \(([\s\S]*?)\)\s*\)/.exec(keySql)?.[1] ?? "";
     const dbKeys = [...block.matchAll(/'([a-z_]+)'/g)].map((m) => m[1]);
     expect([...dbKeys].sort()).toEqual([...WEB_SETTING_KEYS].sort());
@@ -33,13 +33,24 @@ describe("web_settings 마이그레이션과 lib/web-monitor/settings.ts", () =>
     expect(/when 'web_monitor_enabled' then jsonb_typeof\(p_value\) = 'boolean'/.test(functionSql)).toBe(true);
   });
 
-  it("DB에 들어 있는 기본값 20개가 코드의 기본값과 같다", () => {
+  it("web_critical_* 항목의 DB 규칙(불리언·구간 문자열 형식·간격 목록)이 코드와 같다", () => {
+    expect(/when 'web_critical_enabled' then jsonb_typeof\(p_value\) = 'boolean'/.test(functionSql)).toBe(true);
+    expect(/when 'web_critical_hours' then jsonb_typeof\(p_value\) = 'string'/.test(functionSql)).toBe(true);
+    const intervals = /when 'web_critical_interval_min' then[\s\S]*?in \(([^)]*)\)/.exec(functionSql)?.[1] ?? "";
+    expect([...intervals.matchAll(/'(\d+)'/g)].map((m) => Number(m[1]))).toEqual([...WEB_CRITICAL_INTERVALS]);
+  });
+
+  it("DB에 들어 있는 기본값 24개가 코드의 기본값과 같다", () => {
     const seeded: Record<string, unknown> = {};
     for (const m of sql.matchAll(/\(\s*'([a-z_]+)'\s*,\s*'([^']*)'::jsonb\s*\)/g)) seeded[m[1]] = JSON.parse(m[2]);
     // 나중 마이그레이션이 값을 고쳤다면 파일 이름 순서대로 반영한다
     for (const name of names) {
       if (name === file) continue;
       const later = readFileSync(path.join(dir, name), "utf8");
+      // 나중 마이그레이션이 새 항목을 더했다면(insert) 그 기본값도 반영한다
+      for (const m of later.matchAll(/insert into public\.web_settings \(key, value\) values([\s\S]*?);/g)) {
+        for (const pair of m[1].matchAll(/\(\s*'([a-z_]+)'\s*,\s*'([^']*)'::jsonb\s*\)/g)) seeded[pair[1]] = JSON.parse(pair[2]);
+      }
       for (const m of later.matchAll(/update public\.web_settings\s+set value = '([^']*)'::jsonb\s+where key = '([a-z_]+)'/g)) seeded[m[2]] = JSON.parse(m[1]);
     }
     expect(Object.keys(seeded).sort()).toEqual([...WEB_SETTING_KEYS].sort());

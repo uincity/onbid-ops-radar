@@ -10,6 +10,8 @@
 //   1) 매일 KST 08:00(UTC 23:00, 전날): pg_net으로 POST {주소}/api/cron/daily-check  (Authorization: Bearer CRON_SECRET)
 //   2) 매일 KST 08:30(UTC 23:30, 전날): public.mark_schedule_missed()  — 예약 누락 감지
 //   3) (--web) 매시 :07: pg_net으로 POST {주소}/api/cron/web-check  — 홈페이지 정시 점검
+//   4) (--web-critical) 5분마다: public.web_critical_tick()  — 핵심 시간대 촉진 점검(W26). 웹 설정 web_critical_enabled가 true이고 평일 핵심 시간대의 촉진 칸일 때만 앱을 부른다
+//      (예: npm run setup:cron -- --app-url https://주소 --web-critical --apply. --web과 같이 써도 되고 따로 써도 된다. --remove-web은 이 작업도 해제한다)
 // CRON_SECRET과 앱 주소는 Supabase Vault에 보관하고, Cron SQL은 Vault에서 읽는다. 마이그레이션·저장소·화면·로그에는 값을 남기지 않는다.
 //
 // ⚠ 이 스크립트는 운영 DB에 점검 일정을 만든다. --web이면 매시 :07에 앱이 실제 온비드 홈페이지에 GET 요청을 보내고 기록이 쌓인다.
@@ -23,6 +25,7 @@ const removeWeb = args.includes("--remove-web");
 const remove = args.includes("--remove") || removeWeb;
 const removeScope = args.includes("--remove") ? "all" : "web";
 const includeWeb = args.includes("--web");
+const includeCritical = args.includes("--web-critical");
 const urlIndex = args.indexOf("--app-url");
 const appUrl = urlIndex >= 0 ? args[urlIndex + 1] : undefined;
 
@@ -35,20 +38,20 @@ const fail = (message) => {
   process.exit(1);
 };
 
-if (remove && includeWeb) fail("--web은 등록할 때만 쓰고, 해제는 --remove 또는 --remove-web을 쓰세요.");
+if (remove && (includeWeb || includeCritical)) fail("--web·--web-critical은 등록할 때만 쓰고, 해제는 --remove 또는 --remove-web을 쓰세요.");
 if (!ref || !token) fail(".env에 SUPABASE_PROJECT_REF·SUPABASE_ACCESS_TOKEN이 없습니다. (npm run check:env)");
 if (!remove) {
   if (!cronSecret) fail(".env에 CRON_SECRET이 없습니다. (npm run setup:env)");
   if (!appUrl || !/^https:\/\/[A-Za-z0-9.-]+(:\d+)?$/.test(appUrl)) fail("--app-url https://도메인 형식(경로 없이)으로 배포 주소를 알려 주세요.");
 }
 
-const statements = remove ? buildRemoveStatements({ scope: removeScope }) : buildRegisterStatements({ includeWeb, cronSecret, appUrl });
+const statements = remove ? buildRemoveStatements({ scope: removeScope }) : buildRegisterStatements({ includeWeb, includeCritical, cronSecret, appUrl });
 
 // 화면 출력용: 알려진 모든 비밀값(CRON_SECRET, 이후 추가될 텔레그램 값)과 주소를 가린다
 const mask = (text) => maskText(text, { secrets: [cronSecret, process.env.TELEGRAM_BOT_TOKEN, process.env.TELEGRAM_CHAT_ID], appUrl });
 
-const jobs = remove ? jobsToRemove({ scope: removeScope }) : selectedJobs({ includeWeb });
-console.log(remove ? (removeScope === "all" ? "Cron 해제 계획 (전체)" : "Cron 해제 계획 (웹 작업만)") : `Cron 등록 계획 (${includeWeb ? "OpenAPI + 홈페이지 웹" : "OpenAPI만"})`);
+const jobs = remove ? jobsToRemove({ scope: removeScope }) : selectedJobs({ includeWeb, includeCritical });
+console.log(remove ? (removeScope === "all" ? "Cron 해제 계획 (전체)" : "Cron 해제 계획 (웹 작업만)") : `Cron 등록 계획 (${includeWeb ? "OpenAPI + 홈페이지 웹" : "OpenAPI만"}${includeCritical ? " + 핵심 시간대 촉진 점검" : ""})`);
 for (const job of jobs) console.log(`- ${job.label} → ${job.schedule} (${job.name})`);
 for (const s of statements) console.log(`  SQL> ${mask(s).split("\n")[0].slice(0, 150)}`);
 
