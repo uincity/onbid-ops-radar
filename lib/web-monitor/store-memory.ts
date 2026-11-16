@@ -14,6 +14,7 @@ export type MemoryRun = {
   targetKey: string;
   trigger: StartWebRunInput["trigger"];
   slotAt: Date | null;
+  criticalSlotAt: Date | null; // 촉진 실행의 칸 시각 (DB의 critical_slot_at)
   status: "running" | "succeeded" | "partial" | "failed" | "blocked";
   originRunId: number | null;
   triggeredBy: string | null;
@@ -119,14 +120,15 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
     // ----- W06 점검 기록 -----
     async startRun(input: StartWebRunInput): Promise<StartWebRunResult> {
       // DB의 제약과 같은 입력 규칙 (어긋나면 DB도 거부한다)
-      if ((input.trigger === "scheduled") !== (input.slotAt != null)) throw new Error("정시 점검에만 정시 칸 시각이 있어야 합니다");
+      if ((input.trigger === "scheduled" || input.trigger === "critical") !== (input.slotAt != null)) throw new Error("정시·촉진 점검에만 칸 시각이 있어야 합니다");
       if (input.triggeredBy && input.trigger !== "manual") throw new Error("담당자는 수동 점검에만 붙일 수 있습니다");
       if (input.originRunId != null && input.trigger !== "retry") throw new Error("원래 실행은 재확인에만 붙일 수 있습니다");
 
       const base: Omit<MemoryRun, "id" | "status"> = {
         targetKey: input.targetKey,
         trigger: input.trigger,
-        slotAt: input.slotAt ?? null,
+        slotAt: input.trigger === "critical" ? null : (input.slotAt ?? null),
+        criticalSlotAt: input.trigger === "critical" ? (input.slotAt ?? null) : null,
         originRunId: input.originRunId ?? null,
         triggeredBy: input.triggeredBy ?? null,
         requestCount: 0,
@@ -138,8 +140,10 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
       };
       const running = runs.some((r) => r.status === "running");
       const slotTaken =
-        input.trigger === "scheduled" &&
-        runs.some((r) => r.trigger === "scheduled" && r.status !== "blocked" && r.targetKey === input.targetKey && r.slotAt?.getTime() === input.slotAt?.getTime());
+        (input.trigger === "scheduled" &&
+          runs.some((r) => r.trigger === "scheduled" && r.status !== "blocked" && r.targetKey === input.targetKey && r.slotAt?.getTime() === input.slotAt?.getTime())) ||
+        (input.trigger === "critical" &&
+          runs.some((r) => r.trigger === "critical" && r.status !== "blocked" && r.targetKey === input.targetKey && r.criticalSlotAt?.getTime() === input.slotAt?.getTime()));
 
       if (!running && !slotTaken) {
         const run: MemoryRun = { ...base, id: nextId++, status: "running" };
@@ -228,7 +232,7 @@ export function createMemoryWebStore(options: { now?: () => number } = {}): Memo
     async enqueueConfirm(input) {
       const origin = runs.find((r) => r.id === input.originRunId);
       if (!origin || origin.targetKey !== input.targetKey) throw new Error("원래 점검 실행을 찾을 수 없거나 대상이 다릅니다");
-      if (origin.trigger !== "scheduled" || (origin.status !== "succeeded" && origin.status !== "partial")) throw new Error("정상 종료된 정시 실행만 확인 재시도를 예약할 수 있습니다");
+      if ((origin.trigger !== "scheduled" && origin.trigger !== "critical") || (origin.status !== "succeeded" && origin.status !== "partial")) throw new Error("정상 종료된 정시·촉진 실행만 확인 재시도를 예약할 수 있습니다");
       if (queue.some((q) => q.targetKey === input.targetKey && isActive(q))) return null;
       const row: MemoryQueueRow = { id: nextQueueId++, targetKey: input.targetKey, kind: "confirm", originRunId: input.originRunId, status: "pending", dueAtMs: now() + input.delaySec * 1000, claimedAtMs: null, attempts: 0 };
       queue.push(row);

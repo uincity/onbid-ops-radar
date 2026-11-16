@@ -11,7 +11,7 @@ import { loadSettings } from "@/lib/settings/load";
 import { buildExecutionSection, buildQualitySection } from "./quality";
 import { kstDayRange } from "@/lib/time";
 import { findWebTarget } from "@/lib/web-monitor/registry";
-import { buildWebReport, unavailableWebReport, type WebDayRow, type WebReport } from "./web-section";
+import { buildWebReport, unavailableWebReport, type WebCriticalRow, type WebDayRow, type WebReport } from "./web-section";
 import {
   aggregateReport,
   type ApiCheckRow,
@@ -257,7 +257,10 @@ async function loadWebSection(supabase: SupabaseClient, webAdmin: SupabaseClient
         supabase.from("anomalies").select("id, status, rule_id").eq("source", "WEB").gte("first_detected_at", startIso).lt("first_detected_at", endIso).order("id").range(from, to),
       "홈페이지 이상징후",
     );
-    return buildWebReport({ rows: (data ?? []) as WebDayRow[], labelOf: (key) => findWebTarget(key)?.label ?? key, anomalies });
+    // 핵심 시간대 가용률(W26)은 덤이다: 못 읽어도(또는 아직 마이그레이션 전이어도) 보고서의 다른 숫자는 그대로 낸다
+    const critical = await webAdmin.rpc("web_summarize_critical", { p_date: date });
+    const criticalRows = critical.error ? undefined : ((critical.data ?? []) as WebCriticalRow[]);
+    return buildWebReport({ rows: (data ?? []) as WebDayRow[], labelOf: (key) => findWebTarget(key)?.label ?? key, anomalies, criticalRows });
   } catch {
     return unavailableWebReport();
   }

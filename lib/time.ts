@@ -77,3 +77,10 @@ export function scheduledRunAt(date: string): Date {
 export function scheduleMissedDeadline(date: string, graceMinutes: number): Date {
   return new Date(scheduledRunAt(date).getTime() + graceMinutes * MINUTE_MS);
 }
+
+// KST(한국 표준시, 서머타임 없음 = UTC+9)의 요일·시·분. 월=1 … 일=7(ISO). 핵심 시간대(W26) 판정에 쓴다
+export function kstClock(instant: Date): { isoDow: number; hour: number; minute: number } {
+  const shifted = new Date(instant.getTime() + 9 * 60 * 60 * 1000); // UTC 필드로 읽으면 KST 시각이 된다
+  const dow = shifted.getUTCDay(); // 일=0 … 토=6
+  return { isoDow: dow === 0 ? 7 : dow, hour: shifted.getUTCHours(), minute: shifted.getUTCMinutes() };
+}

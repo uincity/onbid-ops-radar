@@ -8,7 +8,7 @@ create extension if not exists pgtap with schema extensions;
 select plan(34);
 
 -- 기본값과 항목 수
-select is((select count(*)::int from public.web_settings), 20, '웹 설정 항목은 20개');
+select is((select count(*)::int from public.web_settings), 24, '웹 설정 항목은 24개 (W26에서 핵심 시간대 4개 추가)');
 select is((select value from public.web_settings where key = 'web_http_timeout_ms'), '10000'::jsonb, '타임아웃 기본값 10000');
 select is((select value from public.web_settings where key = 'web_http_slow_ms'), '3000'::jsonb, '느림 기준 기본값 3000');
 select is((select value from public.web_settings where key = 'web_monitor_enabled'), 'true'::jsonb, '켜기/끄기 기본값 true');

@@ -23,7 +23,7 @@ export type WebProbeView = {
 export type WebRunView = {
   id: number;
   targetKey: string;
-  trigger: "scheduled" | "retry" | "manual";
+  trigger: "scheduled" | "retry" | "manual" | "critical";
   status: "running" | "succeeded" | "partial" | "failed" | "blocked";
   slotAt: string | null;
   startedAt: string;
@@ -57,7 +57,7 @@ export const VERDICT_VIEW: Record<WebVerdict, { label: string; tone: Tone }> = {
   UNVERIFIED: { label: "확인 불가", tone: "gray" },
   NOT_RUN: { label: "미점검", tone: "grayLight" },
 };
-export const TRIGGER_LABEL: Record<WebRunView["trigger"], string> = { scheduled: "정시", retry: "재확인", manual: "수동" };
+export const TRIGGER_LABEL: Record<WebRunView["trigger"], string> = { scheduled: "정시", retry: "재확인", manual: "수동", critical: "촉진" };
 export const RUN_STATUS_LABEL: Record<WebRunView["status"], string> = { running: "실행 중", succeeded: "완료", partial: "일부 완료", failed: "실패", blocked: "차단됨" };
 export const LAYER_LABEL: Record<WebLayer, string> = { L1_CONNECT: "L1 접속", L2_HTTP: "L2 HTTP", L3_CONTENT: "L3 내용", AUX_STUB: "보조: 진입 스텁", AUX_QUEUE: "보조: 대기열 설정", L4_FILES: "L4 파일 서버" };
 export const NOTIFY_KIND_LABEL: Record<string, string> = {

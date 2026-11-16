@@ -24,6 +24,11 @@ const EXPECTED = {
   web_window_max_hours: 168,
   web_unplanned_escalate_hours: 6,
   web_monitor_enabled: true,
+  // 핵심 시간대 촉진 점검(W26): 켜기는 운영하며 바꾸므로 종류만 본다
+  web_critical_enabled: false,
+  web_critical_hours: "09-11,14-18",
+  web_critical_interval_min: 10,
+  web_critical_ongoing_min: 60,
 };
 
 export async function run(ctx) {
@@ -37,8 +42,9 @@ export async function run(ctx) {
   report(rows.length === Object.keys(EXPECTED).length, `웹 설정 항목 ${Object.keys(EXPECTED).length}개가 모두 있음`, `${rows.length}개`);
 
   // 운영하며 바꾸는 값(켜기/끄기)은 값 종류만 본다. 나머지는 기본값 그대로여야 한다(다른 값으로 바꿨다면 마이그레이션과 코드 기본값을 함께 고친다)
-  const OPERATIONAL = ["web_monitor_enabled"];
+  const OPERATIONAL = ["web_monitor_enabled", "web_critical_enabled"];
   report(typeof actual.web_monitor_enabled === "boolean", "web_monitor_enabled가 true/false", `현재 ${JSON.stringify(actual.web_monitor_enabled)}`);
+  report(typeof actual.web_critical_enabled === "boolean", "web_critical_enabled가 true/false", `현재 ${JSON.stringify(actual.web_critical_enabled)}`);
   const wrong = Object.entries(EXPECTED)
     .filter(([key]) => !OPERATIONAL.includes(key))
     .filter(([key, value]) => JSON.stringify(actual[key]) !== JSON.stringify(value))

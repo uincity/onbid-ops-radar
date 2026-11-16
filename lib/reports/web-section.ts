@@ -25,6 +25,8 @@ export const webReportSchema = z.object({
       avgMs: z.number().nullable(),
       maxMs: z.number().nullable(),
       avail: z.object({ num: count, den: count }), // 가용률 분자·분모 (비율은 보여 줄 때 계산)
+      // 핵심 시간대(W26) 가용률: 정시+촉진 실행 중 평일 핵심 시간대 안의 것. 기록이 없으면(촉진 점검이 꺼져 있었거나 주말·보존 기간 경과) 없음
+      critical: z.object({ avail: z.object({ num: count, den: count }), judged: count, criticalRuns: count }).optional(),
     }),
   ),
   anomalies: z.array(z.object({ id: z.number().int(), status: z.string(), ruleId: z.string() })),
@@ -50,6 +52,9 @@ export type WebDayRow = {
   max_ms: number | null;
 };
 
+/** web_summarize_critical이 돌려주는 한 줄 (DB 열 이름 그대로) */
+export type WebCriticalRow = Pick<WebDayRow, "target_key" | "pass_data" | "pass_no_data" | "degraded" | "fail" | "unverified" | "not_run" | "planned_count" | "unplanned_count"> & { critical_runs: number };
+
 /**
  * 가용률 = 정상 계열(정상+정상(데이터 없음)) ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 저하는 정상 계열이 아니다.
  * 판정 횟수 = 여섯 판정의 합이므로 분모는 정상+저하+실패에서 계획·미등록 점검을 뺀 값이다.
@@ -66,7 +71,9 @@ export function buildWebReport(input: {
   rows: readonly WebDayRow[];
   labelOf: (key: string) => string;
   anomalies: ReadonlyArray<{ id: number; status: string; rule_id: string }>;
+  criticalRows?: readonly WebCriticalRow[];
 }): WebReport {
+  const criticalOf = new Map((input.criticalRows ?? []).map((c) => [c.target_key, c]));
   return {
     unavailable: false,
     targets: input.rows.map((r) => ({
@@ -86,6 +93,12 @@ export function buildWebReport(input: {
       avgMs: r.avg_ms,
       maxMs: r.max_ms,
       avail: availabilityOf(r),
+      ...(criticalOf.has(r.target_key)
+        ? (() => {
+            const c = criticalOf.get(r.target_key)!;
+            return { critical: { avail: availabilityOf(c), judged: c.pass_data + c.pass_no_data + c.degraded + c.fail + c.unverified + c.not_run, criticalRuns: c.critical_runs } };
+          })()
+        : {}),
     })),
     anomalies: input.anomalies.map((a) => ({ id: a.id, status: a.status, ruleId: a.rule_id })),
   };

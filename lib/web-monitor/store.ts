@@ -4,7 +4,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { ProbeResult, WebVerdict } from "./classify";
 
-export type WebRunTrigger = "scheduled" | "retry" | "manual";
+export type WebRunTrigger = "scheduled" | "retry" | "manual" | "critical";
 export type WebRunFinalStatus = "succeeded" | "partial" | "failed";
 
 export type StartWebRunInput = {
@@ -12,7 +12,7 @@ export type StartWebRunInput = {
   trigger: WebRunTrigger;
   triggeredBy?: string | null; // 수동 점검을 누른 팀장
   originRunId?: number | null; // 재확인이면 원래 실행
-  slotAt?: Date | null; // 정시·대체 실행의 정시 칸 시각
+  slotAt?: Date | null; // 정시·대체 실행의 정시 칸 시각, 촉진 실행의 촉진 칸 시각(DB가 critical_slot_at에 넣음)
 };
 export type StartWebRunResult = { runId: number; status: "running" | "blocked" };
 

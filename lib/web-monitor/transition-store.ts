@@ -24,7 +24,7 @@ export interface WebTransitionStore {
 export type RetryKind = "confirm" | "replace";
 export type ClaimedRetry = { id: number; targetKey: string; kind: RetryKind; originRunId: number | null; attempts: number };
 export type RetryOutcome = "done" | "cancelled" | "retry";
-export type RetryOriginRun = { targetKey: string; trigger: "scheduled" | "retry" | "manual"; slotAt: Date | null };
+export type RetryOriginRun = { targetKey: string; trigger: "scheduled" | "retry" | "manual" | "critical"; slotAt: Date | null };
 
 export interface WebRetryStore {
   /** 예정 시각이 지난 가장 오래된 대기 줄 1개를 원자적으로 선점(없으면 null) */

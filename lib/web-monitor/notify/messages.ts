@@ -39,6 +39,8 @@ export const REASON_LABEL: Record<WebReason, string> = {
 export const VERDICT_LABEL: Record<string, string> = { FAIL: "실패", DEGRADED: "저하", UNVERIFIED: "검증 불가", NOT_RUN: "미점검", PASS_DATA: "정상", PASS_NO_DATA: "정상(데이터 없음)" };
 const AUX_LABEL: Record<string, string> = { "aux-stub": "진입 스텁", "aux-queue": "대기열 설정" };
 
+export const CRITICAL_BANNER = "🚨 핵심 시간대(입찰 임박)";
+
 export function formatMinutes(minutes: number): string {
   if (!Number.isFinite(minutes) || minutes < 0) return "알 수 없음";
   return minutes >= 60 ? `${Math.floor(minutes / 60)}시간 ${Math.floor(minutes % 60)}분` : `${Math.floor(minutes)}분`;
@@ -106,6 +108,8 @@ export function buildMessage(item: UnsentNotification, ctx: MessageContext): str
     default:
       lines.push(`ℹ️ ${label} 알림`, when);
   }
+  // 핵심 시간대(W26)에 만든 장애·저하·복구·지속 알림은 맨 앞에 강조 줄을 붙인다(decide가 payload.critical=true로 표시)
+  if (p.critical === true && ["down", "degraded", "recovered", "ongoing"].includes(item.kind)) lines.unshift(CRITICAL_BANNER);
   // 상세 링크는 이상징후가 있는 알림에만 의미가 있다 (인증서·보조·점검 불가·미등록·억제는 사건이 아니라서 링크를 넣지 않는다)
   if (link && ["down", "degraded", "recovered", "ongoing"].includes(item.kind)) lines.push(`상세: ${escapeHtml(link)}`);
   return lines.join("\n");

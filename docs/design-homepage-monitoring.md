@@ -411,7 +411,7 @@
 **목적:** 입찰 마감·제출·개찰이 몰리는 평일 핵심 시간대(기본 KST 09~11시·14~18시)에 장애 탐지 지연을 **최대 약 1시간에서 약 12~13분**으로 줄인다. 정시 점검(매시 `:07`)과 24칸 띠·정시 가용률은 **그대로** 두고, 같은 점검 실행기를 **새 실행 종류 `trigger='critical'`** 로 추가로 돌린다. **기본값은 꺼짐**(`web_critical_enabled=false`)이라 배포·크론 등록만으로는 아무 일도 일어나지 않는다.
 
 **1) 언제 도는가 (시각 판단은 DB, 앱은 실행만)**
-- `pg_cron`이 **5분마다** DB 함수 `web_critical_tick()`을 부른다(SQL만 실행, 앱 호출 없음. 매분 재확인 작업과 같은 방식). 함수가 아래를 **모두** 만족할 때만 `pg_net`으로 `POST /api/cron/web-check-critical`을 부른다.
+- `pg_cron`이 **5분마다**(`2-57/5 * * * *` = :02·:07·:12 …) DB 함수 `web_critical_tick()`을 부른다(SQL만 실행, 앱 호출 없음. 매분 재확인 작업과 같은 방식. :02에서 시작해야 설정 가능한 모든 간격(5·10·15·20·30분)의 칸 :17·:27·… 에 맞는다). 함수가 아래를 **모두** 만족할 때만 `pg_net`으로 `POST /api/cron/web-check-critical`을 부른다.
   ① `web_monitor_enabled`와 `web_critical_enabled`가 모두 true ② 지금(KST)이 평일(월~금)이고 시각이 `web_critical_hours` 안 ③ 이번 칸이 촉진 칸 — `(분 − 7) mod web_critical_interval_min = 0`이고 **분 ≠ 7**(`:07`은 정시 점검이 이미 있음) ④ 같은 칸의 촉진 실행이 아직 없음(`critical_slot_at` 유일).
 - 시각 계산(KST 변환·평일 판정)은 **DB 함수 한 곳**에서만 하고, 앱 쪽 순수 함수 `isCriticalSlot`(`lib/web-monitor/critical.ts`)이 **같은 규칙을 시험용으로 복제**한다(드리프트 시험으로 둘이 같은 답을 내는지 확인. 기존 `lib/time.ts`만 쓰고 `new Date()`로 날짜를 자르지 않는다).
 - `web_critical_interval_min`은 **60의 약수만 허용**(5·10·15·20·30). 칸은 매시 `:07`을 기준으로 맞춰서(기본 `:17·:27·:37·:47·:57`) 정시 점검과 겹치지 않는다.
@@ -445,23 +445,23 @@
 **5) 가용률·보고서**
 - 기존 `web_summarize_day`는 `trigger='scheduled'`만 세므로(`20261106100000_create_web_retention.sql`에서 확인) **촉진 실행은 24칸 띠·일일 요약·가용률에 들어가지 않는다**. 구현 때 띠 조회도 `slot_at`이 아니라 `trigger`로 거르는지 코드로 확인하고 시험으로 고정한다.
 - 보고서에 **「핵심 시간대 가용률」** 을 따로 표기한다. 새 DB 함수 `web_summarize_critical(date, target)`이 **정시+촉진 실행 중 핵심 시간대 안의 것**을 같은 분모 규칙(저하는 정상 계열 아님, 확인 불가·미점검·계획·미등록 제외)으로 센다. 촉진 실행은 재확인을 거친 **확정 판정**만 센다.
-- 보존 삭제 때 하루 요약에 이 숫자도 남기도록 `web_daily_summary`에 핵심 시간대 열을 추가한다.
+- **구현 결정(v0.3 구현 시):** 핵심 시간대 요약은 `web_daily_summary`에 따로 남기지 않는다. 원본이 남아 있는 날(보존 기간 90일 안)만 계산되고, 삭제된 날은 보고서에 핵심 시간대 줄이 나오지 않는다(범위를 줄이려는 결정이며, 필요해지면 열을 추가한다).
 
-**6) 이 작업이 바꾸는 기존 DB 가정 (구현 때 마이그레이션 1개로 처리, 기존 값은 보존)**
+**6) 이 작업이 바꾸는 기존 DB 가정 (마이그레이션 1개 `20261116100000_add_web_critical_checks.sql`로 처리, 기존 값은 보존)**
 
 | 위치 | 기존 가정 | 바꿀 내용 |
 |---|---|---|
 | `web_check_runs.trigger` 검사 제약 (`20261105110000`) | `scheduled`·`retry`·`manual` | `critical` 추가 |
 | `web_check_runs` 새 열 `critical_slot_at` | 없음 | `critical`일 때만 채움 + 부분 유니크(대상·칸, `blocked` 제외) |
-| `confirmed_verdict` 제약 | `trigger='scheduled'`일 때만 | `scheduled`·`critical` |
+| `confirmed_verdict` 제약 | `trigger='scheduled'`일 때만 | **변경 없음**(구현 결정). 촉진 실행은 확정 판정 칸이 비어 있고, `web_summarize_critical`이 "재확인(retry) 실행이 있으면 그 판정, 없으면 대표 판정"으로 계산한다 |
 | `slot_at` 규칙 | `(trigger='scheduled') = (slot_at is not null)` | **변경 없음**(촉진은 `slot_at`이 null) |
 | 재확인 예약 함수 (`20261105130000`) | 출처가 정시 실행일 때만 | 출처가 `scheduled`·`critical` |
-| `record_web_transition`의 원래 실행 갱신 (`20261105120000`) | `trigger='scheduled'` | `scheduled`·`critical` |
-| 계획 점검 창 표시 (`20261105150000`) | `scheduled`·`retry` | `critical` 추가 |
+| `record_web_transition`의 원래 실행 갱신 (`20261105120000`) | `trigger='scheduled'` | **변경 없음**(구현 결정). 촉진 출처의 확정 판정은 위처럼 집계 함수가 계산한다 |
+| 계획 점검 창 표시 (`20261105150000`) | `scheduled`·`retry` | **변경 없음**(구현 결정). 창 안의 촉진 실행은 상태에 반영하지 않고(무시), 집계 함수가 창을 직접 조회해 계획 점검으로 센다 |
 | 자체 감시 기준 (`20261105160000`, 5.5) | `scheduled`·`retry` | **변경 없음**(촉진은 살아 있음 기준에 넣지 않음) |
 | `web_settings` 키 허용 목록 (`20261105100000`) | 기존 키만 | 새 키 4개 추가 |
 | 새 함수 | — | `web_critical_tick()`, `web_summarize_critical()` |
-| `web_daily_summary` | 정시 열만 | 핵심 시간대 열 추가 |
+| `web_daily_summary` | 정시 열만 | **변경 없음**(위 구현 결정) |
 
 **7) 설정값 (웹 전용 테이블 `web_settings`, 6.5와 같은 규칙: 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 촉진 점검을 하지 않음)**
 
@@ -697,7 +697,7 @@ docs/web-monitor-*.md  조사·운영·관찰 문서
 | 4 | **크론 등록은 가장 마지막**(매시 → 매분 → 10분 → 하루) | 등록 전에는 점검이 돌지 않는다 |
 | 롤백 | `web_monitor_enabled=false`(SQL: `web_settings` 갱신) + `setup-cron --remove-web` | 웹 점검·재확인·알림·감시 중지, 기존 OpenAPI 점검에는 영향 없음. 화면에서 끄는 기능은 만들지 않는다(설정 화면 없음) |
 | 웹 설정이 아직 DB에 없을 때 | 웹 코드는 "꺼진 것"으로 보고 아무것도 하지 않으며 감시 함수도 정지 알림을 보내지 않는다 | 설정 읽기 실패가 정지 오경보나 점검 중단으로 번지지 않게 |
-| W26 배포(v0.3) | ① DB 마이그레이션(제약·열·함수·설정 키, `web_critical_enabled=false`) ② 코드 ③ 크론 등록(`--web-critical`) ④ 배포 확인 뒤 **`web_critical_enabled=true`** | 켜기 전에는 5분 주기 함수가 SQL만 돌고 아무 호출도 하지 않는다. 배포는 `:05~:12`와 핵심 시간대를 피한다. 롤백은 `web_critical_enabled=false` 한 줄 |
+| W26 배포(v0.3) | ① DB 마이그레이션(제약·열·함수·설정 키, `web_critical_enabled=false`) **과 ② 코드 배포를 `:13~:50`에 1~2분 안에 연달아**(웹 설정 읽기가 항목 24개를 정확히 요구해서, 한쪽만 먼저 반영되면 그 사이 `:07` 정시 점검이 설정 오류로 멈춘다. 2026-11-16 실제 반영: DB 16:15:58 → 배포 완료 16:17대, 사이에 `:07` 없음) ③ 크론 등록(`--web-critical`) ④ 배포 확인 뒤 **`web_critical_enabled=true`** | 켜기 전에는 5분 주기 함수가 SQL만 돌고 아무 호출도 하지 않는다. 배포는 `:05~:12`와 핵심 시간대를 피한다. 롤백은 `web_critical_enabled=false` 한 줄 |
 
 ## 부록. 확인이 필요한 항목과 열린 질문
 

@@ -301,6 +301,12 @@ function WebSection({ w, no }: { w: NonNullable<ReportModel["web"]>; no: number 
                 <li className={p} data-testid="report-web-rate">
                   가용률: {t.avail.den > 0 ? `${((t.avail.num / t.avail.den) * 100).toFixed(1)}% (${num(t.avail.num)} / ${num(t.avail.den)})` : `비율 없음 (${num(t.avail.num)} / ${num(t.avail.den)})`} = 정상 계열 ÷ (판정 횟수 − 확인 불가 − 미점검 − 계획 점검 − 미등록 점검). 성능 저하는 정상 계열이 아닙니다.
                 </li>
+                {t.critical ? (
+                  <li className={p} data-testid="report-web-critical">
+                    핵심 시간대 가용률(평일 입찰 몰리는 시간, 정시+촉진 점검 {num(t.critical.judged)}회 중 촉진 {num(t.critical.criticalRuns)}회):{" "}
+                    {t.critical.avail.den > 0 ? `${((t.critical.avail.num / t.critical.avail.den) * 100).toFixed(1)}% (${num(t.critical.avail.num)} / ${num(t.critical.avail.den)})` : `비율 없음 (${num(t.critical.avail.num)} / ${num(t.critical.avail.den)})`}. 위 가용률과 따로 세며 같은 식입니다.
+                  </li>
+                ) : null}
               </ul>
             </div>
           ))

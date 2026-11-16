@@ -29,12 +29,13 @@ export function observationFromProbes(probes: readonly ProbeResult[]) {
 }
 
 export type ApplyInput = {
-  report: WebTargetRunReport; // 끝난 실행의 보고(정시 또는 재확인)
-  trigger: "scheduled" | "retry";
+  report: WebTargetRunReport; // 끝난 실행의 보고(정시·촉진 또는 재확인)
+  trigger: "scheduled" | "retry" | "critical";
   originRunId?: number | null; // 재확인이면 원래 정시 실행
   startedAt: Date; // 이번 실행의 시작 시각(창 판정·경과 시간 기준)
   settings: WebSettings;
   store: WebTransitionStore;
+  criticalNow?: boolean; // 지금이 핵심 시간대(켜짐 설정)인가: 알림 강조·지속 알림 간격 단축(W26). 호출하는 쪽이 critical.ts로 계산해 넘긴다
   isInWindow?: (targetKey: string, startedAt: Date) => Promise<boolean>; // 시험용 덮어쓰기. 없으면 저장소의 계획 점검 창(W15)을 본다
 };
 
@@ -65,11 +66,13 @@ export async function applyRunDecision(input: ApplyInput): Promise<ApplyOutcome>
       certExpiring: obs.certExpiring,
       certDaysLeft: obs.certDaysLeft,
       aux: obs.aux,
+      criticalNow: input.criticalNow === true,
       inWindow,
       state,
       settings,
     };
     const result = decide(decideInput);
+    if (result.kind === "ignore") return { action: "skipped", reason: "critical_ignored" }; // 촉진 점검 중 상태에 반영하지 않는 결과
 
     if (result.kind === "defer") {
       const queued = await store.enqueueConfirm({ targetKey: report.targetKey, originRunId: report.runId, delaySec: settings.confirmRetryDelaySec });

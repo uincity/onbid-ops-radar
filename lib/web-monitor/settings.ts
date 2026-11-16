@@ -35,13 +35,35 @@ export const WEB_INT_RANGES = {
   web_notify_timeout_ms: { min: 1000, max: 30000 }, // 텔레그램 요청 타임아웃(ms)
   web_window_max_hours: { min: 1, max: 720 }, // 계획 점검 창 최대 길이(시간)
   web_unplanned_escalate_hours: { min: 1, max: 48 }, // 점검 문구가 창 없이 이어질 때 일반 실패로 승격하는 시간(시간)
+  web_critical_ongoing_min: { min: 10, max: 180 }, // 핵심 시간대(W26)에 장애 지속 알림을 다시 보내는 간격(분)
 } as const;
+
+// 핵심 시간대 촉진 점검(W26)의 간격(분)은 매시 :07 칸을 기준으로 맞추므로 60의 약수만 허용한다 (DB의 web_settings_value_is_valid와 같아야 함)
+export const WEB_CRITICAL_INTERVALS = [5, 10, 15, 20, 30] as const;
+
+export type CriticalRange = { from: number; to: number }; // KST 시 단위, 끝 시각은 미포함 (9-11 = 09:00~10:59)
+
+/** "09-11,14-18" → 구간 목록. 형식이 틀리거나 시작≥끝이거나 겹치거나 24시를 넘으면 null (DB는 형식만, 나머지는 여기서 확인) */
+export function parseCriticalHours(text: string): CriticalRange[] | null {
+  if (!/^[0-9]{1,2}-[0-9]{1,2}(,[0-9]{1,2}-[0-9]{1,2})*$/.test(text)) return null;
+  const ranges = text.split(",").map((part) => {
+    const [a, b] = part.split("-");
+    return { from: Number(a), to: Number(b) };
+  });
+  if (ranges.some((r) => r.from < 0 || r.to > 24 || r.from >= r.to)) return null;
+  const sorted = [...ranges].sort((x, y) => x.from - y.from);
+  for (let i = 1; i < sorted.length; i++) if (sorted[i].from < sorted[i - 1].to) return null; // 겹침 금지(맞닿는 것은 허용)
+  return ranges;
+}
 
 export const WEB_SETTING_SCHEMAS = {
   ...(Object.fromEntries(
     Object.entries(WEB_INT_RANGES).map(([key, r]) => [key, z.number().int().min(r.min).max(r.max)]),
   ) as { [K in keyof typeof WEB_INT_RANGES]: z.ZodNumber }),
   web_monitor_enabled: z.boolean(),
+  web_critical_enabled: z.boolean(),
+  web_critical_hours: z.string().refine((v) => parseCriticalHours(v) !== null),
+  web_critical_interval_min: z.number().refine((v) => (WEB_CRITICAL_INTERVALS as readonly number[]).includes(v)),
 } as const;
 
 export type WebSettingKey = keyof typeof WEB_SETTING_SCHEMAS;
@@ -70,6 +92,10 @@ export const DEFAULT_WEB_SETTING_VALUES: WebSettingValues = {
   web_window_max_hours: 168,
   web_unplanned_escalate_hours: 6,
   web_monitor_enabled: true,
+  web_critical_enabled: false, // 촉진 점검은 꺼진 채로 시작한다(배포 확인 뒤 켠다)
+  web_critical_hours: "09-11,14-18",
+  web_critical_interval_min: 10,
+  web_critical_ongoing_min: 60,
 };
 
 // 코드에서 쓰기 편한 이름(camelCase)의 웹 설정
@@ -94,6 +120,10 @@ export type WebSettings = {
   windowMaxHours: number;
   unplannedEscalateHours: number;
   monitorEnabled: boolean;
+  criticalEnabled: boolean; // 핵심 시간대 촉진 점검(W26) 켜기
+  criticalRanges: CriticalRange[]; // 핵심 시간대 구간(KST 시, 끝 미포함)
+  criticalIntervalMin: number; // 촉진 점검 간격(분)
+  criticalOngoingMin: number; // 핵심 시간대 지속 알림 간격(분)
 };
 
 // 점검 경로(app/api/cron/web-check)의 maxDuration(초). 웹 점검 시간 제한은 이보다 작아야 한다
@@ -111,13 +141,18 @@ export function findWebRelationProblems(s: WebSettings): string[] {
   if (s.runTimeLimitSeconds >= WEB_ROUTE_MAX_DURATION_SECONDS) {
     problems.push(`web_run_time_limit_seconds(${s.runTimeLimitSeconds})는 점검 경로의 최대 실행 시간(${WEB_ROUTE_MAX_DURATION_SECONDS}초)보다 작아야 합니다`);
   }
+  if (s.criticalOngoingMin > s.realertAfterHours * 60) {
+    problems.push(`web_critical_ongoing_min(${s.criticalOngoingMin})는 web_realert_after_hours×60(${s.realertAfterHours * 60})분 이하여야 합니다 (핵심 시간대 알림 간격이 평소보다 길어지지 않도록)`);
+  }
   return problems;
 }
 
 export type WebSettingRow = { key: string; value: unknown };
 
 const RULE_TEXT = (key: WebSettingKey): string => {
-  if (key === "web_monitor_enabled") return "true 또는 false";
+  if (key === "web_monitor_enabled" || key === "web_critical_enabled") return "true 또는 false";
+  if (key === "web_critical_hours") return '"09-11,14-18" 같은 시 구간 목록(시작<끝, 겹침 없음, 0~24)';
+  if (key === "web_critical_interval_min") return `${WEB_CRITICAL_INTERVALS.join("·")} 중 하나`;
   const r = WEB_INT_RANGES[key];
   return `정수 ${r.min}~${r.max}`;
 };
@@ -166,6 +201,10 @@ export function parseWebSettings(rows: readonly WebSettingRow[]): WebSettings {
     windowMaxHours: p.web_window_max_hours,
     unplannedEscalateHours: p.web_unplanned_escalate_hours,
     monitorEnabled: p.web_monitor_enabled,
+    criticalEnabled: p.web_critical_enabled,
+    criticalRanges: parseCriticalHours(p.web_critical_hours) ?? [], // 위 검사를 통과했으므로 null이 아니다
+    criticalIntervalMin: p.web_critical_interval_min,
+    criticalOngoingMin: p.web_critical_ongoing_min,
   };
   const relationProblems = findWebRelationProblems(settings);
   if (relationProblems.length > 0) throw new WebSettingsError(relationProblems);

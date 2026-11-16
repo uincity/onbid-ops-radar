@@ -25,6 +25,23 @@ describe("작업 목록", () => {
   });
 });
 
+describe("핵심 시간대 촉진 점검 작업(W26)", () => {
+  it("5분마다 :02부터 도는 SQL 작업이고, --web-critical을 붙여야만 등록된다", () => {
+    const job = CRON_JOBS.find((j) => j.name === "onbid-web-critical");
+    expect(job).toMatchObject({ group: "web-critical", kind: "sql", schedule: "2-57/5 * * * *", sql: "select public.web_critical_tick()" });
+    expect(selectedJobs({ includeWeb: true }).some((j) => j.name === "onbid-web-critical"), "--web만으로는 등록되지 않는다").toBe(false);
+    expect(selectedJobs({ includeWeb: false, includeCritical: true }).map((j) => j.name)).toEqual(["onbid-daily-check", "onbid-schedule-missed", "onbid-web-critical"]);
+    const sql = buildRegisterStatements({ includeWeb: false, includeCritical: true, cronSecret: SECRET, appUrl: URL }).filter((s) => s.includes("cron.schedule"));
+    expect(sql.some((s) => s.includes("onbid-web-critical") && s.includes("web_critical_tick"))).toBe(true);
+  });
+
+  it("5분 간격 :02 시작은 :07 기준 5·10·15·20·30분 간격의 모든 칸을 포함한다 (:07 제외 칸 포함)", () => {
+    const ticks = new Set<number>();
+    for (let m = 2; m <= 57; m += 5) ticks.add(m);
+    for (const interval of [5, 10, 15, 20, 30]) for (let m = 7 + interval; m < 67; m += interval) expect(ticks.has(m % 60), `간격 ${interval}분의 칸 :${m % 60}`).toBe(true);
+  });
+});
+
 describe("등록 범위", () => {
   const statements = (includeWeb: boolean) => buildRegisterStatements({ includeWeb, cronSecret: SECRET, appUrl: URL }).filter((s) => s.includes("cron.schedule"));
 
@@ -67,7 +84,9 @@ describe("해제 범위", () => {
     expect(web).toContain("onbid-web-retention");
     expect(web).not.toContain("onbid-daily-check");
     expect(web).not.toContain("onbid-schedule-missed");
-    expect(jobsToRemove({ scope: "web" }).map((j) => j.group)).toEqual(["web", "web", "web", "web"]);
+    expect(web).toContain("onbid-web-critical"); // 촉진 점검 작업도 웹 작업과 함께 해제된다
+    expect(all).toContain("onbid-web-critical");
+    expect(jobsToRemove({ scope: "web" }).map((j) => j.group)).toEqual(["web", "web", "web", "web", "web-critical"]);
   });
 });
 

@@ -4,6 +4,7 @@
 //   confirm : 원래 정시 실행의 대상을 다시 점검(trigger='retry')하고, 그 결과로 원래 칸의 확정 판정을 낸다. 사건이 이미 열려 있으면 하지 않고 취소한다.
 //   replace : 다른 실행 때문에 막힌 정시 점검을 같은 정시 칸으로 대신 실행한다(trigger='scheduled').
 // 응답에는 내부 정보(주소, 예외 문구, 설정값)를 담지 않는다(SEC-11). 처리 개수만 알린다.
+import { criticalNowOf } from "./critical";
 import { bearerToken, sameSecret } from "@/lib/schedule/cron-check";
 import type { WebRunInput, WebRunReport } from "./runner";
 import type { WebTarget } from "./schema";
@@ -126,6 +127,7 @@ async function processOne(row: ClaimedRetry, prepared: Awaited<ReturnType<WebRet
       startedAt,
       settings,
       store: transitionStore,
+      criticalNow: criticalNowOf(settings, startedAt),
     });
     return applied.claimedKeys ?? [];
   } catch {

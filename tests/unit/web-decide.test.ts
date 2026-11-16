@@ -53,6 +53,7 @@ class Sim {
       this.deferred += 1;
       return res;
     }
+    if (res.kind === "ignore") return res; // 촉진 점검의 무시 결과: 상태·알림 변화 없음
     if (res.kind === "planned") this.planned += 1;
     const d = res.decision;
     this.state = { ...d.state, version: (this.version ?? 0) + 1 };
@@ -80,7 +81,7 @@ class Sim {
     return this.sent.map((s) => s.key);
   }
 }
-const tr = (r: DecideResult) => (r.kind === "defer" ? null : r.decision);
+const tr = (r: DecideResult) => (r.kind === "defer" || r.kind === "ignore" ? null : r.decision);
 
 describe("재확인 필요 여부 (FR-4)", () => {
   it("정시 점검 실패 + 열린 사건 없음 → 상태·알림 변화 없이 재확인을 요구한다", () => {

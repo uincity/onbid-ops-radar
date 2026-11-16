@@ -79,7 +79,7 @@ pg_cron (매시 :07)  →  POST /api/cron/web-check  →  runWebCheck
 
 ## 4. 웹 전용 설정
 
-`web_settings` 테이블의 20개 항목(예: 타임아웃 `web_http_timeout_ms`, 느림 기준 `web_http_slow_ms`, 실행 시간 제한 `web_run_time_limit_seconds`, 켜고 끄는 `web_monitor_enabled`)입니다. 코드는 숫자를 직접 쓰지 않고 `loadWebSettings()`로 읽습니다. 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 점검하지 않습니다(입구가 503으로 답함).
+`web_settings` 테이블의 24개 항목(예: 타임아웃 `web_http_timeout_ms`, 느림 기준 `web_http_slow_ms`, 실행 시간 제한 `web_run_time_limit_seconds`, 켜고 끄는 `web_monitor_enabled`)입니다. 코드는 숫자를 직접 쓰지 않고 `loadWebSettings()`로 읽습니다. 읽지 못하거나 규칙에 어긋나면 기본값으로 대신하지 않고 점검하지 않습니다(입구가 503으로 답함).
 값을 바꾸는 방법은 SQL(서버 관리)뿐이며 화면은 없습니다. 항목 규칙을 바꾸면 DB와 코드(`lib/web-monitor/settings.ts`)를 함께 고치고 `tests/unit/web-settings-drift.test.ts`가 통과해야 합니다.
 
 ## 5. 켜고 끄기
@@ -91,6 +91,23 @@ pg_cron (매시 :07)  →  POST /api/cron/web-check  →  runWebCheck
 | 스케줄 등록 | 위 명령에 `--apply` 추가 (OpenAPI 작업 2개 + 웹 작업 3개: `onbid-web-check`, `onbid-web-retry`, `onbid-web-heartbeat`) |
 | 웹 스케줄만 해제 | `npm run setup:cron -- --remove-web --apply` |
 | 모든 Cron 해제 | `npm run setup:cron -- --remove --apply` |
+
+### 핵심 시간대 촉진 점검 (W26)
+
+입찰 마감·제출·개찰이 몰리는 **평일 KST 09~11시·14~18시**에만 정시 점검(매시 :07) 사이사이에 **10분 간격으로 추가 점검**(:17·:27·:37·:47·:57)을 돌려 장애를 더 빨리 알아챕니다. 하루 추가 30회(정시 포함 36회)입니다. 기본은 **꺼짐**입니다.
+
+| 하고 싶은 것 | 방법 |
+|---|---|
+| 스케줄 등록(처음 한 번) | `npm run setup:cron -- --app-url https://배포주소 --web-critical` 로 미리 보기 → `--apply` 추가. 5분마다 DB 함수 `web_critical_tick()`만 돌고, **켜기 전에는 앱을 부르지 않습니다** |
+| 켜기 | `web_settings`의 `web_critical_enabled`를 `true`로 (SQL) |
+| 끄기(롤백) | `web_critical_enabled`를 `false`로. 정시 점검에는 영향이 없습니다 |
+| 시간대·간격 바꾸기 | `web_critical_hours`(예 `"09-11,14-18"`, KST 시 단위, 끝 시각 미포함), `web_critical_interval_min`(5·10·15·20·30), `web_critical_ongoing_min`(핵심 시간대 장애 지속 알림 간격, 기본 60분) |
+| 스케줄 해제 | `--remove-web --apply`(웹 작업 전부와 함께 해제) |
+
+- 촉진 점검은 **24칸 띠와 일일 가용률에 들어가지 않습니다.** 장애 확정(실패 → 90초 뒤 재확인 → 실패)과 복구(정상)에만 쓰고, 저하·확인 불가·인증서·보조 이상은 정시 점검만 셉니다. 이력 화면에는 구분 "촉진"으로 보입니다.
+- 핵심 시간대의 장애·복구·지속 알림은 맨 앞에 「🚨 핵심 시간대(입찰 임박)」가 붙습니다. 보고서 9장에는 **핵심 시간대 가용률**이 따로 나옵니다(정시+촉진 점검).
+- 최악의 탐지 지연은 약 12~13분입니다(즉시가 아님). 촉진 점검이 멈춰도 자체 감시(정지 알림)는 울리지 않습니다(정시 점검이 살아 있으면 감시는 유지).
+- 켜기 전 확인: 마이그레이션 반영 → 코드 배포(`:05~:12`·핵심 시간대 피해서) → 크론 등록 → `web_critical_enabled=true`.
 
 등록 순서: ① 배포해서 `/api/cron/web-check`이 올라가 있는지 → ② `--web` 미리 보기 → ③ `--apply`. 배포주소는 경로 없이 `https://도메인` 형식의 **고정 주소**를 씁니다.
 

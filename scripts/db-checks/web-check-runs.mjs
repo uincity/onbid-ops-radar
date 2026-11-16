@@ -8,7 +8,7 @@ export async function run(ctx) {
 
   await checkReadOnlyTable(
     "web_check_runs",
-    ["id", "target_key", "trigger", "slot_at", "status", "started_at", "finished_at", "origin_run_id", "triggered_by", "request_count", "overall_verdict", "confirmed_verdict", "flap", "planned_maintenance"],
+    ["id", "target_key", "trigger", "slot_at", "critical_slot_at", "status", "started_at", "finished_at", "origin_run_id", "triggered_by", "request_count", "overall_verdict", "confirmed_verdict", "flap", "planned_maintenance"],
     { target_key: "onbid-home", trigger: "manual" },
   );
   await checkReadOnlyTable(
