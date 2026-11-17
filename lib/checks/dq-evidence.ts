@@ -11,7 +11,7 @@ const NOTE = "데이터 품질 의심 건입니다. 담당자가 확인하기 �
 export function buildSchemaEvidence(apiId: string, operationId: string, issue: SchemaIssue): BuiltEvidence {
   const key = `${apiId}/${operationId}`;
   return {
-    evidence: { rule: "DQ_SCHEMA", apiId, operationId, missingFields: issue.missing, typeWarnings: issue.typeWarnings, inspected: issue.inspected, note: NOTE },
+    evidence: { rule: "DQ_SCHEMA", apiId, operationId, missingFields: issue.missing, typeWarnings: issue.typeWarnings, typeIssues: issue.typeIssues ?? [], inspected: issue.inspected, note: NOTE },
     // 검사한 건수·빠진 건수는 점검마다 달라지므로 지문에는 "어떤 항목이 빠졌나"와 자료형 경고 유무만 넣는다
     valueHash: sha256(`DQ_SCHEMA|${key}|${issue.missing.map((m) => m.field).join(",")}|${issue.typeWarnings > 0}`),
   };

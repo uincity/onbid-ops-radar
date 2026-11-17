@@ -14,7 +14,21 @@ export type SchemaCheckResult = {
   inspected: number; // 검사한 응답 항목(레코드) 수
   problems: SchemaProblem[]; // 필수 항목이 빠진 경우
   warnings: number; // 자료형이 이상한 값의 수 (DEGRADED 후보)
+  typeIssues?: TypeIssue[]; // 자료형이 어긋난 항목의 상세(항목 이름·명세 자료형·실제 모양). 값 원문은 담지 않는다
 };
+
+// 자료형 경고의 상세. "실제 모양"은 값의 종류만 적는다(예: string(길이 3)). 값 원문은 개인정보 위험 때문에 남기지 않는다.
+export type TypeIssue = { field: string; expected: string; actual: string; count: number };
+
+const MAX_TYPE_ISSUES = 20;
+
+// 값의 모양만 설명한다 (원문 없음)
+export function describeShape(value: unknown): string {
+  if (Array.isArray(value)) return `array(길이 ${value.length})`;
+  if (value === null) return "null";
+  if (typeof value === "string") return `string(길이 ${value.length})`;
+  return typeof value; // number·boolean·object
+}
 
 // 명세서의 설명으로 "필수(1)로 적혀 있어도 실제로는 없을 수 있다"고 확인된 항목. 필수로 가정하지 않는다.
 // 근거는 항목마다 명세서 문구를 적는다. 근거 없이 추가하지 않는다.
@@ -43,16 +57,25 @@ export function checkResponseSchema(items: readonly Record<string, unknown>[], f
   const required = fields.filter((f) => f.required && !(f.name in CONDITIONALLY_ABSENT_FIELDS));
   const missingCount = new Map<string, number>();
   let warnings = 0;
+  const typeIssues = new Map<string, TypeIssue>(); // 항목+실제 모양별로 묶는다
 
   for (const item of inspected) {
     for (const f of required) {
       if (!(f.name in item) || item[f.name] === undefined) missingCount.set(f.name, (missingCount.get(f.name) ?? 0) + 1);
     }
-    for (const f of fields) if (f.name in item && typeWarning(f.type, item[f.name])) warnings += 1;
+    for (const f of fields) {
+      if (!(f.name in item) || !typeWarning(f.type, item[f.name])) continue;
+      warnings += 1;
+      const actual = describeShape(item[f.name]);
+      const k = `${f.name}|${actual}`;
+      const cur = typeIssues.get(k);
+      if (cur) cur.count += 1;
+      else if (typeIssues.size < MAX_TYPE_ISSUES) typeIssues.set(k, { field: f.name, expected: f.type, actual, count: 1 });
+    }
   }
 
   const problems: SchemaProblem[] = [...missingCount.entries()].map(([field, count]) => ({ code: "MISSING_REQUIRED_FIELD", field, count }));
-  return { checked: true, ok: problems.length === 0, inspected: inspected.length, problems, warnings };
+  return { checked: true, ok: problems.length === 0, inspected: inspected.length, problems, warnings, typeIssues: [...typeIssues.values()] };
 }
 
 // 한 조회가 여러 번 호출한 결과(PUBLIC 상세)를 하나로 합친다: 검사한 것 중 하나라도 필수 항목이 빠졌으면 ok가 아니다
@@ -62,11 +85,20 @@ export function mergeSchemaChecks(results: readonly (SchemaCheckResult | null | 
   const counts = new Map<string, number>();
   for (const r of checked) for (const p of r.problems) counts.set(p.field, (counts.get(p.field) ?? 0) + p.count);
   const problems: SchemaProblem[] = [...counts.entries()].map(([field, count]) => ({ code: "MISSING_REQUIRED_FIELD", field, count }));
+  const merged = new Map<string, TypeIssue>();
+  for (const r of checked)
+    for (const t of r.typeIssues ?? []) {
+      const k = `${t.field}|${t.actual}`;
+      const cur = merged.get(k);
+      if (cur) cur.count += t.count;
+      else if (merged.size < MAX_TYPE_ISSUES) merged.set(k, { ...t });
+    }
   return {
     checked: true,
     ok: problems.length === 0,
     inspected: checked.reduce((n, r) => n + r.inspected, 0),
     problems,
     warnings: checked.reduce((n, r) => n + r.warnings, 0),
+    typeIssues: [...merged.values()],
   };
 }

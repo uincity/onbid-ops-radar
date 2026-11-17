@@ -4,10 +4,10 @@
 //  - DQ_CROSS_API_REF   : 공식적으로 연결되는 API 사이에서, 자식이 가리키는 부모 식별값이 부모 목록에 없음
 // DQ_REQUIRED는 기존 필수정보 판정(detectRequiredField)을 PUBLIC에서 새 이름으로 쓰므로 여기서 다시 만들지 않는다.
 // 오탐 통제: 호출 실패·상세 0건·선택 필드 추가·조건부 필드는 판정하지 않는다 (PRD 5-2A 금지 판단).
-import type { SchemaCheckResult } from "@/lib/checks/probe/schema-check";
+import type { SchemaCheckResult, TypeIssue } from "@/lib/checks/probe/schema-check";
 
 // ── DQ_SCHEMA ──
-export type SchemaIssue = { missing: { field: string; count: number }[]; typeWarnings: number; inspected: number };
+export type SchemaIssue = { missing: { field: string; count: number }[]; typeWarnings: number; typeIssues?: TypeIssue[]; inspected: number };
 
 // 필수 항목이 빠졌거나 자료형 경고가 있으면 의심으로 돌려준다. 검사한 항목이 없으면(호출 실패·0건) 판정하지 않는다.
 export function detectSchemaIssue(schema: SchemaCheckResult | null | undefined): SchemaIssue | null {
@@ -16,6 +16,7 @@ export function detectSchemaIssue(schema: SchemaCheckResult | null | undefined):
   return {
     missing: schema.problems.map((p) => ({ field: p.field, count: p.count })).sort((a, b) => a.field.localeCompare(b.field)),
     typeWarnings: schema.warnings,
+    typeIssues: schema.typeIssues ?? [],
     inspected: schema.inspected,
   };
 }
