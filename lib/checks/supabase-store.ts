@@ -64,7 +64,7 @@ export function createSupabaseCheckStore(supabase: SupabaseClient): CheckStore {
         http_status: p.httpStatus,
         duration_ms: p.durationMs,
         record_count: p.recordCount,
-        schema_summary: p.schema ? { checked: p.schema.checked, ok: p.schema.ok, inspected: p.schema.inspected, warnings: p.schema.warnings, problems: p.schema.problems.slice(0, 20).map((x) => ({ field: x.field, count: x.count })) } : null,
+        schema_summary: p.schema ? { checked: p.schema.checked, ok: p.schema.ok, inspected: p.schema.inspected, warnings: p.schema.warnings, problems: p.schema.problems.slice(0, 20).map((x) => ({ field: x.field, count: x.count })), typeIssues: (p.schema.typeIssues ?? []).slice(0, 20) } : null,
         request_summary: p.requestSummary,
       });
       if (error) fail("점검 판정을 기록하지 못했습니다");

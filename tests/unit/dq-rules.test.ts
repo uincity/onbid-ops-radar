@@ -16,7 +16,7 @@ describe("detectSchemaIssue (DQ_SCHEMA)", () => {
   });
   it("필수 항목 누락은 의심 (한 칸 밖: 1건 누락)", () => {
     const issue = detectSchemaIssue(schema({ ok: false, problems: [missing("pbctNo", 1)] }));
-    expect(issue).toEqual({ missing: [{ field: "pbctNo", count: 1 }], typeWarnings: 0, inspected: 5 });
+    expect(issue).toEqual({ missing: [{ field: "pbctNo", count: 1 }], typeWarnings: 0, typeIssues: [], inspected: 5 });
   });
   it("자료형 경고만 있어도 의심 (한 칸 밖: 경고 1건)", () => {
     expect(detectSchemaIssue(schema({ warnings: 1 }))?.typeWarnings).toBe(1);

@@ -17,7 +17,7 @@ function fullItem(op: typeof listOp, over: Record<string, unknown> = {}): Record
 describe("응답 구조 확인 (필수 응답 항목·자료형)", () => {
   it("명세의 필수 항목이 모두 있으면 ok (선택 항목이 없거나 늘어나도 정상)", () => {
     const r = checkResponseSchema([fullItem(listOp), fullItem(listOp, { someNewField: "추가된 선택 필드" })], listOp.responseFields);
-    expect(r).toEqual({ checked: true, ok: true, inspected: 2, problems: [], warnings: 0 });
+    expect(r).toEqual({ checked: true, ok: true, inspected: 2, problems: [], warnings: 0, typeIssues: [] });
   });
 
   it("필수 항목이 빠지면 ok가 아니고, 어느 항목이 몇 건에서 빠졌는지 알려 준다", () => {
